@@ -111,7 +111,13 @@ remain open, with top rails, midrails and posts along the remaining edges.
 ## City residents
 
 One hundred named artificial residents share the streets, lantern courts, gardens
-and south arrival court. Forty-four start distributed over city routes; others
+and south arrival court: fifty use the original male silhouette and fifty use a
+female silhouette with broader hips and a narrow-waisted torso outline. Body
+profiles stay with each identity through indoor visits and are distributed
+across all jobs and colors. Both use the same gait, collision and two mesh
+batches; the female outline adds four instanced rods.
+
+Forty-four start distributed over city routes; others
 begin indoors with staggered departures. Up to 64 can be outdoors at once. After
 several errands or pauses, residents walk into one of 22 building lobbies and
 spend time indoors before returning. A rotating scheduler, doorway leases, local

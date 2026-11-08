@@ -72,11 +72,18 @@ static func all(count: int = 100) -> Array[Dictionary]:
 		var n := people.size()-PEOPLE.size()
 		people.append([given[n%given.size()]+" "+family[n/given.size()], ["resident","courier","lamp tender","gardener"][n%4],attitudes[n%attitudes.size()],stops[n%stops.size()],stops[(n+3)%stops.size()],stops[(n+7)%stops.size()]])
 	people.resize(count)
+	# Balanced pairs keep existing identities stable when the roster grows.
+	# Use a separate seed so appearance never consumes gameplay/population RNG.
+	var body_rng := RandomNumberGenerator.new()
+	body_rng.seed = 731942
+	var female_first := false
 	for i in range(people.size()):
 		var row: Array = people[i]
+		if i%2==0: female_first = body_rng.randi_range(0,1)==1
+		var female := female_first if i%2==0 else not female_first
 		# Reciprocal pairs meet; the next pair links every pair into one social graph.
 		var partner := i+1 if i%2==0 else i-1
-		result.append({"id":StringName(row[0].to_lower()),"name":row[0],"role":row[1],"attitude":row[2],
+		result.append({"id":StringName(row[0].to_lower()),"name":row[0],"role":row[1],"attitude":row[2],"body_profile":&"female" if female else &"male",
 			"home":StringName(row[3]),"routine":[StringName(row[4]),StringName(row[5]),StringName(row[3])],
 			"contacts":[StringName(people[partner%people.size()][0].to_lower()),StringName(people[(i+2)%people.size()][0].to_lower())],
 			"meeting":StringName(people[(i/2)*2][3])})

@@ -62,6 +62,7 @@ func _ready() -> void:
 	add_child(shape)
 	body_shape = shape
 	visual = Visual.new()
+	visual.body_profile = profile.get("body_profile",&"male")
 	var index: int = profile.serial
 	visual.stature = 0.96+float(index%4)*0.025
 	visual.tint = profile.tint

@@ -13,8 +13,15 @@ func check(ok: bool, label: String) -> void:
 func _initialize() -> void: call_deferred("run")
 
 func run() -> void:
+	for body_profile: StringName in [&"male",&"female"]: verify_body(body_profile)
+	print("RESIDENT FACING: ",failures," failures")
+	await process_frame
+	quit(1 if failures else 0)
+
+func verify_body(body_profile: StringName) -> void:
+	print("BODY PROFILE: ",body_profile)
 	var resident = Resident.new()
-	resident.profile = {"name":"Facing probe","serial":0,"tint":Color.CYAN,"color_name":"cyan","role":"resident","home":&"plaza_w"}
+	resident.profile = {"name":"Facing probe","serial":0,"tint":Color.CYAN,"color_name":"cyan","role":"resident","home":&"plaza_w","body_profile":body_profile}
 	root.add_child(resident)
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	var visual: Node3D = resident.visual
@@ -62,7 +69,4 @@ func run() -> void:
 	check(swing_ok and stance_ok,"Swing foot advances and support foot recedes relative to the body")
 	check(arms_ok,"Arms counter-swing against their matching legs")
 	check(shoulders_ok,"Shoulder bars retain their full width")
-	print("RESIDENT FACING: ",failures," failures")
 	resident.queue_free()
-	await process_frame
-	quit(1 if failures else 0)

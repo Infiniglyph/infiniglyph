@@ -10,6 +10,7 @@ var phase := 0.0
 var clock := 0.0
 var walking := 0.0
 var stature := 1.0
+var body_profile: StringName = &"male"
 var tint := Color(0.12,0.82,0.9)
 
 func batch(mesh: Mesh, count: int, ink: Material) -> MultiMesh:
@@ -37,7 +38,7 @@ func _ready() -> void:
 		joint_mesh.radial_segments = 8
 		joint_mesh.rings = 4
 	var ink := Neon.material(tint)
-	rods = batch(rod_mesh,11,ink)
+	rods = batch(rod_mesh,15 if body_profile==&"female" else 11,ink)
 	joints = batch(joint_mesh,12,ink)
 	scale = Vector3.ONE*stature
 	animate(0.01,0,false)
@@ -66,17 +67,27 @@ func animate(delta: float, speed: float, gesturing: bool) -> void:
 	var sway := sin(phase)*walking
 	var pelvis := Vector3(sway*0.018,0.945-absf(sway)*0.018+sin(clock*1.6)*0.004,0)
 	var chest := pelvis+Vector3(-sway*0.012,0.51,walking*0.045)
+	var hip_width := 0.18 if body_profile==&"female" else 0.125
 	segment(0,pelvis,chest,0.037)
-	segment(1,pelvis+Vector3(-0.125,0,0),pelvis+Vector3(0.125,0,0))
+	segment(1,pelvis+Vector3(-hip_width,0,0),pelvis+Vector3(hip_width,0,0))
 	segment(2,chest+Vector3(-0.23,0,0),chest+Vector3(0.23,0,0))
+	if body_profile==&"female":
+		# A narrow waist between the shared shoulder line and broader hips.
+		# Keep these in the rod batch so the silhouette adds no draw calls.
+		var waist := pelvis.lerp(chest,0.48)
+		for i in range(2):
+			var side := -1.0 if i==0 else 1.0
+			var waist_edge := waist+Vector3(side*0.075,0,0)
+			segment(11+i*2,chest+Vector3(side*0.23,0,0),waist_edge,0.023)
+			segment(12+i*2,waist_edge,pelvis+Vector3(side*hip_width,0,0),0.023)
 	dot_at(0,chest+Vector3(0,0.26,0),0.128)
 	dot_at(1,pelvis,0.05)
 	for i in range(2):
 		var side := -1.0 if i==0 else 1.0
 		var cycle: float = phase+(0.0 if i==0 else PI)
 		var stride := sin(cycle)*walking
-		var hip := pelvis+Vector3(side*0.125,0,0)
-		var foot := Vector3(side*0.14,0.052+maxf(0,cos(cycle))*0.055*walking,stride*0.24)
+		var hip := pelvis+Vector3(side*hip_width,0,0)
+		var foot := Vector3(side*(hip_width+0.015),0.052+maxf(0,cos(cycle))*0.055*walking,stride*0.24)
 		var knee := knee_between(hip,foot)
 		segment(3+i*2,hip,knee)
 		segment(4+i*2,knee,foot)
