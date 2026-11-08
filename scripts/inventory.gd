@@ -1,0 +1,158 @@
+extends Node
+## Event-driven owned data. Transfers are validated by the session loot service.
+const Catalog = preload("res://scripts/item_catalog.gd")
+const Instance = preload("res://scripts/item_instance.gd")
+const SLOTS: Array[StringName] = [&"down",&"left",&"right",&"up"]
+const MAX_ITEMS := 4096
+signal changed
+signal equipment_changed
+@export var owner_id := "local"
+var actor: Node3D
+var items: Dictionary = {}
+var equipment: Dictionary = {}
+var _seeded := false
+
+func seed_starter() -> void:
+	# A valid empty save represents real losses, never a reason to mint gear.
+	if _seeded: return
+	_seeded = true
+	if not items.is_empty() or not equipment.is_empty(): return
+	for slot: StringName in SLOTS:
+		var id: StringName = {&"down":&"sword_shield",&"left":&"spear",&"right":&"katana",&"up":&"twin_blades"}[slot]
+		var item: Resource = Catalog.create(id)
+		item.owner_id = owner_id
+		items[item.instance_id] = item
+		equipment[slot] = item.instance_id
+	equipment_changed.emit()
+	changed.emit()
+
+func get_item(iid: String) -> Resource:
+	return items.get(iid)
+
+func add_item(item: Resource) -> bool:
+	if item == null or not item.has_method("is_valid") or not item.is_valid() or not Instance.valid_text(owner_id): return false
+	if items.has(item.instance_id) or (not item.owner_id.is_empty() and item.owner_id != owner_id): return false
+	var definition: Resource = Catalog.get_definition(item.item_type_id)
+	var remaining: int = item.quantity
+	var merges: Array[Dictionary] = []
+	if definition.max_stack>1:
+		for existing: Resource in items.values():
+			if existing.item_type_id != item.item_type_id or existing.upgrade_level != item.upgrade_level or not Instance.same_properties(existing.custom_properties,item.custom_properties): continue
+			if not existing.is_valid() or existing.owner_id != owner_id: return false
+			var amount := mini(remaining,definition.max_stack-existing.quantity)
+			if amount>0:
+				merges.append({"item":existing,"amount":amount})
+				remaining -= amount
+			if remaining == 0: break
+	if remaining>0 and items.size()>=MAX_ITEMS: return false
+	for merge: Dictionary in merges: merge.item.quantity += merge.amount
+	# A fully absorbed stack is consumed, so the same Resource cannot be
+	# accidentally submitted twice. Unique equipment always keeps its ID.
+	item.quantity = remaining
+	item.owner_id = owner_id
+	if remaining>0: items[item.instance_id] = item
+	changed.emit()
+	return true
+
+func take_item(iid: String, qty: int = 1) -> Resource:
+	var item: Resource = get_item(iid)
+	if item == null or not item.is_valid() or item.owner_id != owner_id or qty<1 or qty>item.quantity: return null
+	var result: Resource
+	if qty == item.quantity:
+		result = item
+	else:
+		result = Catalog.create(item.item_type_id,qty)
+		result.upgrade_level = item.upgrade_level
+		result.custom_properties = item.custom_properties.duplicate(true)
+	var unequipped := false
+	for slot: StringName in equipment.keys():
+		if equipment[slot] == iid:
+			equipment.erase(slot)
+			unequipped = true
+	if qty == item.quantity: items.erase(iid)
+	else: item.quantity -= qty
+	result.owner_id = ""
+	if unequipped: equipment_changed.emit()
+	changed.emit()
+	return result
+
+func equipped_item(slot: StringName) -> Resource:
+	return get_item(equipment.get(slot,""))
+
+func assign(slot: StringName, iid: String) -> bool:
+	if not slot in SLOTS: return false
+	var item: Resource = get_item(iid)
+	if item == null or not item.is_valid() or item.owner_id != owner_id: return false
+	var definition: Resource = Catalog.get_definition(item.item_type_id)
+	if definition.category != &"weapons" or not definition.is_equippable or not StringName(definition.custom_properties.get("weapon_slot","")) in SLOTS: return false
+	if equipment.get(slot,"") == iid: return true
+	for existing: StringName in equipment.keys():
+		if equipment[existing] == iid: equipment.erase(existing)
+	equipment[slot] = iid
+	equipment_changed.emit()
+	changed.emit()
+	return true
+
+func unequip(slot: StringName) -> bool:
+	if not slot in SLOTS or not equipment.has(slot): return false
+	equipment.erase(slot)
+	equipment_changed.emit()
+	changed.emit()
+	return true
+
+func weapon_slot(slot: StringName) -> StringName:
+	var item: Resource = equipped_item(slot)
+	if item == null or item.owner_id != owner_id: return &""
+	var definition: Resource = Catalog.get_definition(item.item_type_id)
+	return StringName(definition.custom_properties.get("weapon_slot","")) if definition != null else &""
+
+func eligible_equipped() -> Array:
+	var result: Array[String] = []
+	for slot: StringName in SLOTS:
+		var item: Resource = equipped_item(slot)
+		if item == null or not item.is_valid() or item.owner_id != owner_id or result.has(item.instance_id): continue
+		var definition: Resource = Catalog.get_definition(item.item_type_id)
+		if definition.is_equippable and definition.is_droppable and definition.is_tradeable: result.append(item.instance_id)
+	return result
+
+func serialize() -> Dictionary:
+	if not Instance.valid_text(owner_id) or items.size()>MAX_ITEMS: return {}
+	var entries: Array[Dictionary] = []
+	for iid: String in items:
+		var item: Resource = items[iid]
+		if item == null or item.instance_id != iid or item.owner_id != owner_id: return {}
+		var encoded: Dictionary = item.to_dict()
+		if encoded.is_empty(): return {}
+		entries.append(encoded)
+	var assignments: Dictionary = {}
+	for slot: StringName in equipment:
+		assignments[String(slot)] = equipment[slot]
+	return {"version":1,"owner_id":owner_id,"items":entries,"equipment":assignments}
+
+func restore(data: Variant) -> bool:
+	if not data is Dictionary or not Instance.whole_number(data.get("version"),1,1): return false
+	if not Instance.valid_text(data.get("owner_id")) or not data.get("items") is Array or not data.get("equipment") is Dictionary or data.items.size()>MAX_ITEMS: return false
+	var restored: Dictionary = {}
+	for entry: Variant in data.items:
+		var item: Resource = Instance.from_dict(entry)
+		if item == null or item.owner_id != String(data.owner_id) or restored.has(item.instance_id): return false
+		restored[item.instance_id] = item
+	var assignments: Dictionary = {}
+	var assigned: Dictionary = {}
+	for key: Variant in data.equipment:
+		if not Instance.valid_text(key): return false
+		var slot := StringName(key)
+		var iid: Variant = data.equipment[key]
+		if not slot in SLOTS or not Instance.valid_text(iid) or not restored.has(String(iid)) or assigned.has(String(iid)): return false
+		var item: Resource = restored[String(iid)]
+		var definition: Resource = Catalog.get_definition(item.item_type_id)
+		if definition.category != &"weapons" or not definition.is_equippable or not StringName(definition.custom_properties.get("weapon_slot","")) in SLOTS: return false
+		assignments[slot] = String(iid)
+		assigned[String(iid)] = true
+	owner_id = String(data.owner_id)
+	items = restored
+	equipment = assignments
+	_seeded = true
+	equipment_changed.emit()
+	changed.emit()
+	return true

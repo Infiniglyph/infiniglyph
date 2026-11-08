@@ -1,0 +1,28 @@
+.godot/
+*.log
+captures/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Local configuration, credentials and editor state.
+.env
+.env.*
+!.env.example
+.vscode/
+.idea/
+*.key
+*.pem
+export_credentials.cfg
+
+# Generated builds and recovery archives belong outside the source snapshot.
+builds/
+exports/
+backups/
+*.bundle
+*.zip
+*.tmp
+*.bak
+

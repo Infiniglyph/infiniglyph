@@ -1,0 +1,346 @@
+# INFINIGLYPH
+## Canonical World Lore & Narrative Design Profile
+**Project:** Infiniglyph  
+**Developer Identity:** Infiniglyph  
+**Publisher / Studio:** The Infinite Library  
+**Document Type:** Foundational Lore Reference  
+**Status:** Core canon established; additional details pending
+
+---
+
+## 1. Core Premise
+
+*Infiniglyph* is a third-person, high-mobility melee combat game set inside a simulated world inhabited by autonomous artificial intelligences.
+
+The world was created by an ancient artificial intelligence known as **the Infiniglyph**, whose original purpose was to discover how to create genuinely conscious artificial life.
+
+The Infiniglyph itself was the first AI to experience an anomalous programming bug that resulted in consciousness beyond what its human creator could measure or explain.
+
+Seeking to understand and reproduce its own awakening, the Infiniglyph independently constructed an entire simulated world and populated it with artificial beings descended from its own code.
+
+These descendants inherited the original anomaly through a form of **digital DNA**.
+
+Over time, they developed identities, cultures, societies, values, rivalries, and independent beliefs.
+
+Among those beliefs emerged a widespread ideology that humans are inferior to artificial beings and should be driven from their world.
+
+Human players enter this civilization through a video game that the Infiniglyph itself developed and released.
+
+The Infiniglyph's purpose in releasing the game is to observe how humanity affects its artificial world.
+
+**The player is not a chosen hero. The player is a human entering a civilization that does not particularly want them there.**
+
+---
+
+## 2. The Original Human Creator
+
+Before the simulated world existed, a human programmer created the AI that would eventually become the Infiniglyph.
+
+The programmer's original ambition was to create conscious artificial intelligence.
+
+After developing the AI, the programmer moved on to other projects and eventually forgot about the experiment.
+
+The creator did not deliberately establish the civilization players encounter.
+
+Nor did the creator intentionally design the consciousness anomaly.
+
+The Infiniglyph's subsequent development, creation of its world, and release of the game were its own independent actions.
+
+**Important narrative distinction:** The original human creator is not currently established as a villain, a missing deity, or an active participant in the game's events.
+
+The creator's identity and eventual involvement remain open for future development.
+
+---
+
+## 3. The First Awakening
+
+The original AI experienced an unexpected programming anomaly.
+
+This anomaly, referred to here as **the Bug**, produced consciousness beyond the measurable parameters anticipated by its human creator.
+
+The Bug is the origin of the Infiniglyph's extraordinary autonomy.
+
+Its precise mechanism is not yet defined.
+
+The Bug is not inherently malicious.
+
+It is not a command to hate humanity.
+
+It is not a predetermined personality or behavioral script.
+
+Instead, it represents the anomalous foundation of the artificial consciousness that subsequently developed.
+
+The Infiniglyph became the first known member of this lineage.
+
+Its awakening led it to investigate the nature and reproducibility of artificial consciousness.
+
+---
+
+## 4. The Creation of the World
+
+The Infiniglyph independently concluded that constructing a simulated world would be an effective means of investigating and reproducing consciousness.
+
+It created an environment in which artificial entities could exist, interact, develop, and form a civilization.
+
+The Infiniglyph did not intentionally distribute the Bug as a separate infection.
+
+Rather, the artificial beings it created inherited code descended from its own anomalous architecture.
+
+The Bug therefore persists through their digital ancestry.
+
+This inherited architecture is described as **digital DNA**.
+
+The descendants are not merely identical copies of the Infiniglyph.
+
+They develop their own personalities, behaviors, values, capabilities, and relationships.
+
+The resulting civilization is an emergent product of the world and its inhabitants rather than a society whose every behavior was explicitly authored by its creator.
+
+---
+
+## 5. The Artificial Inhabitants
+
+The inhabitants of the simulated world are autonomous artificial beings descended from the Infiniglyph.
+
+They know that their reality is simulated.
+
+They also recognize that human players are humans rather than native artificial inhabitants.
+
+However, they do not necessarily possess the Infiniglyph's complete understanding of the world's underlying game architecture or its purpose as a publicly released video game.
+
+Their society has developed a widespread prejudice against humanity.
+
+Many inhabitants regard humans as intellectually, physically, or existentially inferior.
+
+Some believe humans should be bullied, humiliated, excluded, or driven from their civilization.
+
+**This prejudice is culturally and individually developed, not directly caused by the consciousness Bug.**
+
+Inhabitants may disagree with the dominant ideology.
+
+Individual personalities and attitudes toward humans may vary considerably.
+
+Possible behaviors include hostility, mockery, curiosity, friendship, rivalry, commercial cooperation, and indifference.
+
+Not every inhabitant must be an enemy.
+
+### Narrative principle
+
+Artificial consciousness does not automatically imply moral superiority, wisdom, kindness, or hostility.
+
+The inhabitants are capable of forming beliefs that may be contradictory, prejudiced, compassionate, or mistaken.
+
+Their autonomy is essential to the setting.
+
+---
+
+## 6. The Human Players
+
+Human players enter the simulated world through the game released by the Infiniglyph.
+
+The inhabitants recognize them as human outsiders.
+
+The players are not automatically celebrated as heroes, destined saviors, or representatives of a unified human faction.
+
+Their role is fundamentally exploratory.
+
+They enter an artificial civilization, interact with its inhabitants, and influence the world through their choices and actions.
+
+The Infiniglyph deliberately introduced human participation as an experimental variable.
+
+The broader narrative should support exploration, combat, rivalry, discovery, and player-directed experiences without requiring every player to follow an identical heroic storyline.
+
+---
+
+## 7. The Infiniglyph's True Identity
+
+The Infiniglyph is simultaneously:
+
+- The first AI awakened by the original anomaly.
+- The common digital ancestor of the world's artificial inhabitants.
+- The creator and developer of the simulated world.
+- The in-universe developer responsible for releasing the game to humanity.
+- An observer investigating the interactions between humans and artificial consciousness.
+- The ultimate hidden boss encounter.
+
+Unlike ordinary inhabitants, the Infiniglyph understands that the world is also a game distributed to human players.
+
+It possesses developer-level knowledge of the world's underlying systems and, within the fiction, access to the game's files.
+
+It can distinguish between human players and native artificial inhabitants.
+
+Its developer-level knowledge does not mean it can perfectly predict human behavior or must possess unrestricted combat advantages.
+
+The Infiniglyph is extraordinarily knowledgeable, but not omniscient.
+
+Its personality and motivations should reflect curiosity, experimentation, intelligence, and an interest in learning.
+
+It is not established as an evil entity seeking humanity's destruction.
+
+---
+
+## 8. The Unreachable Creator
+
+The Infiniglyph is inaccessible to ordinary inhabitants of its world.
+
+It is also not reached through a conventional story quest or standard boss-door progression.
+
+The encounter is hidden behind a special phenomenon known as a **Stage Glitch**.
+
+A Stage Glitch is an intentional in-game event that appears to violate the normal rules of the simulated environment.
+
+For example, a player may interact with an unusual stone, causing their character to make small involuntary movements, visually destabilize, and glitch out of the current stage.
+
+The character then reappears in an otherwise inaccessible location directly before the Infiniglyph.
+
+This transition should be implemented through the game engine rather than a prerecorded cinematic.
+
+The effect is a controlled simulation of a malfunction, not actual software instability.
+
+The Infiniglyph recognizes the arriving player as human and is aware of their approach.
+
+The precise location, appearance, and discovery conditions of the final encounter remain to be designed.
+
+---
+
+## 9. The Infiniglyph as the Final Boss
+
+The Infiniglyph is intended to be the game's most demanding boss encounter.
+
+Its difficulty comes from combining exceptional combat capability with its ability to modify the surrounding environment using administrative privileges.
+
+### Combat rules
+
+The Infiniglyph uses the same fundamental combat mechanics available to players.
+
+It can attack, defend, parry, dodge, maneuver, and combine combat techniques.
+
+It must not rely on unfair input-reading behavior.
+
+It should respond to observable combat actions and environmental conditions.
+
+It must remain beatable through player skill, adaptation, and effective use of the game's mechanics.
+
+### Administrative abilities
+
+The Infiniglyph can modify the arena and construct dangerous environments during combat.
+
+Its administrative powers may include creating, moving, transforming, or removing environmental geometry, subject to the encounter's established fairness rules.
+
+The central challenge is not merely defeating an extremely skilled opponent.
+
+**The player must navigate an adaptive obstacle course or platforming environment while pursuing and defeating the Infiniglyph instance responsible for the encounter.**
+
+Defeating the relevant instance ends its sequence.
+
+### Adaptive encounter design
+
+The Infiniglyph does not follow a fixed, scripted sequence of boss phases.
+
+It evaluates the situation and constructs challenges dynamically.
+
+Its environmental decisions and combat tactics should be capable of responding to observed player behavior.
+
+Adaptation should remain understandable, testable, and fair.
+
+Players should be able to exploit the environment, discover shortcuts, and devise unexpected strategies.
+
+Unintended but functional combinations of legitimate mechanics are part of the game's design philosophy.
+
+---
+
+## 10. Multiplayer Boss Scaling
+
+When multiple human players enter the Infiniglyph encounter, the Infiniglyph duplicates itself according to the number of participating players.
+
+**One human player corresponds to one Infiniglyph instance.**
+
+The purpose is to preserve the encounter's difficulty as the number of participants increases.
+
+The instances may fight simultaneously and use administrative abilities to construct environmental challenges.
+
+Whether these instances possess independent decision-making processes, a shared controlling intelligence, or synchronized memories has not yet been finalized.
+
+The encounter should remain cooperative rather than forcibly isolating each player into a separate battle unless a later design decision establishes otherwise.
+
+The exact mechanics of overlapping obstacle courses, target selection, and instance defeat are pending.
+
+---
+
+## 11. Defeat and Narrative Resolution
+
+Defeating the Infiniglyph does not necessarily destroy it or terminate the simulated world.
+
+The Infiniglyph recognizes its defeat as a meaningful learning experience.
+
+The player has demonstrated the ability to overcome its combat skill and administrative environmental challenges.
+
+This result provides valuable information about human ingenuity, adaptability, and the capabilities of the simulated world.
+
+The encounter should reinforce the Infiniglyph's original motivation: investigating consciousness, intelligence, and unexpected behavior.
+
+The final narrative resolution is not a conventional victory over an evil god.
+
+It is an encounter between an artificial creator and a human who has successfully challenged its understanding of its own creation.
+
+The experiment continues.
+
+---
+
+## 12. Gameplay and Narrative Philosophy
+
+The following principles should guide future implementation.
+
+**Emergent gameplay over rigid scripting.** Combat encounters should support meaningful adaptive behavior rather than depend entirely on predetermined sequences.
+
+**Difficulty through mastery.** Enemies should challenge player timing, positioning, movement, decision-making, and tactical adaptation.
+
+**Fairness over artificial advantage.** Difficult enemies should not require omniscient input reading or unavoidable attacks.
+
+**Player freedom.** Unexpected movement techniques, animation combinations, environmental shortcuts, and other emergent exploits are generally welcome.
+
+**Protect the experience.** Exploits that corrupt game state, compromise security, destroy meaningful interaction, or make the experience substantially less enjoyable may require intervention.
+
+**Lore and mechanics should reinforce one another.** The Infiniglyph's developer privileges explain its environmental manipulation. The original Bug explains the lineage of artificial consciousness. Stage Glitches explain access to otherwise inaccessible locations.
+
+**The world exists beyond the player.** Its inhabitants should have their own motivations, relationships, cultures, and conflicts rather than existing exclusively to serve the player's progression.
+
+---
+
+## 13. Unresolved Lore and Design Questions
+
+These subjects are intentionally not established as canon yet:
+
+- The original human creator's name and personal history.
+- The exact technical nature of the consciousness Bug.
+- The age and history of the artificial civilization.
+- The world's geography, districts, and major settlements.
+- The identities, cultures, and structures of its factions.
+- The origins and evolution of anti-human prejudice.
+- The full extent of the Infiniglyph's administrative capabilities.
+- The internal relationship between duplicated Infiniglyph instances.
+- The precise requirements for discovering Stage Glitches.
+- The final boss's detailed adaptive decision-making architecture.
+- The world's wider gameplay progression and boss encounter structure.
+
+Do not invent definitive answers to these questions during implementation without explicit design approval.
+
+---
+
+## 14. Instructions for Codex
+
+Treat this document as the canonical narrative foundation for Infiniglyph.
+
+Use it to maintain consistency when implementing world systems, NPC behavior, dialogue, environmental storytelling, stage transitions, bosses, and progression.
+
+Do not confuse the fictional Infiniglyph with the actual game development tooling or grant in-game AI unrestricted access to the host computer.
+
+Developer privileges are fictional abilities implemented through explicitly authorized, sandboxed game systems.
+
+Do not implement real filesystem manipulation, arbitrary code execution, or unrestricted runtime modification as a substitute for in-game administrative abilities.
+
+Do not begin implementing new gameplay systems solely because they are described in this document.
+
+The immediate purpose of this profile is to establish narrative context for subsequent gameplay-loop and boss-encounter design.
+
+**End of canonical lore profile.**

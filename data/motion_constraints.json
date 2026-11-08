@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "description": "Authored game-animation constraints, not biomechanical measurements. Numeric context retrieval is blended by TED-RAG's existing constraint builder.",
+  "theory_source": "rag/seed_context/TED_RAG_ALPHA.md#fractal-constraint-handling",
+  "profiles": [
+    {"id":"rest", "description":"Quiet supported stance and gentle settling", "features":[0,0,0,1,0], "parameters":{"pitch_gain":0.85,"yaw_gain":0.8,"bank_gain":0.8,"sway_gain":0.8,"settle_gain":1.1}},
+    {"id":"walk", "description":"Upright low-speed walking with relaxed arms and sustained foot support", "features":[0.2,0,0,1,0], "parameters":{"pitch_gain":0.9,"yaw_gain":0.95,"bank_gain":0.9,"sway_gain":1.1,"settle_gain":1.05}},
+    {"id":"launch", "description":"Acceleration shifts weight forward with a small torso lead", "features":[0.35,1,0,1,0], "parameters":{"pitch_gain":1.3,"yaw_gain":1.15,"bank_gain":1.0,"sway_gain":0.95,"settle_gain":1.2}},
+    {"id":"cruise", "description":"Steady travel transfers support between feet", "features":[0.65,0,0,1,0], "parameters":{"pitch_gain":1.0,"yaw_gain":1.0,"bank_gain":1.0,"sway_gain":1.15,"settle_gain":1.0}},
+    {"id":"brake", "description":"Deceleration counters forward weight and settles the hips", "features":[0.35,-1,0,1,0], "parameters":{"pitch_gain":1.25,"yaw_gain":1.0,"bank_gain":1.0,"sway_gain":0.85,"settle_gain":1.25}},
+    {"id":"corner", "description":"Turning leads with the chest and banks toward lateral acceleration", "features":[0.65,0,1,1,0], "parameters":{"pitch_gain":0.95,"yaw_gain":1.35,"bank_gain":1.3,"sway_gain":0.9,"settle_gain":1.0}},
+    {"id":"air", "description":"Airborne posture keeps controlled torso and tucked knees", "features":[0.5,0,0,0,0], "parameters":{"pitch_gain":0.8,"yaw_gain":0.85,"bank_gain":0.75,"sway_gain":0.7,"settle_gain":1.0}},
+    {"id":"land", "description":"Landing absorbs the vertical impulse with soft hip compression", "features":[0.4,0,0,1,1], "parameters":{"pitch_gain":1.0,"yaw_gain":0.9,"bank_gain":0.85,"sway_gain":0.8,"settle_gain":1.4}},
+    {"id":"sprint", "description":"Sustained sprint keeps the forward posture and balanced hips", "features":[1,0,0,1,0], "motion":{"boost":1}, "parameters":{"pitch_gain":1.1,"yaw_gain":1.0,"bank_gain":1.05,"sway_gain":0.85,"settle_gain":1.1}},
+    {"id":"sprint_launch", "description":"Sprint acceleration leads with the torso", "features":[0.65,1,0,1,0], "motion":{"boost":1}, "parameters":{"pitch_gain":1.3,"yaw_gain":1.15,"bank_gain":1.0,"sway_gain":0.9,"settle_gain":1.15}},
+    {"id":"sprint_brake", "description":"Sprint braking counters the carried weight", "features":[0.65,-1,0,1,0], "motion":{"boost":1}, "parameters":{"pitch_gain":1.3,"yaw_gain":1.05,"bank_gain":1.0,"sway_gain":0.8,"settle_gain":1.3}},
+    {"id":"sprint_corner", "description":"Sprint cornering banks and leads the turn", "features":[1,0,1,1,0], "motion":{"boost":1}, "parameters":{"pitch_gain":1.0,"yaw_gain":1.35,"bank_gain":1.35,"sway_gain":0.9,"settle_gain":1.1}},
+    {"id":"ground_air", "description":"Release grounded support into aerial balance", "features":[0.65,0,0,0,0], "motion":{"transition":1}, "parameters":{"pitch_gain":0.9,"yaw_gain":1.0,"bank_gain":0.9,"sway_gain":0.8,"settle_gain":1.0}},
+    {"id":"sky_push", "description":"Directional aerial kick uses opposite arm and leg balance", "features":[0.5,0,0,0,0], "motion":{"propulsion":1}, "parameters":{"pitch_gain":1.15,"yaw_gain":1.2,"bank_gain":1.1,"sway_gain":1.15,"settle_gain":1.05}},
+    {"id":"sky_chain", "description":"Repeated aerial kicks preserve pose continuity and counterbalance", "features":[0.7,0,0,0,0], "motion":{"propulsion":1,"repetition":1}, "parameters":{"pitch_gain":1.1,"yaw_gain":1.15,"bank_gain":1.1,"sway_gain":1.25,"settle_gain":1.1}},
+    {"id":"air_reverse", "description":"Aerial reversal compensates for opposing momentum", "features":[0.7,-1,0,0,0], "motion":{"reversal":1}, "parameters":{"pitch_gain":1.25,"yaw_gain":1.3,"bank_gain":1.2,"sway_gain":1.1,"settle_gain":1.15}},
+    {"id":"sky_reverse", "description":"A kick against carried momentum transfers weight through the hips", "features":[0.7,-1,0,0,0], "motion":{"propulsion":1,"repetition":0.5,"reversal":1}, "parameters":{"pitch_gain":1.3,"yaw_gain":1.3,"bank_gain":1.2,"sway_gain":1.2,"settle_gain":1.15}},
+    {"id":"land_fast", "description":"High-speed landing absorbs the vertical impact without locking movement", "features":[0.5,0,0,1,1], "motion":{"impact":1}, "parameters":{"pitch_gain":1.1,"yaw_gain":1.0,"bank_gain":1.0,"sway_gain":0.85,"settle_gain":1.5}}
+  ]
+}

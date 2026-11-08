@@ -1,0 +1,29 @@
+config_version=5
+
+[application]
+config/name="Infiniglyph — The Neon City"
+run/main_scene="res://scenes/main.tscn"
+config/features=PackedStringArray("4.3", "GL Compatibility")
+
+[display]
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/stretch/mode="canvas_items"
+
+[input]
+
+system_menu_toggle={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"physical_keycode":4194305), Object(InputEventJoypadButton,"button_index":6)]
+}
+
+inventory_toggle={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"physical_keycode":66), Object(InputEventJoypadButton,"button_index":4)]
+}
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+environment/defaults/default_clear_color=Color(0.001, 0.003, 0.008, 1)
+
