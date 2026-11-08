@@ -61,19 +61,8 @@ func run() -> void:
 		world.player.position = view[3]
 		if paired:
 			for optimized: bool in [false,true]:
-				world.world_memory.set_process(optimized)
-				for cell: Dictionary in world.world_memory.cells.values():
-					for batch: MeshInstance3D in cell.batches: batch.hide()
-				for cell: Dictionary in world.world_memory.cells.values():
-					for source: MeshInstance3D in cell.sources: source.visible = not optimized
-				if optimized:
-					for cell: Dictionary in world.world_memory.cells.values():
-						for batch: MeshInstance3D in cell.batches: batch.show()
-				else:
-					for resident: CharacterBody3D in world.population.residents:
-						resident.render_relevant = true
-						resident.animation_interval = -1
-				await sample(view[0]+("_cache" if optimized else "_original"))
+				world.world_memory.set_attention_enabled(optimized)
+				await sample(view[0]+("_npc_attention" if optimized else "_full_updates"))
 		else: await sample(view[0])
 	world.population.hide()
 	world.population.set_physics_process(false)

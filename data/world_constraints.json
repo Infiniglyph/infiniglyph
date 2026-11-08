@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "description": "Authored rendering attention budgets. Never alter collision, simulation time, actor identity or combat permissions.",
+  "description": "Authored NPC pose-update budgets. Never alter city geometry, lighting, collision, simulation time, actor identity or combat permissions.",
   "profiles": [
     {"id":"explore","features":[0,0.3,0],"parameters":{"near_range":28,"mid_hz":20,"far_hz":10}},
     {"id":"travel","features":[1,0.3,0],"parameters":{"near_range":32,"mid_hz":18,"far_hz":8}},

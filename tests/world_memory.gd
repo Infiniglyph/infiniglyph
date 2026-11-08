@@ -17,13 +17,37 @@ func ticks(count: int) -> void:
 
 func _initialize() -> void: call_deferred("run")
 
-func elements(mesh: Mesh) -> int:
-	var total := 0
-	for surface in range(mesh.get_surface_count()):
-		var arrays := mesh.surface_get_arrays(surface)
-		var indices = arrays[Mesh.ARRAY_INDEX]
-		total += indices.size() if indices!=null and not indices.is_empty() else arrays[Mesh.ARRAY_VERTEX].size()
-	return total
+func district_state() -> Array:
+	var district: Node3D = world.get_node("CentralDistrict")
+	var result: Array = []
+	for mesh: MeshInstance3D in district.find_children("*","MeshInstance3D",true,false):
+		var state: Array = [mesh.global_transform,mesh.visible,mesh.cast_shadow,mesh.get_aabb()]
+		for surface in range(mesh.mesh.get_surface_count()):
+			state.append(mesh.mesh.surface_get_arrays(surface))
+			var material: Material = mesh.get_active_material(surface)
+			if material is StandardMaterial3D:
+				state.append([material.shading_mode,material.albedo_color,material.emission,material.cull_mode,material.roughness,material.metallic])
+		result.append(state)
+	for light: Light3D in district.find_children("*","Light3D",true,false):
+		result.append([light.global_transform,light.visible,light.light_color,light.light_energy,light.shadow_enabled,light.distance_fade_enabled,light.distance_fade_begin,light.distance_fade_shadow,light.distance_fade_length])
+	return result
+
+func make_world(attention: bool) -> void:
+	world = load("res://scenes/main.tscn").instantiate()
+	world.world_memory_enabled = attention
+	world.inventory_persistence_enabled = false
+	root.add_child(world)
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	world.population.population_seed = 1893
+	world.sparring_partner.visual.retrieval.enabled = false
+	if not attention: world.player.visual.retrieval.enabled = false
+	await ticks(25)
+
+func shot(label: String) -> void:
+	if not "--capture" in OS.get_cmdline_user_args(): return
+	await RenderingServer.frame_post_draw
+	DirAccess.make_dir_recursive_absolute("res://captures")
+	root.get_texture().get_image().save_png("res://captures/npc_attention_"+label+".png")
 
 func wait_world(retrieval: Node, profile: String) -> bool:
 	var deadline := Time.get_ticks_msec()+3000
@@ -34,41 +58,15 @@ func wait_world(retrieval: Node, profile: String) -> bool:
 	return false
 
 func run() -> void:
-	world = load("res://scenes/main.tscn").instantiate()
-	root.add_child(world)
-	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	world.population.population_seed = 1893
-	world.sparring_partner.visual.retrieval.enabled = false
-	await ticks(25)
+	await make_world(false)
+	var original_map := district_state()
+	world.queue_free()
+	await ticks(2)
+	await make_world(true)
 	var memory: Node3D = world.world_memory
-	check(memory.ready_for_queries and memory.cells.size()>20,"The physical city builds a spatial render cache")
-	print("WORLD CACHE: ",memory.source_count," source meshes, ",memory.batch_count," retained/compiled batches")
-	check(memory.batch_count<memory.source_count*0.85,"Static city presentation removes at least fifteen percent of mesh batches")
+	check(memory.ready_for_queries and memory.get_child_count()==0,"NPC attention creates no map meshes or lights")
+	check(district_state()==original_map,"NPC attention leaves original map geometry, visibility, materials, shadows and lights unchanged")
 	check(memory.residents.size()==100,"All resident identities remain in world memory")
-	var sources := 0
-	var batches := 0
-	var lost := 0
-	var source_elements := 0
-	var batch_elements := 0
-	var bounds_ok := true
-	for cell: Dictionary in memory.cells.values():
-		var rendered_bounds := AABB()
-		var first := true
-		for source: MeshInstance3D in cell.sources:
-			sources += 1
-			source_elements += elements(source.mesh)
-			if source.visible and not source in cell.batches: lost += 1
-		for batch: MeshInstance3D in cell.batches:
-			batches += 1
-			batch_elements += elements(batch.mesh)
-			var bounds := batch.global_transform*batch.get_aabb()
-			rendered_bounds = bounds if first else rendered_bounds.merge(bounds)
-			first = false
-			if not batch.visible or batch.mesh==null: lost += 1
-		bounds_ok = bounds_ok and rendered_bounds.position.is_equal_approx(cell.bounds.position) and rendered_bounds.end.is_equal_approx(cell.bounds.end)
-	check(sources==memory.source_count and batches==memory.batch_count and lost==0,"Every compiled source belongs to a retained visible cache batch")
-	check(source_elements==batch_elements and bounds_ok,"The render cache preserves all triangle/line elements and world-space bounds")
-	check(not memory.retrieve(Vector3(0,1,0),10).is_empty() and memory.retrieve(Vector3(10000,0,0),10).is_empty(),"Spatial retrieval selects only cells intersecting the requested neighborhood")
 	var camera := Camera3D.new()
 	root.add_child(camera)
 	camera.current = true
@@ -125,6 +123,20 @@ func run() -> void:
 	retrieval.enabled = false
 	await ticks(2)
 	check(retrieval.world_policy()==retrieval.WORLD_DEFAULTS,"Missing or disabled TED-RAG returns immediately to safe local budgets")
+	var stable := true
+	for view in [[Vector3(0,3,15),Vector3(0,2,-20)],[Vector3(0,4,-24),Vector3(0,14,-65)],[Vector3(0,70,32),Vector3(0,14,-30)],[Vector3(0,25,-64),Vector3(25,15,-64)]]:
+		camera.position = view[0]
+		camera.look_at(view[1])
+		await ticks(12)
+		stable = stable and district_state()==original_map
+		await shot(str(view[0].y))
+	check(stable,"Camera changes around the plaza, boulevard, skyways and tower never modify the map renderer")
+	memory.set_attention_enabled(false)
+	var full_updates := true
+	for resident: CharacterBody3D in world.population.residents:
+		full_updates = full_updates and resident.render_relevant and resident.animation_interval==-1
+	check(full_updates and district_state()==original_map,"Disabling NPC attention restores original pose scheduling without touching the map")
+	memory.set_attention_enabled(true)
 	world.start_menu.open_menu()
 	var before: float = world.population.elapsed
 	await ticks(30)

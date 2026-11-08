@@ -118,7 +118,6 @@ func _ready() -> void:
 	add_child(start_menu)
 	if world_memory_enabled:
 		world_memory = WorldMemory.new()
-		world_memory.district = get_node("CentralDistrict")
 		world_memory.population = population
 		world_memory.player = player
 		world_memory.retrieval = player.visual.retrieval
