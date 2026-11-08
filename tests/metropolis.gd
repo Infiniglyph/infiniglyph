@@ -104,7 +104,9 @@ func run() -> void:
 	omnis.append(world.sparring_partner.light)
 	var max_spots := 0
 	var max_omnis := 0
-	for surface: MeshInstance3D in world.get_node("CentralDistrict").find_children("*","MeshInstance3D",true,false):
+	var surfaces: Array = world.get_node("CentralDistrict").find_children("*","MeshInstance3D",true,false)
+	if world.world_memory!=null: surfaces.append_array(world.world_memory.find_children("*","MeshInstance3D",true,false))
+	for surface: MeshInstance3D in surfaces:
 		var material: Material = surface.material_override if surface.material_override != null else surface.mesh.surface_get_material(0)
 		if not material is StandardMaterial3D or material.shading_mode != BaseMaterial3D.SHADING_MODE_PER_PIXEL: continue
 		var bounds: AABB = surface.global_transform*surface.get_aabb()

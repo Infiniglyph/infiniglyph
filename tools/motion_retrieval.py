@@ -76,10 +76,30 @@ def decide(context: dict, corpus: dict, builder) -> dict:
             "constraint": summary, "theory_source": corpus["theory_source"]}
 
 
+def decide_world(context: dict, corpus: dict, builder) -> dict:
+    limits = {"near_range": (24, 32), "mid_hz": (15, 20), "far_hz": (8, 10)}
+    features = [finite(context.get(name, 0), 0, 1) for name in ("speed", "crowd", "combat")]
+    ranked = []
+    for index, profile in enumerate(corpus["profiles"]):
+        score = math.exp(-sum(w * (a-b)**2 for w, a, b in
+            zip((1.5, 2.0, 4.0), features, profile["features"], strict=True)))
+        ranked.append((score, {"source": "infiniglyph/data/world_constraints.json#" + profile["id"],
+            "chunk_id": index, "ted_role": "authored_world_attention", "profile": profile}))
+    ranked.sort(key=lambda item: item[0], reverse=True)
+    weighted, summary = builder(ranked[:2], weight_floor=0.05)
+    parameters = {name: finite(sum(chunk["constraint"]["weight"] *
+        finite(chunk["profile"]["parameters"][name], *bounds) for _, chunk in weighted), *bounds)
+        for name, bounds in limits.items()}
+    return {"parameters": parameters, "profiles": [chunk["profile"]["id"] for _, chunk in weighted],
+        "constraint": summary}
+
+
 def serve(session: Path, corpus_path: Path, rag_root: Path) -> None:
     request_path, response_path = session / "request.json", session / "response.json"
     builder = load_builder(rag_root)
     corpus = json.loads(corpus_path.read_text(encoding="utf-8"))
+    world_path = corpus_path.with_name("world_constraints.json")
+    world_corpus = json.loads(world_path.read_text(encoding="utf-8")) if world_path.is_file() else None
     last_id = -1
     last_request = time.monotonic()
     while time.monotonic() - last_request < 4.0:
@@ -91,6 +111,8 @@ def serve(session: Path, corpus_path: Path, rag_root: Path) -> None:
             if request_id != last_id:
                 last_request = time.monotonic()
                 result = decide(request["context"], corpus, builder)
+                if world_corpus and request.get("world_context"):
+                    result["world_attention"] = decide_world(request["world_context"], world_corpus, builder)
                 result["id"] = request_id
                 result["worker_pid"] = os.getpid()
                 temporary = response_path.with_suffix(".tmp")

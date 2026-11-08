@@ -3,6 +3,10 @@ extends Node
 @export var enabled := true
 @export var python_executable := "py" if OS.get_name() == "Windows" else "python3"
 const LIMITS := {"pitch_gain":Vector2(0.6,1.4),"yaw_gain":Vector2(0.6,1.4),"bank_gain":Vector2(0.6,1.4),"sway_gain":Vector2(0.6,1.3),"settle_gain":Vector2(0.75,1.5)}
+const WORLD_DEFAULTS := {"near_range":28.0,"mid_hz":20.0,"far_hz":10.0}
+const WORLD_LIMITS := {"near_range":Vector2(24,32),"mid_hz":Vector2(15,20),"far_hz":Vector2(8,10)}
+var world_context: Dictionary = {}
+var last_world_decision: Dictionary = {}
 var parameters := {"pitch_gain":1.0,"yaw_gain":1.0,"bank_gain":1.0,"sway_gain":1.0,"settle_gain":1.0}
 var context: Dictionary = {}
 var last_decision: Dictionary = {}
@@ -55,7 +59,7 @@ func _process(_delta: float) -> void:
 		var temporary := _session.path_join("request.tmp")
 		var file := FileAccess.open(temporary,FileAccess.WRITE)
 		if file:
-			file.store_string(JSON.stringify({"id":_request_id,"context":context}))
+			file.store_string(JSON.stringify({"id":_request_id,"context":context,"world_context":world_context}))
 			file.close()
 			DirAccess.rename_absolute(temporary,_session.path_join("request.json"))
 		_last_sent = now
@@ -78,7 +82,20 @@ func accept_response(response: Dictionary) -> bool:
 		if float(number) < bounds.x or float(number) > bounds.y: return false
 	parameters = values.duplicate()
 	last_decision = response.duplicate(true)
+	last_world_decision = {}
+	var world = response.get("world_attention")
+	if world is Dictionary and world.get("parameters") is Dictionary:
+		var valid: bool = world.parameters.size()==WORLD_LIMITS.size()
+		for key in WORLD_LIMITS:
+			var value = world.parameters.get(key)
+			var bounds: Vector2 = WORLD_LIMITS[key]
+			if not (value is float or value is int) or not is_finite(float(value)) or float(value)<bounds.x or float(value)>bounds.y: valid = false
+		if valid: last_world_decision = world.duplicate(true)
 	return true
+
+func world_policy() -> Dictionary:
+	if status=="TED-RAG live" and not last_world_decision.is_empty(): return last_world_decision.parameters
+	return WORLD_DEFAULTS
 
 func _exit_tree() -> void:
 	_stop_helper()

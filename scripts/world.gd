@@ -11,6 +11,7 @@ const LootAuthority = preload("res://scripts/loot_authority.gd")
 const InventorySession = preload("res://scripts/inventory_session.gd")
 const StartMenu = preload("res://scripts/start_menu.gd")
 const CityPopulation = preload("res://scripts/city_population.gd")
+const WorldMemory = preload("res://scripts/world_memory.gd")
 var sparring_partner: CharacterBody3D
 var sparring_duel: CanvasLayer
 var player: CharacterBody3D
@@ -20,6 +21,8 @@ var loot: Node3D
 var inventory_session: Node
 var start_menu: CanvasLayer
 var population: Node3D
+var world_memory: Node3D
+@export var world_memory_enabled := true
 @export var neon_glow_enabled := true
 @export var inventory_persistence_enabled := true
 @export_range(0,1,0.01) var death_drop_probability := 0.15
@@ -113,3 +116,10 @@ func _ready() -> void:
 	start_menu.actor = player
 	start_menu.session = inventory_session
 	add_child(start_menu)
+	if world_memory_enabled:
+		world_memory = WorldMemory.new()
+		world_memory.district = get_node("CentralDistrict")
+		world_memory.population = population
+		world_memory.player = player
+		world_memory.retrieval = player.visual.retrieval
+		add_child(world_memory)

@@ -28,6 +28,8 @@ var _stuck := 0.0
 var _previous := Vector3.ZERO
 var _view_clock := 0.0
 var _animate_clock := 0.0
+var render_relevant := true
+var animation_interval := -1.0
 var active := false
 var home_building: StringName
 var indoor_left := 0.0
@@ -304,7 +306,8 @@ func _physics_process(delta: float) -> void:
 	_animate_clock += delta
 	var distance := global_position.distance_to(population.player.global_position)
 	var interval := 1.0/15.0 if distance>55 else (1.0/30.0 if distance>25 else 0.0)
-	if _animate_clock>=interval:
+	if animation_interval>=0: interval = animation_interval
+	if render_relevant and _animate_clock>=interval:
 		visual.animate(_animate_clock,planar,speech_time>0 and planar<0.25)
 		_animate_clock = 0
 	_view_clock -= delta

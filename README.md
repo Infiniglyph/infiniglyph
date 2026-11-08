@@ -37,6 +37,15 @@ An existing sibling `rag/context_builder.py` takes precedence, preserving the
 development workspace's live connection. No API keys, cloud services or Python
 packages are required to play.
 
+## World memory and rendering
+
+The city now uses a spatial render cache and TED-RAG-guided visual attention.
+Static pieces share render batches, while offscreen NPC poses skip rebuilds and
+visible distant poses update less often. Resident identities, journeys, meeting
+memories and all structural collision remain live. The existing asynchronous
+TED-RAG worker supplies bounded detail budgets, with local fallback.
+See [WORLD_MEMORY.md](docs/WORLD_MEMORY.md) for behavior, limits and profiling.
+
 ## Canonical narrative reference
 
 The [Canonical World Lore & Narrative Design Profile](docs/canonical_world_lore.txt)

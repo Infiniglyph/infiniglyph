@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "description": "Authored rendering attention budgets. Never alter collision, simulation time, actor identity or combat permissions.",
+  "profiles": [
+    {"id":"explore","features":[0,0.3,0],"parameters":{"near_range":28,"mid_hz":20,"far_hz":10}},
+    {"id":"travel","features":[1,0.3,0],"parameters":{"near_range":32,"mid_hz":18,"far_hz":8}},
+    {"id":"crowded","features":[0.2,1,0],"parameters":{"near_range":24,"mid_hz":15,"far_hz":8}},
+    {"id":"combat","features":[0.3,0.3,1],"parameters":{"near_range":30,"mid_hz":20,"far_hz":10}}
+  ]
+}
