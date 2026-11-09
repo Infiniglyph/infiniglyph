@@ -71,6 +71,18 @@ func _ready() -> void:
 	name = "WeaponCombat"
 	actor.combat.permission = can_act
 	feedback = Feedback.obtain(actor)
+	_build_presentation()
+	actor.combat.action_requested.connect(_on_action)
+	actor.combat.charge_started.connect(_on_charge_started)
+	actor.combat.weapon_slot_selected.connect(_on_weapon)
+	actor.combat.sheathed_changed.connect(_on_sheathed)
+	actor.combat.block_changed.connect(_on_block)
+	actor.dodge.started.connect(func(_a: Vector3, _b: Vector3): cancel())
+	sync_rig()
+
+func _build_presentation() -> void:
+	# Creature combatants can supply their own rig/weight transfer while keeping
+	# the same timed hits, defenses, exhaustion, feedback and forced states.
 	body.actor = actor
 	rig = Rig.new()
 	rig.visual = actor.visual
@@ -79,13 +91,6 @@ func _ready() -> void:
 	actor.add_child(trail)
 	trail.top_level = true
 	trail.global_transform = Transform3D.IDENTITY
-	actor.combat.action_requested.connect(_on_action)
-	actor.combat.charge_started.connect(_on_charge_started)
-	actor.combat.weapon_slot_selected.connect(_on_weapon)
-	actor.combat.sheathed_changed.connect(_on_sheathed)
-	actor.combat.block_changed.connect(_on_block)
-	actor.dodge.started.connect(func(_a: Vector3, _b: Vector3): cancel())
-	sync_rig()
 
 func loadout(slot: StringName) -> Dictionary:
 	var resolved: StringName = actor.combat.resolve_slot(slot)

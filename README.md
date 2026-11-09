@@ -55,6 +55,62 @@ and progression. The supplied profile is preserved verbatim. Its unresolved
 questions remain open for explicit design decisions. Project implementation
 guidance is in [AGENTS.md](AGENTS.md).
 
+## Greefer: Griffin of Central Tower
+
+Follow the north boulevard toward Central Tower. Greefer visibly rests on its
+solid crown roof and detects the player on the tower approach (within 25 metres
+of `(0,0,-44)`, including roofs/open air) when either eye has a clear sight line.
+He alerts, speaks, launches and descends using continuous collision movement.
+The existing district is the arena; no arena walls, separate level, movement
+costs or cinematics have been added. His cyan faceted body, violet feathers,
+hooked eagle beak, four taloned legs, wings and tail are articulated engine meshes.
+
+Greefer has 1,800 HP and five committed, parryable techniques: Raking Talons,
+Twin Rebuff, Crownless Wing, Territorial Rush and Falling Verdict. Windups last
+0.48-0.80 seconds with explicit hit pulses and recovery windows. He uses the
+same impact-speed damage, guard chip, timed parries, one-second punish window,
+fortitude, exhaustion thresholds and 25% defender strain as the player/Ember.
+The creature adapter replaces presentation only. A dive commits to a world
+position, allowing evasive movement after its tell. His defense reacts to
+visible attack windups after a reaction interval, never queued player inputs.
+Lock-on follows the active encounter's valid opponent. Unrelated residents,
+sentries and Ember cannot be hit by Greefer's attack query.
+
+Flight uses the real CharacterBody collision sweeps, bounded obstacle steering,
+stall recovery and supported landing probes with full body clearance. Greefer
+can land on existing rooftops and take off again to pursue Sky Jumps. Sight
+updates every 0.18 seconds. Occlusion preserves only the last observed position;
+after 12 seconds without sight, or leaving the supported district, he disengages
+and flies home. Leaving does not clear the mandatory introduction. No position
+warp is used for arrival, pursuit or return. Normal player defeat retains the
+existing respawn transition.
+
+Winning **or losing** the first confrontation records completion. A first-attempt
+victory is preserved separately; no scripted loss or boss invulnerability forces
+the result. Falling before any combat participation cannot skip the introduction.
+The reusable encounter's `can_progress()` is the progression gate for future
+district transitions; the currently available city remains freely explorable.
+After the fight, Greefer physically returns to his tower. Approach the violet
+challenge sigil at `(5,0,-40)` and press **G / RT** for a full-strength rematch.
+Later outcomes never erase the original first-encounter result. The latest
+rematch result is saved separately and changes his next challenge dialogue.
+
+Single-player outcomes are stored per inventory owner in
+`user://encounters_v1.json`, with an atomic replacement and previous-save backup.
+This journal is separate from inventory item ownership and cannot overwrite it.
+Combat decisions, incoming/outgoing boss damage, completion and save writes are
+host-only when a multiplayer peer exists. `snapshot()` exposes the encounter
+state for a future host transport; this is not a complete multiplayer framework.
+Menus continue running the encounter and world. NPC flee/watch reactions remain
+future polish, and all existing resident routines continue unchanged.
+
+The supplied [Greefer brief](docs/greefer_design_brief.txt) is preserved verbatim.
+Editable dialogue lives in `scripts/territorial_encounter.gd`; move timings,
+damage and recovery live in `scripts/greefer_moves.gd`. Normal launches enable
+automatic approach detection. Isolated `--script` tests opt in with
+`-- --boss-encounters` or set `boss_encounter.auto_trigger` explicitly; the
+perched creature and roof still exist in the default test world.
+
 ## Controls
 
 | Action | Keyboard / mouse | Controller |
@@ -74,7 +130,7 @@ guidance is in [AGENTS.md](AGENTS.md).
 | Modified special X / Y | Hold V, tap Q / R | Hold RT, tap X / Y |
 | Charged special (including modified) | Hold Q / R, then release | Hold X / Y, then release |
 | Inventory / equipment | Press B | Press View / Back / Select |
-| Talk / collect nearby loot | Press G | Press RT nearby |
+| Talk / collect nearby loot / challenge Greefer | Press G | Press RT nearby |
 | Live system menu | Escape | Press Start |
 | Yield in a duel | Press G | Start menu: Yield sparring duel |
 | Draw / select weapon | Tap Down / Left / Right / Up arrows | Tap D-pad Down / Left / Right / Up |
@@ -893,6 +949,28 @@ Set `live_retrieval` to false in `character_visual.gd` to use local animation on
 Edit `data/motion_constraints.json` to tune the live recipes, then restart the game.
 
 ## Verification
+
+Greefer: **48 checks at 30/60/120 Hz** in `tests/greefer_encounter.gd` exercise the real boss/player resolver,
+solid tower perch, automatic detection, continuous arrival/landing, shared chip,
+parries, defender/attacker exhaustion, dodge immunity, explicit pulse
+deduplication, encounter-aware lock-on, protected bystanders, genuine weapon-hit
+victory and defeat callbacks, first/rematch progression, latest-outcome memory,
+owner validation, interrupted-save fallback, occlusion/reacquisition, bounded
+search and the non-host write/decision boundary. **20 checks at 60 Hz** in `tests/greefer_flight.gd`
+exercises an existing 32-metre roof, full-body landing probes, actual player
+Sky Jumps, aerial pursuit, committed dive aim, all five moves' readable timing,
+continuous return/landing, damaging open-air engagement without a landing,
+full-strength G/RT rematches and the live Start menu.
+Run these with `--fixed-fps N -- --hz=N`. Native visual review images of the
+perch, articulated griffin and live combat are generated by
+`tests/capture_greefer.gd` under `captures/greefer_*.png`.
+The existing weapon (123 checks), charge/sparring (146), lock/momentum (110),
+defensive interactions (48), defender exhaustion (36), inventory integration
+(36), Start/recovery (29), population flow (15), traversal and dodge suites also
+passed at 60 Hz. The open-space dodge fixture excludes pedestrian collisions;
+the actual game and the separate population collision tests retain them.
+Native Compatibility/ANGLE captures were reviewed for the perched, airborne and
+combat poses, violet/cyan silhouette and boss health/strain HUD.
 
 City population: **27 checks at 60 Hz** cover all 4,900 waypoint pairs, the
 hundred-person social graph, actual G/RT conversations, repeat-meeting memory,

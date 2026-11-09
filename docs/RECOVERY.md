@@ -6,6 +6,13 @@ names. A commit only exists online after it has been pushed.
 
 ## Restore without touching current work
 
+The Greefer milestone is preserved by `checkpoint-2026-11-09-greefer` on
+`feat/greefer-encounter`. Its independent offline bundle is
+`infiniglyph-greefer-2026-11-09.bundle` in the parent workspace's `backups`
+folder. Use that tag/bundle in the commands below to recover the first boss
+encounter. `checkpoint-2026-11-08-defender-exhaustion` retains the immediately
+preceding combat update; all earlier tags remain unchanged.
+
 Run this from a parent folder, choosing an unused destination:
 
 ```powershell

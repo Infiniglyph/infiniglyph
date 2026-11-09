@@ -9,6 +9,7 @@ var controls: Node
 var duel: CanvasLayer
 var loot: Node3D
 var population: Node3D
+var boss_encounter: Node
 var ui: CanvasLayer
 @export var persistence_enabled := true
 @export var save_path := "user://inventory_v1.json"
@@ -122,6 +123,9 @@ func _closed() -> void:
 
 func can_talk() -> bool:
 	if ui.is_open or not controls.gameplay_enabled or duel.dialogue_open or duel.active: return false
+	if is_instance_valid(boss_encounter):
+		if boss_encounter.active: return false
+		if boss_encounter.can_challenge(): return true
 	return loot.nearest_pickup(actor) != null or duel.can_talk() or (is_instance_valid(population) and population.nearest_talker()!=null)
 
 func can_yield() -> bool:
@@ -129,6 +133,11 @@ func can_yield() -> bool:
 
 func interact() -> void:
 	if ui.is_open or not controls.gameplay_enabled: return
+	if is_instance_valid(boss_encounter):
+		if boss_encounter.active: return
+		if boss_encounter.can_challenge():
+			boss_encounter.start()
+			return
 	if duel.active:
 		duel.interact()
 		return

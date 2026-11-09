@@ -80,6 +80,10 @@ func run() -> void:
 	world = load("res://scenes/main.tscn").instantiate()
 	root.add_child(world)
 	p = world.player
+	# This suite measures open-space directions, then adds terrain blockers.
+	# Pedestrian collisions are covered by population integration, not by this
+	# 3.2m movement assertion. The actual game retains the resident collision mask.
+	p.set_collision_mask_value(3,false)
 	input = Intent.new()
 	world.add_child(input)
 	p.controls = input

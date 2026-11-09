@@ -12,6 +12,10 @@ const InventorySession = preload("res://scripts/inventory_session.gd")
 const StartMenu = preload("res://scripts/start_menu.gd")
 const CityPopulation = preload("res://scripts/city_population.gd")
 const WorldMemory = preload("res://scripts/world_memory.gd")
+const TerritorialBoss = preload("res://scripts/territorial_boss.gd")
+const TerritorialEncounter = preload("res://scripts/territorial_encounter.gd")
+var greefer: CharacterBody3D
+var boss_encounter: CanvasLayer
 var sparring_partner: CharacterBody3D
 var sparring_duel: CanvasLayer
 var player: CharacterBody3D
@@ -25,6 +29,7 @@ var world_memory: Node3D
 @export var world_memory_enabled := true
 @export var neon_glow_enabled := true
 @export var inventory_persistence_enabled := true
+@export var boss_encounters_enabled := true
 @export_range(0,1,0.01) var death_drop_probability := 0.15
 
 func _ready() -> void:
@@ -122,3 +127,14 @@ func _ready() -> void:
 		world_memory.player = player
 		world_memory.retrieval = player.visual.retrieval
 		add_child(world_memory)
+	if boss_encounters_enabled:
+		boss_encounter = TerritorialEncounter.new()
+		boss_encounter.player = player
+		boss_encounter.persistence_enabled = inventory_persistence_enabled
+		greefer = TerritorialBoss.new()
+		greefer.encounter = boss_encounter
+		boss_encounter.boss = greefer
+		add_child(greefer)
+		player.boss_encounter = boss_encounter
+		inventory_session.boss_encounter = boss_encounter
+		add_child(boss_encounter)

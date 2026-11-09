@@ -72,6 +72,7 @@ func _ready() -> void:
 	add_child(hint)
 
 func can_talk() -> bool:
+	if is_instance_valid(player.boss_encounter) and player.boss_encounter.active: return false
 	if active or dialogue_open or player.dodge.active or not player.is_on_floor(): return false
 	if player.global_position.distance_to(partner.global_position)>TALK_RANGE: return false
 	var ray := PhysicsRayQueryParameters3D.create(player.combat_point(),partner.combat_point(),1,[player.get_rid(),partner.get_rid()])
@@ -102,6 +103,7 @@ func answer(accepted: bool) -> void:
 	if accepted: start()
 
 func start() -> void:
+	if is_instance_valid(player.boss_encounter) and player.boss_encounter.active: return
 	if active or player.global_position.distance_to(partner.global_position)>TALK_RANGE+0.5: return
 	active = true
 	saved_health = player.weapon_combat.health

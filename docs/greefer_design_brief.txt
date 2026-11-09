@@ -1,0 +1,316 @@
+# INFINIGLYPH — GREEFER
+## Tutorial Boss: The Griffin of Central Tower
+
+### Development objective
+
+Implement **Greefer**, the first major boss encounter in Infiniglyph.
+
+Greefer is a powerful, intelligent griffin who rests atop Central Tower in Central District. He dislikes human players and attempts to bully newcomers into abandoning the game.
+
+The encounter is inspired by the opening bosses of Elden Ring and other Soulslike games: Greefer appears overwhelmingly powerful and most beginners will lose, but he is genuinely defeatable during the first encounter.
+
+**The player must fight Greefer to progress, but does not have to defeat him.**
+
+Implement this incrementally using the existing Godot 4 project architecture, combat mechanics, AI systems, and Central District environment.
+
+Do not overwrite unrelated ongoing development work.
+
+---
+
+## 1. Character and personality
+
+**Name:** Greefer  
+**Species:** Griffin  
+**Role:** Introductory boss / territorial guardian  
+**Home:** Rooftop of Central Tower  
+**Disposition:** Arrogant, territorial, prejudiced against humans, highly skilled in combat.
+
+Greefer is an autonomous inhabitant of the simulated world, not a friendly tutorial instructor.
+
+He believes humans are inferior intruders and takes personal satisfaction in defeating them.
+
+He does not understand himself as a tutorial boss and should never behave as though he is teaching the player.
+
+He is genuinely trying to win.
+
+Suggested introductory dialogue:
+
+"Another human? You people really don't know when to quit."
+
+Suggested defeat dialogue:
+
+"Pathetic. Go back to your own world."
+
+Suggested first-victory dialogue:
+
+"...Impossible. You're human."
+
+These lines are placeholders and should remain easy to edit.
+
+## 2. Initial encounter
+
+Greefer begins perched atop Central Tower.
+
+The player should be able to see him resting there before triggering the encounter.
+
+When the player approaches the designated encounter area:
+
+1. Greefer detects the approaching human.
+2. He becomes alert and delivers his introductory dialogue.
+3. He launches from the tower.
+4. He dives toward the player's position.
+5. He lands in a suitable nearby combat area.
+6. The boss encounter begins seamlessly.
+
+Use in-engine movement and animation rather than a prerecorded cinematic.
+
+Avoid teleporting the boss or player.
+
+Ensure Greefer's initial descent respects collision geometry and does not place him inside buildings.
+
+## 3. Encounter progression
+
+The first encounter has two valid outcomes.
+
+### Player loses
+
+- Greefer defeats the player through normal combat.
+- Play the appropriate defeat sequence and optional dialogue.
+- Transition the player into the main game.
+- Mark the mandatory introductory encounter as completed.
+- Do not require the player to retry or defeat Greefer to continue.
+
+### Player wins
+
+- Greefer can genuinely be defeated using normal combat mechanics.
+- Do not force a scripted loss.
+- Do not give Greefer invulnerability or an unavoidable finishing attack.
+- Acknowledge the unusual victory through dialogue and encounter state.
+- Transition the player into the main game.
+- Preserve the player's first-encounter victory as a persistent flag.
+
+Greefer should be exceptionally difficult for a new character, but fair and beatable.
+
+### Rematches
+
+Greefer remains part of the world after the introductory encounter.
+
+Players can return to Central Tower and challenge him again.
+
+Preserve normal game progression regardless of whether the player wins or loses a rematch.
+
+His combat strength should not automatically scale down to accommodate the player.
+
+The boss should remember the player's previous encounter outcome through persistent game state.
+
+## 4. Boss arena: Central District
+
+**The existing city map is Greefer's arena.**
+
+Do not construct a separate enclosed boss room.
+
+Do not disable Sky Jump, sprinting, dodging, or other player movement mechanics.
+
+The player may fight Greefer:
+
+- In streets and plazas
+- On rooftops
+- Across elevated walkways
+- Between buildings
+- In open air during aerial pursuit
+
+Greefer should pursue players who use Sky Jump to escape vertically.
+
+He must not become helpless simply because the player reaches a rooftop.
+
+For the initial implementation, limit the encounter to the currently available Central District map.
+
+Do not add invisible arena walls solely to contain the fight.
+
+## 5. Ground combat
+
+Greefer uses the existing combat system wherever possible.
+
+Ground abilities may include:
+
+- Claw strikes
+- Sweeping wing attacks
+- Lunging attacks
+- Defensive wing guards
+- Timed counters
+- Punishing predictable aggression
+- Recovery windows that reward skilled players
+
+Reuse the existing hit detection, damage, blocking, parrying, exhaustion, stagger, and combat-state systems.
+
+Greefer should be subject to appropriate versions of the same fundamental combat rules as other combatants.
+
+Do not use unfair player-input reading.
+
+Greefer may respond to observable player movement, attacks, spacing, recovery states, and combat behavior.
+
+## 6. Flight and aerial combat
+
+Greefer requires two primary locomotion modes:
+
+**Ground mode:** Grounded melee combat, guarding, repositioning, and attacks.
+
+**Flight mode:** Pursuit, diving attacks, aerial repositioning, and movement between rooftops.
+
+Both modes should be controlled by one coherent combat decision system.
+
+### Flight requirements
+
+- Take off when aerial pursuit is advantageous.
+- Chase players using Sky Jump.
+- Navigate around buildings and major obstacles.
+- Perform telegraphed dive attacks.
+- Land on suitable rooftops and open ground.
+- Return to flight when the player moves beyond effective ground engagement range.
+- Avoid repeatedly colliding with buildings or becoming stuck against geometry.
+
+Use practical collision-aware steering and safe landing-location selection.
+
+Do not require Greefer to use ordinary pedestrian navigation while airborne.
+
+### Vertical combat
+
+Greefer must be able to engage players at different elevations.
+
+The player should be able to fight him on rooftops, not merely watch him fly overhead.
+
+His attacks must remain readable and avoidable during aerial encounters.
+
+## 7. Pursuit and target awareness
+
+Greefer should not possess perfect knowledge of the player's location.
+
+Maintain useful awareness states such as:
+
+- Perched
+- Alert
+- Engaged
+- Pursuing
+- Searching
+- Returning
+- Defeated
+
+When Greefer loses line of sight:
+
+1. Remember the player's last known position.
+2. Investigate or search the surrounding area.
+3. Attempt to reacquire the target.
+4. Resume combat if the player is found.
+5. Eventually disengage if the player remains unreachable or leaves the supported encounter area.
+
+Greefer may return to his tower when appropriate.
+
+Avoid magical teleportation, instant target reacquisition through solid buildings, or endless pursuit of an unreachable target.
+
+During the mandatory first encounter, ensure the player cannot accidentally bypass the required confrontation through ordinary movement.
+
+## 8. Combat difficulty and fairness
+
+Greefer should feel significantly more powerful than a beginner.
+
+Achieve difficulty primarily through:
+
+- Strong but readable attacks
+- Intelligent spacing
+- Defensive skill
+- Aerial mobility
+- Effective punishments
+- Multiple viable combat approaches
+- Dangerous but avoidable attack combinations
+
+Avoid excessive health inflation, unavoidable attacks, artificial input reading, and forced defeat.
+
+Experienced players should be able to win the first encounter through skill.
+
+Players should also be able to exploit legitimate environmental advantages and creative movement.
+
+## 9. Integration with the living city
+
+Greefer is an inhabitant of Central District, not an isolated boss entity.
+
+Integrate him with the existing NPC and world systems.
+
+For the initial implementation:
+
+- Preserve existing NPC spawning and routines.
+- Prevent Greefer from unintentionally damaging unrelated NPCs unless explicitly enabled.
+- Keep boss movement compatible with existing city geometry.
+- Ensure the encounter does not break NPC navigation or interaction systems.
+
+Later, NPCs may react to Greefer's arrival by fleeing, watching, commenting, or seeking shelter.
+
+Those reactions are optional future polish, not prerequisites for a functional boss.
+
+## 10. Multiplayer compatibility
+
+Design Greefer's encounter state and combat logic so multiplayer support can be added or integrated cleanly.
+
+Where multiplayer authority already exists, respect it.
+
+Avoid independently generating conflicting boss decisions, damage events, or encounter-completion states across clients.
+
+Do not attempt to build an entirely new multiplayer framework as part of this task.
+
+## 11. Implementation order
+
+Develop Greefer in manageable stages.
+
+**Stage 1 — Boss foundation**
+- Create the griffin character and collision setup.
+- Add a Central Tower perch.
+- Implement detection, descent, and encounter activation.
+
+**Stage 2 — Ground combat**
+- Integrate with existing combat systems.
+- Add basic attacks, defensive behavior, damage, and defeat handling.
+
+**Stage 3 — Flight and pursuit**
+- Add takeoff, flight steering, obstacle avoidance, and landing.
+- Enable rooftop pursuit and aerial attacks.
+
+**Stage 4 — Encounter progression**
+- Add first-loss and first-victory transitions.
+- Persist encounter completion and outcome.
+- Implement rematch availability.
+
+**Stage 5 — Polish**
+- Add dialogue, animations, audiovisual feedback, and NPC reactions.
+- Tune difficulty, transitions, and collision behavior.
+
+Keep the boss functional and testable at each stage.
+
+## 12. Acceptance tests
+
+Verify that:
+
+- Greefer visibly rests on Central Tower before activation.
+- Approaching the encounter area triggers his descent.
+- The player must participate in the introductory fight.
+- Losing advances the player into the main game.
+- Winning also advances the player into the main game.
+- Greefer can legitimately be defeated on the first attempt.
+- Greefer remains available for future rematches.
+- Greefer pursues players who Sky Jump onto rooftops.
+- Greefer can land and fight on elevated surfaces.
+- Flight avoids major geometry and recovers from navigation failures.
+- Existing player movement and combat mechanics remain unrestricted.
+- Greefer does not read player inputs unfairly.
+- Existing NPCs and world systems remain functional.
+- No duplicate damage or exhaustion events occur during boss combat.
+
+## Final design principle
+
+**Greefer is not teaching the player how to fight. He is trying to convince the player to stop playing.**
+
+The fact that the encounter teaches combat mechanics is an unintended consequence of his hostility.
+
+The player is expected to lose, but victory must always be possible.
+
+Greefer's territory is the city itself, and the player is free to use the entire environment to survive.
+
+Build him as the first reusable example of Infiniglyph's territorial boss architecture, so future bosses can inherit encounter management, pursuit, combat integration, and rematch functionality without needing to duplicate the entire system.

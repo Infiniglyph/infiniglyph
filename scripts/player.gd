@@ -22,6 +22,7 @@ signal air_stepped(origin: Vector3, side: int)
 @export var live_motion_retrieval := true
 @export var inventory_owner_id := ""
 var sparring_duel: Node
+var boss_encounter: Node
 var health: float:
 	get: return weapon_combat.health if is_instance_valid(weapon_combat) else WeaponCombat.BASE_HEALTH
 var controls: Node
@@ -219,6 +220,8 @@ func body_impact_point(hurtbox_contact: Vector3) -> Vector3:
 	return center+(outward.normalized()*0.045 if not outward.is_zero_approx() else Vector3.ZERO)
 
 func receive_hit(amount: float, source: Vector3, attacker: Node = null, incoming: Dictionary = {}) -> float:
+	if amount>0 and is_instance_valid(boss_encounter) and boss_encounter.active and attacker == boss_encounter.boss:
+		boss_encounter.register_contact()
 	return weapon_combat.receive_hit(amount,source,attacker,incoming)
 
 func receive_combat_hit(amount: float, source: Vector3, attacker: Node, incoming: Dictionary = {}) -> float:
@@ -228,12 +231,15 @@ func on_parried(source: Vector3) -> void:
 	weapon_combat.stagger(source)
 
 func can_attack_target(target: Node) -> bool:
+	if is_instance_valid(boss_encounter) and boss_encounter.active: return target == boss_encounter.boss
 	return not is_instance_valid(sparring_duel) or not sparring_duel.active or target == sparring_duel.partner
 
 func on_combat_defeat() -> void:
 	if _death_processing or weapon_combat.health>0: return
 	_death_processing = true
-	if is_instance_valid(sparring_duel) and sparring_duel.active:
+	if is_instance_valid(boss_encounter) and boss_encounter.active:
+		boss_encounter.player_defeated()
+	elif is_instance_valid(sparring_duel) and sparring_duel.active:
 		sparring_duel.finish(false)
 	else:
 		_death_serial += 1

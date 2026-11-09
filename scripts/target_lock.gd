@@ -42,6 +42,7 @@ func living(target: Node3D) -> bool:
 	if not is_instance_valid(target) or target.is_queued_for_deletion() or target == actor: return false
 	if not target.is_visible_in_tree(): return false
 	if not target.is_in_group("combat_targets") or not target.has_method("receive_hit"): return false
+	if actor.has_method("can_attack_target") and not actor.can_attack_target(target): return false
 	var hp = target.get("health")
 	return hp == null or float(hp)>0
 
