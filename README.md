@@ -437,15 +437,30 @@ make the initiative change readable.
 
 Ordinary blocks preserve the existing weapon-specific reduction, including chip
 damage, and preserve the attacker's move timing. A short additive weapon/body
-recoil accompanies the dull impact. Striking a guard accumulates **offensive
-exhaustion on the attacker**, never on the defender. Default capacity is 100;
-each contact adds `clamp(10 + move.damage * 0.4, 14, 40) *
+recoil accompanies the dull impact. Striking a guard accumulates **exhaustion on
+both participants**: the attacker receives the existing full contact penalty;
+the basic-guard defender receives **25%** of that penalty. Tune the defender's
+`combat_rules.defender_exhaustion_multiplier` independently of attacker balance.
+The share uses the full penalty before either meter clamps at capacity. Default
+capacity is 100; each contact adds to the attacker
+`clamp(10 + move.damage * 0.4, 14, 40) *
 (0.6 + defender.guard_strength() * 0.4)`. Six stationary Royal Cleaves against a
-shield exhaust the attacker. At the threshold, offense is cancelled and the
+shield exhaust the attacker. Either participant reaching the threshold uses the
+existing exhaustion consequences: offense is cancelled and the
 character drops to one knee for **1.8 seconds**, taking **1.35? damage**. Recovery
-returns the meter to 25%. After one second without another defended strike,
+returns the meter to 25%. After one second without another guarded impact,
 reduced exertion recovers 14 points/second; attacks, held specials, teleporting
 and boosted running pause recovery. The HUD shows the player's meter.
+
+Holding block adds no strain and permits existing recovery. Misses, unguarded
+hits and successful parries add no guard-related exhaustion; the attacker still
+suffers the existing parry reaction. Each legitimate multihit pulse resolves its
+own strain once per target, including when several body shapes overlap. Aegis
+Bloom's automatic mitigation retains its previous behavior; defender strain
+requires an active frontal basic guard. Player and Ember share this same hit
+resolver and existing meter. Movement, attacks, sprinting, Sky Jumps and dodging
+have no exhaustion cost. The thin exhaustion bar beneath HP remains a future HUD
+polish task; this update adds no stamina or MP resource.
 
 Clean hits always apply health damage. Authored move strength is compared with
 the defender's effective fortitude. Weapon choice, attack phase, heavy techniques
@@ -753,7 +768,7 @@ drive the movement calculations.
 - `scripts/weapon_library.gd`, `scripts/weapon_combat.gd`: four authored movesets,
   timed physics hit checks, impact-speed damage, terrain occlusion, health,
   guard and two-handed IK.
-- `scripts/combat_rules.gd`: per-actor tuning for forced states, attacker exhaustion,
+- `scripts/combat_rules.gd`: per-actor tuning for forced states, shared guard exhaustion,
   fortitude and feedback.
 - `scripts/spark_burst.gd`: independent red/orange spark flights, drag, gravity,
   staggered lifetimes and additive moving streaks.
@@ -961,8 +976,20 @@ view used 212 visible draw calls. Frame rate varies with view and background
 work; this review does not establish a minimum-frame-rate guarantee.
 
 
+Defender exhaustion: **36 checks** in `tests/defender_exhaustion.gd` passed at
+**30, 60 and 120 Hz**. The real player/Ember resolver covers free held guard and
+recovery, all four guard loadouts, configurable/zero defender share, unchanged
+attacker penalties and chip, both actors' thresholds and recovery, parries in both
+directions, unguarded/rear/invalid/evaded contacts, automatic Aegis mitigation,
+legacy combat callers, overlapping hurtboxes, pulse deduplication and timed
+multihits. It also exercises movement, sprinting, ground/Sky Jump, teleport and
+normal attacks while strain is present, plus respawn/duel cleanup.
+The existing weapon (123 checks), charge/sparring (146), parry/HP/RT (34),
+defensive interactions (48), traversal and dodge suites also passed at 60 Hz
+after this update.
+
 Defensive interactions: **48 checks** in `tests/defensive_interactions.gd`
-passed at **30, 60 and 120 Hz** and cover exclusive outcomes, interruption, permissions, exhaustion,
+passed at **60 Hz** after the defender-strain update and cover exclusive outcomes, interruption, permissions, exhaustion,
 vulnerability, fortitude/hyper armor, player/AI parity, explicit pulse deduplication,
 visual-only hitstop, camera disable, red/orange/gold contact sparks, fixed pool bounds,
 audio headroom, teleport immunity, body/hurtbox emission origins and cleanup. Run at 30/60/120 Hz with `-- --hz=N`;

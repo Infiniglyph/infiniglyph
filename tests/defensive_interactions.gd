@@ -128,13 +128,13 @@ func run() -> void:
 	p.combat.poll(input)
 	a._on_action(&"attack_right",&"down")
 	check(not a.active_move.is_empty(),"Actions resume immediately at the end of forced recovery")
-	# Normal block preserves offense; only the attacker's psi accumulates.
+	# Normal block preserves offense; the defender takes a smaller strain share.
 	await reset_pair()
 	guard(npc)
 	a._begin(move)
 	a.elapsed = 0.22
 	var damage: float = npc.receive_combat_hit(24,p.combat_point(),p,move)
-	check(is_equal_approx(damage,3.6) and b.last_outcome == &"block" and b.psi_meter == 0 and a.psi_meter>0,"Guard retains 85% reduction and charges exhaustion only to the attacker")
+	check(is_equal_approx(damage,3.6) and b.last_outcome == &"block" and a.psi_meter>0 and is_equal_approx(b.psi_meter,a.psi_meter*0.25),"Guard retains 85% reduction and gives the defender 25% of attacker exhaustion")
 	check(not a.active_move.is_empty() and a.elapsed == 0.22 and not a.is_staggered() and a.recoil_remaining>0,"Normal block adds brief recoil without resetting the attack or its timing")
 	fx = a.feedback.bursts[(a.feedback.cursor+11)%12]
 	check(fx.primary_color.r>0.9 and fx.primary_color.g<0.1,"Blocked chip damage also emits red/orange damage sparks")
@@ -150,7 +150,7 @@ func run() -> void:
 		npc.receive_combat_hit(24,p.combat_point(),p,move)
 		contacts += 1
 	check(a.forced_state == &"exhausted" and contacts<=7 and a.active_move.is_empty(),"Repeated guarded strikes trigger attacker exhaustion and cancel offense")
-	check(b.psi_meter == 0 and b.forced_state == &"","Defender never receives offensive exhaustion or a guard-break lock")
+	check(b.psi_meter>0 and b.psi_meter<b.rules.max_psi and b.forced_state == &"","Defender accumulates reduced strain without premature forced recovery")
 	await seconds(0.35)
 	check(p.visual.pelvis.position.y<p.visual.REST_HIP_HEIGHT-0.3,"Exhaustion visibly drops the pelvis into a one-knee recovery")
 	var knee_height: float = p.visual.joints.RightLeg.get_node("Hinge").global_position.y-p.global_position.y

@@ -191,20 +191,24 @@ func effective_fortitude() -> float:
 func get_block_exhaustion(incoming: Dictionary) -> float:
 	return clampf(10+float(incoming.get("damage",16))*0.4,14,40)*(0.6+guard_strength()*0.4)
 
-func on_guard_contact(defender: Node, incoming: Dictionary, source: Vector3) -> bool:
-	if health<=0 or is_staggered(): return false
-	psi_meter = minf(rules.max_psi,psi_meter+defender.get_block_exhaustion(incoming))
+func _add_exhaustion(amount: float, source: Vector3) -> bool:
+	if amount<=0 or health<=0 or is_staggered(): return false
+	psi_meter = minf(rules.max_psi,psi_meter+amount)
 	_psi_delay = rules.psi_recovery_delay
-	# Additive arm/body recoil; preserve the current move and its hit schedule.
-	_reaction_scale = 0.28
-	_reaction_duration = 0.16
-	recoil_remaining = 0.16
-	_recoil_away = actor.visual.global_basis.inverse()*(actor.global_position-source).normalized()
 	if psi_meter>=rules.max_psi:
 		enter_forced(&"exhausted",rules.exhausted_duration,source)
 		return true
 	changed.emit()
 	return false
+
+func on_guard_contact(amount: float, source: Vector3) -> bool:
+	if health<=0 or is_staggered(): return false
+	# Additive arm/body recoil; preserve the current move and its hit schedule.
+	_reaction_scale = 0.28
+	_reaction_duration = 0.16
+	recoil_remaining = 0.16
+	_recoil_away = actor.visual.global_basis.inverse()*(actor.global_position-source).normalized()
+	return _add_exhaustion(amount,source)
 
 func _on_action(action: StringName, slot: StringName) -> void:
 	if is_staggered(): return
@@ -337,7 +341,8 @@ func receive_hit(amount: float, source: Vector3, attacker: Node = null, incoming
 		parried.emit(source)
 		changed.emit()
 		return 0
-	last_blocked = bloom or (guarding and frontal)
+	var basic_guard := guarding and frontal
+	last_blocked = bloom or basic_guard
 	var reduction := (0.95 if bloom else guard_strength()) if last_blocked else 0.0
 	var vulnerability: float = rules.exhausted_damage_multiplier if forced_state == &"exhausted" else 1.0
 	last_damage = maxf(0,amount)*(1-reduction)*vulnerability
@@ -346,8 +351,13 @@ func receive_hit(amount: float, source: Vector3, attacker: Node = null, incoming
 	var outcome := "block" if last_blocked else "hit"
 	last_outcome = &"block" if last_blocked else &"hyper_armor"
 	if last_blocked:
+		# Resolve strain once per confirmed hit, before either meter can clamp or
+		# exhaust its owner. Automatic Aegis mitigation keeps its existing rules.
+		var strain := get_block_exhaustion(attack)
 		if is_instance_valid(attacker) and attacker.get("weapon_combat") != null:
-			if attacker.weapon_combat.on_guard_contact(self,attack,actor.combat_point()): outcome = "exhaustion"
+			if attacker.weapon_combat.on_guard_contact(strain,actor.combat_point()): outcome = "exhaustion"
+		if basic_guard and _add_exhaustion(strain*maxf(0,rules.defender_exhaustion_multiplier),source):
+			outcome = "exhaustion"
 	elif health>0:
 		var strength := float(attack.get("hit_stun_level",0))
 		if strength>=effective_fortitude() and strength>0:

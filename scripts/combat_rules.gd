@@ -2,6 +2,8 @@ extends Resource
 ## Shared tuning schema; each actor owns an instance, never a shared mutable meter.
 @export var parry_stagger := 1.0
 @export var max_psi := 100.0
+## Basic guarded impacts only; relative to the full attacker contact penalty.
+@export_range(0,1) var defender_exhaustion_multiplier := 0.25
 @export var psi_recovery := 14.0
 @export var psi_recovery_delay := 1.0
 @export var exhausted_duration := 1.8
