@@ -11,7 +11,12 @@ static func move(style: StringName) -> Dictionary:
 		&"double": result = Library.spec("Twin Rebuff",1.95,0.52,92,3.8,120,"cross",[0.64,1.12],-1)
 		_: result = Library.spec("Falling Verdict",2.05,0.80,205,3.9,110,"slam",[1.14])
 	result.beast_style = style
+	result.contact_before = 0.12 if style == &"sweep" else 0.08
+	result.contact_after = 0.16 if style in [&"sweep",&"lunge"] else 0.10
 	# Boss strength comes from spacing/commitment, not bypassing shared defense.
 	result.hit_stun_level = 1.6 if style in [&"rake",&"double"] else 2.4
 	result.hit_stagger = 0.30 if style in [&"rake",&"double"] else 0.44
 	return result
+
+static func window(move: Dictionary, pulse: int) -> Vector2:
+	return Vector2(float(move.hits[pulse])-float(move.get("contact_before",0.08)),float(move.hits[pulse])+float(move.get("contact_after",0.10)))

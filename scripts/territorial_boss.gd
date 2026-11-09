@@ -23,6 +23,7 @@ class AimFrame extends Node3D:
 @export var awareness_range := 155.0
 @export var search_duration := 12.0
 @export var perch_point := PERCH
+@export var debug_combat := false
 var encounter: Node
 var visual: Node3D
 var weapon_combat: Node
@@ -161,7 +162,7 @@ func can_see_player() -> bool:
 	# Two actual eye positions avoid a thin tower spoke blinding both eyes along
 	# a single artificial center ray. A solid facade still occludes both rays.
 	for side in [-1,1]:
-		var eye: Vector3 = visual.head.to_global(Vector3(side*0.43,0.1,0.34))
+		var eye: Vector3 = visual.head.to_global(Vector3(side*0.365,0.08,0.27))
 		var query := PhysicsRayQueryParameters3D.create(eye,target.combat_point(),1,[get_rid(),target.get_rid()])
 		if get_world_3d().direct_space_state.intersect_ray(query).is_empty(): return true
 	return false

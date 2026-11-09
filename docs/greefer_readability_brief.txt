@@ -1,0 +1,139 @@
+# Infiniglyph — Greefer Animation and Combat Readability Pass
+
+## Objective
+
+Greefer, our enormous neon-wireframe griffon boss, is now implemented and functional. He dives from Central Tower, approaches and pursues the player, attacks, deals damage, and responds to victory or defeat.
+
+However, **his attack animations are not visibly readable during gameplay**. The player takes substantial damage without being able to identify which attack Greefer performed or when the attack connected.
+
+This is primarily an **animation and combat presentation issue**, not a request to rebuild his AI or movement systems.
+
+Our combat design combines the mobility, aerial freedom, and fast exchanges of *Shinobi Striker* with the deliberate, punishing, timing-based boss encounters of *Dark Souls*.
+
+## 1. Inspect the Existing Implementation
+
+Before changing anything:
+
+- Identify Greefer's existing attack types, state machine, damage events, hitboxes, and animation structure.
+- Determine whether animations are missing, not playing, too subtle, or disconnected from combat events.
+- Reuse the existing procedural wireframe model and combat logic wherever practical.
+- Preserve his Central Tower entrance, flight, pursuit, rooftop navigation, and rematch functionality.
+
+Do not rewrite working systems unnecessarily.
+
+## 2. Create Distinct, Visible Attack Animations
+
+Every existing damaging attack needs a recognizable animation.
+
+Examples, where applicable:
+
+- **Claw swipe:** Raise a foreleg, rotate the shoulder, sweep the claws through the target area, then recover.
+- **Beak strike:** Retract the neck, thrust the head forward, then return to a neutral position.
+- **Wing sweep:** Extend and rotate the wing through a wide arc with visible torso movement.
+- **Dive attack:** Fold or reposition the wings, commit to the dive, strike or land, and visibly recover.
+- **Charge or body attack:** Shift weight, accelerate, commit to the movement, and decelerate naturally.
+
+These are examples, not instructions to invent unnecessary attacks. Animate the moves already implemented first.
+
+Ensure the head, neck, wings, legs, and torso articulate independently where appropriate. Greefer must not look like a rigid sculpture sliding through attack states.
+
+Preserve his cyan-and-magenta neon wireframe appearance.
+
+## 3. Implement Readable Boss Attack Timing
+
+Each attack should have three distinguishable phases:
+
+**Windup:** A visible physical tell indicating that an attack is coming.
+
+**Active:** The actual striking motion, during which the appropriate hitbox becomes active.
+
+**Recovery:** A visible follow-through and period of commitment before Greefer can begin another major action.
+
+The player must be able to learn attack timing through observation.
+
+Different attacks should have different timings based on their speed, reach, and damage. Avoid making every attack use identical animation durations.
+
+Do not simply slow down all of Greefer's combat. Preserve his aggression while making attacks readable.
+
+## 4. Synchronize Damage With Animation
+
+This is a critical requirement.
+
+- Damage must correspond to the visible strike and its collision window.
+- Avoid invisible damage, repeated damage from a single unintended hit, or hitboxes remaining active throughout an entire animation.
+- Ensure hitboxes follow the correct attacking body parts.
+- Preserve existing block, parry, dodge, and exhaustion interactions.
+- Ensure that missed attacks do not damage the player.
+- Test attack collision at different elevations and during aerial combat.
+
+Where practical, drive hitbox activation through animation events or equivalent deterministic attack-phase logic.
+
+## 5. Preserve Boss Attack Commitment
+
+Unlike the player's highly flexible PvP-oriented combat, major boss attacks should involve meaningful commitment.
+
+Greefer may track the player during an appropriate windup period, but once a major strike commits, he should not automatically redirect it to guarantee a hit.
+
+Players must be able to:
+
+- Read an attack.
+- Dodge, parry, block, jump, or reposition.
+- Cause the attack to miss through correct timing.
+- Exploit suitable recovery opportunities.
+
+Greefer should remain intelligent and dangerous, but not artificially unavoidable.
+
+## 6. Improve Creature Movement and Reactions
+
+Add or refine the necessary secondary animations:
+
+- Grounded idle breathing and weight shifts.
+- Walking and running leg movement.
+- Wing flapping, gliding, folding, and takeoff transitions.
+- Turning and repositioning without excessive rigid-body sliding.
+- Landing impact and recovery.
+- Appropriate hit reactions and stagger animations.
+
+Minor hits should not necessarily interrupt an enormous boss. Reactions should scale appropriately with attack impact and existing combat mechanics.
+
+Keep movement transitions smooth without breaking navigation.
+
+## 7. Maintain Readability During Aerial Combat
+
+Infiniglyph allows unrestricted Sky Jump movement, so players may fight Greefer from above, below, or beside him.
+
+His animations must remain identifiable from multiple camera angles.
+
+Use clear silhouettes and large physical motions rather than relying exclusively on tiny effects or ground-based warning indicators.
+
+Greefer should remain capable of fighting airborne players, but those attacks must be visually understandable.
+
+## 8. Testing and Acceptance Criteria
+
+Test Greefer in actual gameplay, not only through automated damage checks.
+
+Verify that:
+
+1. Every existing damaging attack has a visible animation.
+2. Damage occurs during the appropriate visible contact window.
+3. Windup, active, and recovery phases are distinguishable.
+4. Players can successfully evade attacks through timing.
+5. Greefer can miss and recover without automatically correcting every committed attack.
+6. Ground and aerial attacks both remain functional.
+7. Movement, pursuit, Central Tower entrance, and encounter progression remain intact.
+8. The model's limbs, head, and wings visibly articulate rather than moving as one rigid object.
+9. No major regressions are introduced into existing combat systems.
+
+If possible, add a temporary developer option to display Greefer's current attack name, phase, and active hitboxes for debugging. Keep this disabled in normal gameplay.
+
+## Implementation Priority
+
+First, fix one existing attack end-to-end, including animation, hitbox synchronization, and recovery. Verify it works, then apply the same approach to the remaining attacks.
+
+Prioritize readable combat over adding more attacks, particle effects, or cosmetic complexity.
+
+**Desired outcome:** When Greefer defeats the player, they should understand what hit them and have a reasonable opportunity to learn how to avoid it next time.
+
+The goal is not to make Greefer easy. The goal is to make him difficult, visually expressive, and fair.
+
+Please inspect the existing project, implement the changes, run available tests, and summarize what was changed and what still requires manual playtesting.

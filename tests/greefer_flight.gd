@@ -108,6 +108,8 @@ func run() -> void:
 	p.weapon_combat.health = 1000
 	check(encounter.can_challenge(),"The tower challenge sigil offers rematches after either initial outcome")
 	world.inventory_session.interact()
+	check(encounter.dialogue_open and not encounter.active,"G / RT opens a rematch confirmation before starting combat")
+	encounter.answer(true)
 	check(encounter.active and not encounter.is_intro and boss.state == &"alert" and boss.health == boss.base_health,"Existing G / RT interaction starts a full-strength rematch")
 	var before: float = boss.state_age
 	world.start_menu.open_menu()

@@ -446,10 +446,7 @@ func _physics_process(delta: float) -> void:
 	if not active_move.is_empty():
 		var previous := elapsed
 		elapsed += delta
-		for pulse in range(active_move.hits.size()):
-			var hit_time: float = active_move.hits[pulse]
-			if previous < hit_time and elapsed >= hit_time: strike(pulse)
-			if active_move.is_empty(): break # A duel may finish inside a hit callback.
+		advance_strikes(previous)
 		if not active_move.is_empty() and elapsed >= float(active_move.duration):
 			active_move = {}
 			status = "Ready"
@@ -478,14 +475,15 @@ func _physics_process(delta: float) -> void:
 		_hud_time = 0.1
 		changed.emit()
 
+func advance_strikes(previous: float) -> void:
+	for pulse in range(active_move.hits.size()):
+		var hit_time: float = active_move.hits[pulse]
+		if previous < hit_time and elapsed >= hit_time: strike(pulse)
+		if active_move.is_empty(): break # A duel may finish inside a hit callback.
+
 func strike(pulse: int = -1) -> void:
 	if active_move.is_empty() or is_staggered(): return
 	var move := active_move.duplicate(true)
-	# Sample the physics velocity at this hit pulse, not when the button was
-	# pressed. Falling/sky-step momentum counts; teleport distance never does.
-	var impact_speed := actor.velocity.length()
-	var multiplier := damage_multiplier(impact_speed)
-	var damage := float(move.damage)*multiplier
 	if actor.target_lock.is_locked(): _facing = actor.target_lock.facing()
 	var origin := actor.global_position+Vector3.UP*0.95
 	var volume := SphereShape3D.new()
@@ -497,6 +495,17 @@ func strike(pulse: int = -1) -> void:
 	query.exclude = [actor.get_rid()]
 	var space := actor.get_world_3d().direct_space_state
 	var candidates: Array = space.intersect_shape(query,32)
+	resolve_strike(move,pulse,origin,candidates)
+	emit_effect(move.profile,float(move.reach),float(move.arc),loadout(actor.combat.selected_slot).color,origin,_facing)
+	changed.emit()
+
+func resolve_strike(move: Dictionary, pulse: int, origin: Vector3, candidates: Array, use_arc: bool = true) -> void:
+	# Shared resolution for weapon volumes and articulated creature contacts.
+	# Sample actual impact velocity; keep guard/parry/exhaustion in receive_hit.
+	var impact_speed := actor.velocity.length()
+	var multiplier := damage_multiplier(impact_speed)
+	var damage := float(move.damage)*multiplier
+	var space := actor.get_world_3d().direct_space_state
 	var excluded: Array[RID] = [actor.get_rid()]
 	for candidate: Dictionary in candidates: excluded.append(candidate.rid)
 	var visited: Dictionary = _pulse_targets.get(pulse,{}) if pulse>=0 else {}
@@ -505,22 +514,22 @@ func strike(pulse: int = -1) -> void:
 		var target: Node3D = candidate.collider
 		if visited.has(target) or not target.has_method("receive_hit"): continue
 		if not actor.can_attack_target(target): continue
-		visited[target] = true
 		var point: Vector3 = target.combat_point() if target.has_method("combat_point") else target.global_position+Vector3.UP*0.9
 		var toward := point-origin
-		if absf(toward.y)>1.9: continue
+		if use_arc and absf(toward.y)>1.9: continue
 		var planar := Vector3(toward.x,0,toward.z)
-		if float(move.arc)<359 and planar.normalized().dot(_facing)<cos(deg_to_rad(float(move.arc)*0.5)): continue
+		if use_arc and float(move.arc)<359 and planar.normalized().dot(_facing)<cos(deg_to_rad(float(move.arc)*0.5)): continue
 		# Hurt volumes are separate from terrain. Opaque world geometry must stop
 		# every strike, including radial pulses and long-range glyph cuts.
 		var obstruction := space.intersect_ray(PhysicsRayQueryParameters3D.create(origin,point,1,excluded))
 		if not obstruction.is_empty(): continue
+		visited[target] = true
 		# Carry attacker identity for real parry recoil. Legacy targets keep their
 		# existing two-argument hit contract; never infer the attacker from a lock.
 		var contact := move.duplicate()
 		contact.hurtbox_shape = int(candidate.shape)
 		var surface := space.intersect_ray(PhysicsRayQueryParameters3D.create(origin,point,2,[actor.get_rid()]))
-		contact.contact = surface.position if not surface.is_empty() and surface.collider == target else point-toward.normalized()*0.27
+		contact.contact = candidate.get("contact",surface.position if not surface.is_empty() and surface.collider == target else point-toward.normalized()*0.27)
 		var applied: float = target.receive_combat_hit(damage,origin,actor,contact) if target.has_method("receive_combat_hit") else target.receive_hit(damage,origin)
 		if not target.has_method("receive_combat_hit") and applied>0:
 			feedback.confirm("heavy" if float(move.get("hit_stun_level",0))>=1.5 else "hit",contact.contact,toward,actor,target,true,int(candidate.shape))
@@ -533,8 +542,6 @@ func strike(pulse: int = -1) -> void:
 		impact_feedback = 2.0
 		hit_landed.emit(target,applied,move.name)
 		if active_move.is_empty(): break
-	emit_effect(move.profile,float(move.reach),float(move.arc),loadout(actor.combat.selected_slot).color,origin,_facing)
-	changed.emit()
 
 func spawn_effect(origin: Vector3) -> void:
 	emit_effect(active_move.profile,float(active_move.reach),float(active_move.arc),loadout(actor.combat.selected_slot).color,origin,_facing)

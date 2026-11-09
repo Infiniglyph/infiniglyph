@@ -106,6 +106,7 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		if is_instance_valid(actor.get_parent().get("start_menu")) and actor.get_parent().start_menu.is_open: return
 		if is_instance_valid(duel) and duel.dialogue_open: return
+		if is_instance_valid(boss_encounter) and boss_encounter.dialogue_open: return
 		ui.toggle()
 
 func _opened() -> void:
@@ -136,7 +137,7 @@ func interact() -> void:
 	if is_instance_valid(boss_encounter):
 		if boss_encounter.active: return
 		if boss_encounter.can_challenge():
-			boss_encounter.start()
+			boss_encounter.interact()
 			return
 	if duel.active:
 		duel.interact()
@@ -167,6 +168,9 @@ func _process(delta: float) -> void:
 	_refresh_losses()
 	hint.text = ""
 	if ui.is_open or not controls.gameplay_enabled or duel.active: return
+	if is_instance_valid(boss_encounter) and boss_encounter.can_challenge():
+		hint.text = "G / RT: challenge Greefer again"
+		return
 	var pickup: Node3D = loot.nearest_pickup(actor)
 	if pickup != null:
 		var definition: Resource = Catalog.get_definition(pickup.item_instance.item_type_id)

@@ -33,6 +33,11 @@ var boss_name: Label
 var _check_clock := 0.0
 var _beacon: Node3D
 var _perch: Node3D
+var dialogue_open := false
+var panel: PanelContainer
+var yes: Button
+var no: Button
+var _previous_mouse := Input.MOUSE_MODE_CAPTURED
 
 func networked() -> bool:
 	var peer := multiplayer.multiplayer_peer
@@ -63,7 +68,98 @@ func _ready() -> void:
 	_beacon.name = "GreeferChallengeSigil"
 	get_parent().add_child(_beacon)
 	_beacon.position = challenge_point
+	var sign := Label3D.new()
+	sign.text = "GREEFER\nREMATCH  /  G or RT"
+	sign.position.y = 1.7
+	sign.font_size = 38
+	sign.pixel_size = 0.008
+	sign.modulate = Color(0.94,0.3,1)
+	sign.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	_beacon.add_child(sign)
 	_build_hud()
+	_build_rematch()
+
+func _build_rematch() -> void:
+	panel = PanelContainer.new()
+	panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	panel.offset_left = -270
+	panel.offset_right = 270
+	panel.offset_top = -100
+	panel.offset_bottom = 100
+	var background := StyleBoxFlat.new()
+	background.bg_color = Color(0.014,0.005,0.025,1)
+	background.border_color = Color(0.85,0.12,1)
+	background.set_border_width_all(1)
+	background.set_content_margin_all(24)
+	panel.add_theme_stylebox_override("panel",background)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation",18)
+	panel.add_child(box)
+	var question := Label.new()
+	question.text = "GREEFER\nChallenge the Griffin of Central Tower again?"
+	question.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	question.add_theme_font_size_override("font_size",21)
+	question.modulate = Color(0.92,0.6,1)
+	box.add_child(question)
+	var buttons := HBoxContainer.new()
+	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
+	buttons.add_theme_constant_override("separation",20)
+	box.add_child(buttons)
+	yes = Button.new()
+	yes.text = "Yes - challenge"
+	no = Button.new()
+	no.text = "Not now"
+	for button: Button in [yes,no]:
+		button.custom_minimum_size = Vector2(205,44)
+		buttons.add_child(button)
+	var help := Label.new()
+	help.text = "Left / Right: choose   Enter / A: answer   Escape / B: cancel"
+	help.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	help.add_theme_font_size_override("font_size",14)
+	box.add_child(help)
+	yes.pressed.connect(func(): answer(true))
+	no.pressed.connect(func(): answer(false))
+	add_child(panel)
+	panel.hide()
+
+func interact() -> void:
+	if dialogue_open or not can_challenge() or not player.controls.gameplay_enabled: return
+	dialogue_open = true
+	_previous_mouse = Input.mouse_mode
+	player.controls.set_gameplay_enabled(false)
+	player.weapon_combat.cancel()
+	player.combat.reset()
+	player.target_lock.clear()
+	player._jump_after_dodge = false
+	panel.show()
+	no.grab_focus()
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+
+func answer(accepted: bool) -> void:
+	if not dialogue_open: return
+	dialogue_open = false
+	panel.hide()
+	player.controls.set_gameplay_enabled(true)
+	Input.mouse_mode = _previous_mouse
+	if accepted: start()
+
+func _input(event: InputEvent) -> void:
+	if not dialogue_open: return
+	if event is InputEventKey and event.pressed and not event.echo:
+		match event.physical_keycode if event.physical_keycode else event.keycode:
+			KEY_LEFT,KEY_RIGHT,KEY_TAB: (no if yes.has_focus() else yes).grab_focus()
+			KEY_ENTER,KEY_SPACE: answer(yes.has_focus())
+			KEY_ESCAPE: answer(false)
+		get_viewport().set_input_as_handled()
+	elif event is InputEventJoypadButton and event.pressed:
+		match event.button_index:
+			JOY_BUTTON_DPAD_LEFT,JOY_BUTTON_DPAD_RIGHT: (no if yes.has_focus() else yes).grab_focus()
+			JOY_BUTTON_A: answer(yes.has_focus())
+			JOY_BUTTON_B,JOY_BUTTON_BACK: answer(false)
+		get_viewport().set_input_as_handled()
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT and dialogue_open: answer(false)
 
 func _label(at: Vector2, size_value: int) -> Label:
 	var label := Label.new()
@@ -115,7 +211,13 @@ func _bar(at: Vector2, dimensions: Vector2, color: Color) -> ProgressBar:
 	return bar
 
 func can_challenge() -> bool:
-	return has_authority() and not active and progress.intro_completed and boss.state == &"perched" and player.global_position.distance_to(challenge_point)<3.0 and not player.sparring_duel.active
+	# A returning griffin can answer a challenge immediately; waiting for him to
+	# perch made retries disappear for the entire return flight.
+	if not has_authority() or active or not progress.intro_completed or boss.state == &"defeated" or player.health<=0: return false
+	if player.sparring_duel.active or player.sparring_duel.dialogue_open: return false
+	if player.global_position.distance_to(challenge_point)>=3.0: return false
+	var ray := PhysicsRayQueryParameters3D.create(player.combat_point(),challenge_point+Vector3.UP,1,[player.get_rid(),boss.get_rid()])
+	return player.get_world_3d().direct_space_state.intersect_ray(ray).is_empty()
 
 func start(aggression: bool = false) -> bool:
 	if not has_authority() or active or boss.state == &"defeated" or player.health<=0: return false
@@ -215,6 +317,7 @@ func _physics_process(delta: float) -> void:
 		if planar.length()<25 and boss.can_see_player(): start()
 
 func _process(delta: float) -> void:
+	if dialogue_open and not can_challenge(): answer(false)
 	result_time = maxf(0,result_time-delta)
 	bar_root.visible = active
 	if active:
@@ -228,3 +331,5 @@ func _process(delta: float) -> void:
 	if not active and is_intro and progress.intro_completed and result_time>0:
 		objective.text = "First confrontation complete - explore Central District"
 	_beacon.visible = progress.intro_completed
+	if progress.intro_completed and not active and not can_challenge():
+		objective.text = "Greefer rematch: violet sigil at Central Tower  /  %.0f m" % player.global_position.distance_to(challenge_point)

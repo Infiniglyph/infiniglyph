@@ -67,10 +67,14 @@ hooked eagle beak, four taloned legs, wings and tail are articulated engine mesh
 
 Greefer has 1,800 HP and five committed, parryable techniques: Raking Talons,
 Twin Rebuff, Crownless Wing, Territorial Rush and Falling Verdict. Windups last
-0.48-0.80 seconds with explicit hit pulses and recovery windows. He uses the
+0.48-0.80 seconds with short authored contact windows and recovery. He uses the
 same impact-speed damage, guard chip, timed parries, one-second punish window,
 fortitude, exhaustion thresholds and 25% defender strain as the player/Ember.
-The creature adapter replaces presentation only. A dive commits to a world
+The creature adapter sweeps capsules along the rendered talons, wing feathers
+or charging breast, then uses the shared hit resolver. It does not use the
+player's generic reach sphere. Each target resolves once per legitimate pulse;
+Twin Rebuff independently animates and resolves its left/right swipes. Opaque
+terrain still stops hits. A dive commits to a world
 position, allowing evasive movement after its tell. His defense reacts to
 visible attack windups after a reaction interval, never queued player inputs.
 Lock-on follows the active encounter's valid opponent. Unrelated residents,
@@ -91,7 +95,12 @@ the result. Falling before any combat participation cannot skip the introduction
 The reusable encounter's `can_progress()` is the progression gate for future
 district transitions; the currently available city remains freely explorable.
 After the fight, Greefer physically returns to his tower. Approach the violet
-challenge sigil at `(5,0,-40)` and press **G / RT** for a full-strength rematch.
+challenge sigil labeled **GREEFER / REMATCH** at `(5,0,-40)` and press **G / RT**.
+Choose **Yes - challenge** in the live Ember-style confirmation for a
+full-strength rematch. Left/right or controller D-pad chooses, Enter/A confirms,
+Escape/B cancels. A returning Greefer can accept immediately; a victory's brief
+defeat reaction finishes first. The objective shows the sigil's distance when
+you are farther away. Inventory and Start cannot stack over the confirmation.
 Later outcomes never erase the original first-encounter result. The latest
 rematch result is saved separately and changes his next challenge dialogue.
 
@@ -110,6 +119,21 @@ damage and recovery live in `scripts/greefer_moves.gd`. Normal launches enable
 automatic approach detection. Isolated `--script` tests opt in with
 `-- --boss-encounters` or set `boss_encounter.auto_trigger` explicitly; the
 perched creature and roof still exist in the default test world.
+
+The griffin presentation uses a sharp hooked eagle bill, swept crown/neck
+plumage, narrow magenta eyes, feline haunches, independent wing wrists and a
+segmented curved tail. Procedural shoulder/leg IK holds support feet during
+grounded attacks, with distinct loading, striking and settling poses. Idle
+breathing, gait, banking, flap/fold transitions, landing compression and shared
+stagger reactions remain visual: they do not move the collision body or change
+navigation. Set `Greefer.debug_combat = true` in the remote inspector or test
+harness for attack/phase labels and the exact active capsule outlines. This is
+off by default and allocates no debug geometry during normal play.
+
+The supplied [animation/readability request](docs/greefer_readability_brief.txt)
+is preserved alongside the original boss specification. Attack feel, the
+silhouette from your normal camera distance and dodge/parry timing still need
+your controller playtest; automated checks do not judge those subjective parts.
 
 ## Controls
 
@@ -956,11 +980,18 @@ parries, defender/attacker exhaustion, dodge immunity, explicit pulse
 deduplication, encounter-aware lock-on, protected bystanders, genuine weapon-hit
 victory and defeat callbacks, first/rematch progression, latest-outcome memory,
 owner validation, interrupted-save fallback, occlusion/reacquisition, bounded
-search and the non-host write/decision boundary. **20 checks at 60 Hz** in `tests/greefer_flight.gd`
+search and the non-host write/decision boundary. **21 checks at 60 Hz** in `tests/greefer_flight.gd`
 exercises an existing 32-metre roof, full-body landing probes, actual player
 Sky Jumps, aerial pursuit, committed dive aim, all five moves' readable timing,
 continuous return/landing, damaging open-air engagement without a landing,
 full-strength G/RT rematches and the live Start menu.
+**44 checks at 30/60/120 Hz** in `tests/greefer_readability.gd` run the actual
+animation/contact clock for all five moves, both double swipes, harmless windup
+and recovery, lateral/vertical misses, late evasion, opaque cover, airborne
+talons, planted hind feet, guard chip/strain, timed parry, hidden dodge immunity
+and the opt-in debug display. **14 checks at 60 Hz** in `tests/greefer_rematch.gd`
+exercise loss/victory retries during return, G/RT, default No, controller Yes,
+live simulation, Start handoff, real Escape input routing and focus/range cleanup.
 Run these with `--fixed-fps N -- --hz=N`. Native visual review images of the
 perch, articulated griffin and live combat are generated by
 `tests/capture_greefer.gd` under `captures/greefer_*.png`.

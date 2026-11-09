@@ -45,6 +45,12 @@ git -C infiniglyph-offline switch --detach checkpoint-2026-11-08
 
 ## Save future work
 
+The Greefer rematch and animation/contact pass is preserved separately by
+`checkpoint-2026-11-09-greefer-readability` on `fix/greefer-readability`.
+Its complete-history offline bundle is
+`infiniglyph-greefer-readability-2026-11-09.bundle` in the parent workspace's
+`backups` directory. The original Greefer checkpoint remains unchanged.
+
 From the game repository:
 
 ```powershell

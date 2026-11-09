@@ -6,6 +6,9 @@ const Journal = preload("res://scripts/encounter_progress.gd")
 const BaseCombat = preload("res://scripts/weapon_combat.gd")
 class TestIntent extends Shared.Intent:
 	var gameplay_enabled := true
+	func set_gameplay_enabled(value: bool) -> void:
+		gameplay_enabled = value
+		super.set_gameplay_enabled(value)
 class ClientEncounter extends "res://scripts/territorial_encounter.gd":
 	func has_authority() -> bool: return false
 var world: Node3D
@@ -63,6 +66,11 @@ func guard(actor: Node, fresh: bool = false) -> void:
 	actor.combat.fresh_block = fresh
 	actor.weapon_combat._on_block(true)
 	if not fresh: actor.weapon_combat.parry_remaining = 0
+
+func boss_pulse(pulse: int) -> void:
+	# A focused resolver fixture still uses the real articulated contact pose.
+	boss.weapon_combat.elapsed = float(boss.weapon_combat.active_move.hits[pulse])
+	boss.weapon_combat.strike(pulse)
 
 func capture(label: String) -> void:
 	if not "--capture" in OS.get_cmdline_user_args(): return
@@ -125,20 +133,20 @@ func run() -> void:
 	var a: Node = p.weapon_combat
 	var claw := Moves.move(&"rake")
 	w._begin(claw)
-	w.strike(0)
+	boss_pulse(0)
 	check(is_equal_approx(a.health,888) and encounter.participated,"A real claw pulse damages the player and records participation")
 	var hp: float = a.health
-	w.strike(0)
+	boss_pulse(0)
 	check(a.health == hp,"Repeated boss pulse cannot register duplicate damage")
 	await fixture()
 	guard(p)
 	w._begin(claw)
-	w.strike(0)
+	boss_pulse(0)
 	check(is_equal_approx(a.last_damage,16.8) and is_equal_approx(a.psi_meter,w.psi_meter*0.25) and w.psi_meter>0,"Boss attacks respect chip and both participants' shared guard exhaustion")
 	await fixture()
 	guard(p,true)
 	w._begin(claw)
-	w.strike(0)
+	boss_pulse(0)
 	check(a.health == 1000 and a.last_parried and w.forced_state == &"parried" and is_equal_approx(w.stagger_remaining,1),"Player can perfectly parry Greefer into the full one-second punish window")
 	check(a.psi_meter == 0 and w.psi_meter == 0,"Perfect boss parry produces no guard exhaustion")
 	await capture("parried")
@@ -156,7 +164,7 @@ func run() -> void:
 	p.dodge.start(Vector3.RIGHT)
 	p.dodge.elapsed = p.dodge.DURATION*0.5
 	w._begin(claw)
-	w.strike(0)
+	boss_pulse(0)
 	check(a.health == 1000 and a.last_evaded,"Teleport's hidden invincibility window works against the boss")
 	p.dodge.cancel()
 	await fixture()
@@ -164,9 +172,9 @@ func run() -> void:
 	check(not boss.can_attack_target(world.sparring_partner) and not boss.can_attack_target(world.population.residents[0]) and boss.can_attack_target(p),"Boss targets only its human opponent, protecting Ember and residents")
 	check(p.target_lock.living(boss) and not p.target_lock.living(world.get_node("CounterSentry")),"Lock-on honors the active encounter and excludes unrelated practice targets")
 	w._begin(Moves.move(&"double"))
-	w.strike(0)
-	w.strike(0)
-	w.strike(1)
+	boss_pulse(0)
+	boss_pulse(0)
+	boss_pulse(1)
 	check(a.health == 816 and world.sparring_partner.health == innocents,"Two legitimate boss pulses each resolve once without collateral damage")
 	await fixture()
 	# An actual ordinary hit can cross zero HP; no scripted immunity/finisher.
@@ -186,7 +194,7 @@ func run() -> void:
 	await fixture()
 	a.health = 50
 	w._begin(claw)
-	w.strike(0)
+	boss_pulse(0)
 	check(not encounter.active and encounter.progress.losses == 1 and encounter.progress.first_victory and encounter.progress.last_outcome == "defeat" and encounter.can_progress(),"Rematch defeat preserves the first victory while remembering the latest outcome")
 	check(a.health == 1000 and p.position.distance_to(p.spawn)<0.1,"Boss defeat uses the existing safe player respawn transition")
 	check(encounter.save_checkpoint(path) and encounter.load_checkpoint(path) and encounter.progress.first_victory and encounter.progress.last_outcome == "defeat","Reload distinguishes the first victory from the latest rematch defeat")
@@ -198,7 +206,7 @@ func run() -> void:
 	await fixture()
 	a.health = 50
 	w._begin(claw)
-	w.strike(0)
+	boss_pulse(0)
 	check(encounter.can_progress() and encounter.progress.first_outcome == "defeat" and not encounter.progress.first_victory,"Losing the first fight also advances without a required retry")
 	await fixture()
 	encounter.progress = Journal.fresh()
