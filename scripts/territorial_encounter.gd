@@ -295,6 +295,7 @@ func load_checkpoint(path: String = "") -> bool:
 	if not loaded.has(String(encounter_id)): return false
 	entries = loaded
 	progress = entries[String(encounter_id)].duplicate(true)
+	progression_changed.emit()
 	return true
 
 func snapshot() -> Dictionary:

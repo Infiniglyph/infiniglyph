@@ -45,6 +45,12 @@ git -C infiniglyph-offline switch --detach checkpoint-2026-11-08
 
 ## Save future work
 
+The expanded city/suburbs/countryside is preserved by
+`checkpoint-2026-11-10-outer-world` on `feat/outer-world`. Its independent
+complete-history offline bundle is `infiniglyph-outer-world-2026-11-10.bundle`
+in the parent workspace's `backups` directory. All previous checkpoints remain
+available, including the compact HUD and Greefer milestones.
+
 The compact player HUD is preserved by `checkpoint-2026-11-09-minimal-hud`
 on `ui/minimal-player-hud`. Its independent complete-history offline bundle is
 `infiniglyph-minimal-hud-2026-11-09.bundle` in the parent workspace's `backups`

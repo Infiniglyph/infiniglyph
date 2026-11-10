@@ -28,6 +28,7 @@ func _initialize() -> void:
 
 func run() -> void:
 	world = load("res://scenes/main.tscn").instantiate()
+	world.wider_world_enabled = not "--without-expansion" in OS.get_cmdline_user_args()
 	# A local seed isolates population randomness from combat and loot randomness.
 	root.add_child(world)
 	world.player.visual.retrieval.enabled = false

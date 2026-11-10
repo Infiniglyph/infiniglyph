@@ -38,7 +38,11 @@ func run() -> void:
 				if building.is_ancestor_of(node): in_building = true
 			if not in_building and size.y >= 3.0 and size.x >= 8.0: roofs.append(node)
 	for building: Node3D in buildings: roofs.append(building.roof)
-	check(surfaces.size() == 198+buildings.size()*8,"Original structural volumes and every physical lobby box are included in this audit")
+	# Isolate a structural face from adjacent chunks and the new gate leaves as
+	# well as other hub boxes. Shared seams can legitimately touch two bodies.
+	for body: CollisionObject3D in world.find_children("*","CollisionObject3D",true,false):
+		if not bodies.has(body.get_rid()): bodies.append(body.get_rid())
+	check(surfaces.size() == 200+buildings.size()*8,"Hub structures include split road-opening walls, twelve perimeter towers and every physical lobby box")
 	var missing := 0
 	var bad_faces := 0
 	var space := world.get_world_3d().direct_space_state
@@ -64,7 +68,7 @@ func run() -> void:
 					bad_faces += 1
 	check(missing == 0,"Every structural mesh has a matching enabled full-volume collider")
 	check(bad_faces == 0,"All %d structural faces block physics rays, including rooftops" % (surfaces.size()*6))
-	check(roofs.size() == 36,"All 22 city buildings and 14 outer skyline towers are present")
+	check(roofs.size() == 34,"All 22 city buildings and 12 perimeter towers remain around the two outward avenues")
 	var landings := 0
 	var corner_hits := 0
 	for roof in roofs:
@@ -79,8 +83,8 @@ func run() -> void:
 		world.player.velocity = Vector3.ZERO
 		await frames(50)
 		if world.player.is_on_floor() and absf(world.player.global_position.y-top.y) < 0.05: landings += 1
-	check(corner_hits == 144,"All four corners of all 36 roofs provide solid support")
-	check(landings == 36,"The real player lands and stays grounded on every city and skyline roof")
+	check(corner_hits == 136,"All four corners of all 34 hub roofs provide solid support")
+	check(landings == 34,"The real player lands and stays grounded on every city and skyline roof")
 	var fixtures := get_nodes_in_group("street_lights")
 	var valid_lights := 0
 	var lamp_landings := 0

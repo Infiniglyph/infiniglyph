@@ -61,6 +61,58 @@ local fallback. Map meshes, lights, shadows and collision use their original
 rendering and are independent of this optimization.
 See [WORLD_MEMORY.md](docs/WORLD_MEMORY.md) for behavior, limits and profiling.
 
+## Beyond Central District
+
+The continuous playable region is **2,304 x 2,304 metres**, approximately
+5.3 square kilometres. The original hub stays at its existing coordinates.
+It now connects in all four directions to a much larger city, residential
+neighborhoods, and open countryside. This is a finite first region, with room
+for further authored areas rather than an infinite-world claim.
+
+Completing Greefer's first confrontation **by winning or losing** opens four
+visible sliding road gates. Existing completed encounter saves open them on
+launch; losing a rematch cannot close them. Follow the north road behind Central
+Tower for the clearest route: urban blocks to about 448 m from the center,
+suburbs to about 704 m, then rural roads, farms, woods, hills, ravine bridges
+and a country lookout at `(0,0,-1048)`. The side and country road loops connect
+back into the city. A normal fast run from the north gate to the lookout takes
+about 95 seconds at the unchanged 10.2 m/s speed.
+
+Added geometry includes **209 urban buildings, 322 homes, 33 farm buildings,
+673 geometric trees, 34 rock outcrops and three solid ravine bridges**. The
+new neighborhoods have sealed facades, solid gabled/flat roofs and open streets;
+they do not yet have enterable household interiors. The existing 100 residents
+retain their Central District routines and building visits. Broader population
+and new encounters are future content, not silently expanded NPC simulation.
+
+Gates are real geometry, not invisible encounter walls. Sky Jump and all combat
+movement remain unrestricted; creative aerial shortcuts do not grant the
+intro-completion flag. Greefer remains territorial to the original district.
+The new map is already physically present during his fight, so opening the
+roads never teleports the player or loads terrain beneath a falling character.
+
+`scripts/world_regions.gd` lays out the deterministic neighborhoods and matching
+triangulated terrain. Farm pads are leveled into the actual terrain.
+`scripts/world_chunk.gd` builds 81 immutable spatial mesh batches with full
+collision; the original hub's expansion rim uses four narrow physics bodies
+instead of making every hub NPC query a surrounding terrain mesh. Engine
+frustum culling handles the meshes using their real local bounds. No custom
+world-memory visibility toggles, unloading collision, or rebuilding map meshes
+while moving are used. The 107 new orange fixtures have real local spotlights
+with engine distance fading; their geometry remains solid and visible.
+
+Set `world.wider_world_enabled = false` only for isolated baseline profiling.
+Normal play enables the complete region. The minimalist HP/exhaustion HUD and
+non-pausing menus are retained.
+
+Native Intel HD 620 / Compatibility-ANGLE review observed roughly 33 ms median
+frames in the expanded hub, 12 ms in the suburbs and 5 ms in the country; a fresh
+hub without the expansion measured about 28 ms. These are live-scene samples,
+not identical-population benchmark runs or an FPS guarantee. The original hub
+remains the heaviest view and the larger skyline has a render cost. The game
+camera's far plane is 1,800 m for the expanded landscape. Use the native capture
+helper with `-- --performance` to inspect frame time, physics time and draw calls.
+
 ## Canonical narrative reference
 
 The [Canonical World Lore & Narrative Design Profile](docs/canonical_world_lore.txt)
@@ -106,8 +158,8 @@ existing respawn transition.
 Winning **or losing** the first confrontation records completion. A first-attempt
 victory is preserved separately; no scripted loss or boss invulnerability forces
 the result. Falling before any combat participation cannot skip the introduction.
-The reusable encounter's `can_progress()` is the progression gate for future
-district transitions; the currently available city remains freely explorable.
+The encounter's `can_progress()` opens the four outward road gates; the
+original hub stays freely explorable before the confrontation.
 After the fight, Greefer physically returns to his tower. Approach the violet
 challenge sigil labeled **GREEFER / REMATCH** at `(5,0,-40)` and press **G / RT**.
 Choose **Yes - challenge** in the live Ember-style confirmation for a
@@ -986,6 +1038,18 @@ Edit `data/motion_constraints.json` to tune the live recipes, then restart the g
 
 ## Verification
 
+`tests/world_regions.gd` audits the 2.3 km region, all 564 added building roofs,
+leveled farm foundations, 2,184 ground-support probes, 1,610 road-clearance
+probes, solid closed/open gates, a real first-fight defeat, existing save/load,
+rematch persistence and a full controller sprint from the north hub gate to the
+country lookout. The continuous main-road traversal passed at 30/60/120 Hz.
+The hub's revised structural audit covers 376 boxes, 34 roofs, 16 lamp heads
+and 2,256 faces. Greefer arrival/flight, live menus, HUD, skyways and resident
+flow remain covered by their existing suites.
+`tests/capture_world_regions.gd` renders closed/open gates, urban streets,
+the city overview, suburbs, rural bridge, farmland, countryside and lookout
+under `captures/world_*.png`; these images were visually reviewed.
+
 `tests/hud.gd`: 14 layout/state checks cover the two permanent bars, full and
 partial values, recovery/respawn, live menus and viewport bounds at 800x600,
 1280x720 and 1920x1080. Run without `--headless` and add `-- --capture` for
@@ -1083,7 +1147,8 @@ Metropolis: **13 checks** in `tests/metropolis.gd` audit 3,273 added volumes and
 19,860 faces against real collision, land the player on all 51 sampled city
 routes, walk both complete new staircases, verify Ember's access/the open avenue,
 and check renderer light limits. `tests/city.gd` also passed its independent audit
-of all 374 original/lobby boxes, 36 roofs, 16 lamps and 2,244 faces.
+of all 376 hub/lobby boxes, 34 roofs, 16 lamps and 2,256 faces after opening the
+outward roads and removing the two former north/south road-blocking towers.
 
 `tests/skyway_routes.gd` passed **33 checks at 30, 60 and 120 Hz**. It checks
 2,708 floor/body capsule samples, continuous support and three walking lanes

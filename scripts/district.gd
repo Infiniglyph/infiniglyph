@@ -68,11 +68,14 @@ func _ready() -> void:
 		for along in [-48,-24,24,48]:
 			add_street_light(Vector3(side*10.5,0,along), side*PI*0.5)
 			add_street_light(Vector3(along,0,side*10.5), 0.0 if side == 1 else PI)
-	# A physical outer perimeter encloses the entire skyline, with solid rooftops.
+	# Retain the old perimeter as low solid walls, with real road openings.
 	for s in [-1,1]:
-		Neon.block(self,Vector3(s*HALF_EXTENT,0.7,0),Vector3(0.4,1.4,HALF_EXTENT*2))
-		Neon.block(self,Vector3(0,0.7,s*HALF_EXTENT),Vector3(HALF_EXTENT*2,1.4,0.4))
+		for span: Vector2 in [Vector2(-HALF_EXTENT,6),Vector2(26,HALF_EXTENT)]:
+			Neon.block(self,Vector3(s*HALF_EXTENT,0.7,(span.x+span.y)*0.5),Vector3(0.4,1.4,span.y-span.x))
+		for span: Vector2 in [Vector2(-HALF_EXTENT,-10),Vector2(10,HALF_EXTENT)]:
+			Neon.block(self,Vector3((span.x+span.y)*0.5,0.7,s*HALF_EXTENT),Vector3(span.y-span.x,1.4,0.4))
 		for n in range(-3,4):
+			if n == 0: continue # Continue the north/south avenues beyond the hub.
 			var height: float = 30.0 + abs(n)*8
 			Neon.block(self,Vector3(n*24,height*0.5,s*94),Vector3(14,height,14))
 	add_child(Metropolis.new())
