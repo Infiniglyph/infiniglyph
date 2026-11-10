@@ -51,7 +51,7 @@ var _curb_hold := 0.0
 func _ready() -> void:
 	name = profile.name
 	collision_layer = 4 # Physical residents, separate from architecture/hurtboxes.
-	collision_mask = 5
+	collision_mask = 13
 	floor_snap_length = 0.3
 	var shape := CollisionShape3D.new()
 	var capsule := CapsuleShape3D.new()
@@ -106,7 +106,7 @@ func activate(at: Vector3) -> void:
 	travel_door = null
 	pending_door = null
 	collision_layer = 4
-	collision_mask = 5
+	collision_mask = 13
 	body_shape.disabled = false
 	set_physics_process(true)
 	show()

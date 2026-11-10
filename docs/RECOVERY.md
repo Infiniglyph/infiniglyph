@@ -1,5 +1,12 @@
 # Recovering the first public checkpoint
 
+The seating, expanded population, drivable traffic and Health Glyph milestone
+is preserved by `checkpoint-2026-11-10-city-life` on `feat/city-life-vehicles`.
+Its complete-history offline bundle is `infiniglyph-city-life-2026-11-10.bundle`
+in the parent workspace's `backups` directory. Inventory quantities and the
+one-time Health Glyph grant flag remain in the existing per-user save; vehicle
+locations and journeys are session state. Earlier checkpoint tags stay fixed.
+
 The annotated tag `checkpoint-2026-11-08` is the baseline to return to if a
 later change breaks the game. Keep this tag fixed; give later checkpoints new
 names. A commit only exists online after it has been pushed.

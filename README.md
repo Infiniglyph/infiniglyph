@@ -39,8 +39,9 @@ packages are required to play.
 
 ## Gameplay HUD
 
-The permanent HUD contains only a cyan HP bar in the top left and a thin orange
-exhaustion bar directly beneath it. Both use the actual combat maximum/current
+The permanent HUD contains a cyan HP bar in the top left, a thin orange
+exhaustion bar directly beneath it, and the Health Glyph count at bottom left.
+Both bars use the actual combat maximum/current
 values; exhaustion fills as strain accumulates and empties during recovery.
 The phase title, weapon/debug panel, control sheet, move/guard text, momentum
 readout and permanent objective text are removed. Controls and weapon arts
@@ -82,8 +83,10 @@ Added geometry includes **209 urban buildings, 322 homes, 33 farm buildings,
 673 geometric trees, 34 rock outcrops and three solid ravine bridges**. The
 new neighborhoods have sealed facades, solid gabled/flat roofs and open streets;
 they do not yet have enterable household interiors. The existing 100 residents
-retain their Central District routines and building visits. Broader population
-and new encounters are future content, not silently expanded NPC simulation.
+retain their Central District routines and building visits. The regional life
+system adds 780 neighborhood residents and 238 vehicle records across the
+larger map, with nearby activity budgets described below. New encounters remain
+future content.
 
 Gates are real geometry, not invisible encounter walls. Sky Jump and all combat
 movement remain unrestricted; creative aerial shortcuts do not grant the
@@ -105,13 +108,72 @@ Set `world.wider_world_enabled = false` only for isolated baseline profiling.
 Normal play enables the complete region. The minimalist HP/exhaustion HUD and
 non-pausing menus are retained.
 
-Native Intel HD 620 / Compatibility-ANGLE review observed roughly 33 ms median
+Before the regional life/traffic pass, native Intel HD 620 / Compatibility-ANGLE
+review observed roughly 33 ms median
 frames in the expanded hub, 12 ms in the suburbs and 5 ms in the country; a fresh
 hub without the expansion measured about 28 ms. These are live-scene samples,
 not identical-population benchmark runs or an FPS guarantee. The original hub
 remains the heaviest view and the larger skyline has a render cost. The game
 camera's far plane is 1,800 m for the expanded landscape. Use the native capture
 helper with `-- --performance` to inspect frame time, physics time and draw calls.
+
+## Seating, neighborhood life, vehicles and Health Glyphs
+
+Tap **RT** or press **G** near a bench to sit; use it again, move, or jump to
+stand. Hub benches, quarter benches and outer neighborhood park seats all use
+claimed seat anchors and checked standing positions, following the Infinite
+Library's seating pattern. Weapons stow while seated. Standing restores the
+original movement/collision state. Start > Unstick can also use a safe exit.
+
+The expanded world has **780 additional residents** (390 of each body profile,
+eleven colors), neighborhood walking/break routines, repeat greetings and
+**238 vehicle records**, mixing moving traffic and parked driveway vehicles.
+Cars, motorcycles and trucks have distinct silhouettes, seating, speed and
+physical collision. Taking an occupied vehicle puts its driver onto checked
+footing as a resident; it does not delete the driver. Cars stop for nearby
+physical obstacles and residents, and briefly at corners. No police/crime
+system, household interiors or extra combat mechanics are implied.
+
+Tap **RT / G** beside a slow/stopped vehicle to drive it. Use **W/S or left-stick
+forward/back** to accelerate, brake and reverse, and **A/D or left-stick
+left/right** to steer. The right stick/mouse still controls the camera. Release
+the movement input to slow down; exit with **RT / G** once stopped. A moving
+vehicle or blocked exit refuses unsafe dismounts. Entering and leaving keeps
+the camera attached and restores the player's original capsule settings.
+
+Nearby activity is bounded to **28 regional pedestrians and 22 vehicles**,
+in addition to the original hub population. Distant traffic retains lightweight
+route/driver records rather than full physics and animated meshes. Neighborhood
+identities, colors, conversation counts, abandoned vehicles and takeovers persist
+through distance changes in the current session. Physical driveways use spatial
+batches. World terrain/building meshes and collision are never toggled or
+unloaded by this system. Vehicle journeys/positions are session state, not a
+new disk-save or multiplayer replication system. Regional traffic currently
+runs in offline play; the existing host inventory validation governs healing.
+
+**Hold RT and press B**, or press **H**, to use one owned **Health Glyph** and
+restore up to **350 HP**. Healing works while moving and has no stamina cost or
+new animation lock. Full HP, no glyphs, or a defeated actor consumes nothing.
+The small bottom-left count reads the actual inventory; glyphs also appear in
+the inventory's Consumables category. New and existing valid saves receive
+**three once**; a persisted migration flag prevents launch/load refills. A
+collectible three-glyph stack is available near the arrival court. Consumption,
+ownership and quantities use the existing checkpoint/loot transaction pipeline.
+Invalid checkpoints still fail closed without a starter regrant.
+
+Bare **RT interactions resolve on release**. RT+B exclusively heals, B alone
+still dodges, and RT+X/Y still use the existing modified charged arts. Held or
+repeated button-down events cannot consume multiple glyphs, and returning from
+menus/focus changes requires neutral triggers. Menus never pause traffic or the
+world. Set `world.district_life_enabled = false` only for isolated profiling.
+
+`tests/city_life.gd` exercises actual inventory/HP, controller chords, save/load,
+seating, steering, three body types, safe entry/exit and driver takeover at
+30/60/120 Hz. `tests/traffic_flow.gd` follows six neighborhood visits, checks
+bounded activation, real autonomous travel, support and a solid obstacle sweep.
+Native captures are available through `city_life.gd -- --capture`; add
+`--performance` for live frame-time/draw-call samples in urban/suburban/country
+views. Generated captures and personal saves are excluded from source backups.
 
 ## Canonical narrative reference
 

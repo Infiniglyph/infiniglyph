@@ -36,6 +36,7 @@ var fall_damage: Node
 var inventory: Node
 var loot_authority: Node
 var unstuck: Node
+var world_actions: Node3D
 var _death_serial := 0
 var _death_processing := false
 var _jump_after_dodge := false
@@ -51,6 +52,7 @@ func _ready() -> void:
 	floor_max_angle = deg_to_rad(48)
 	max_slides = 12
 	set_collision_mask_value(3,true) # Residents occupy their own physical layer.
+	set_collision_mask_value(4,true) # Physical vehicles.
 	var collider := CollisionShape3D.new()
 	var capsule := CapsuleShape3D.new()
 	capsule.radius = 0.27
@@ -98,6 +100,7 @@ func _physics_process(delta: float) -> void:
 	weapon_combat.advance_stagger(delta)
 	fall_damage.advance(delta)
 	controls.sample()
+	if is_instance_valid(world_actions) and world_actions.step(delta): return
 	combat.advance_charge(delta)
 	target_lock.update(delta,controls)
 	if controls.has_method("update_combat_hold"): controls.update_combat_hold(delta)
@@ -184,6 +187,7 @@ func face_locked_target() -> void:
 		visual.rotation.y = atan2(facing.x,facing.z)
 
 func respawn() -> void:
+	if is_instance_valid(world_actions) and world_actions.attached(): world_actions.detach()
 	if is_instance_valid(sparring_duel) and sparring_duel.active: sparring_duel.finish(false)
 	dodge.cancel()
 	target_lock.clear()

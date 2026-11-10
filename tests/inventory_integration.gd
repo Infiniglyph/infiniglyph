@@ -55,7 +55,7 @@ func run() -> void:
 	await frames(20)
 	var inventory: Node = actor.inventory
 	var loot: Node = world.loot
-	check(inventory.items.size()==4,"The existing four loadouts start as four owned instances")
+	check(inventory.equipment.size()==4 and inventory.items.size()==5 and inventory.count_type(&"health_glyph")==3,"Four owned loadouts and three Health Glyphs start in inventory")
 	check(not session.persistence_enabled,"Command-line tools isolate their inventory from normal-game saves")
 	actor.position = Vector3(13,0.15,16.4)
 	actor.velocity = Vector3.ZERO

@@ -12,6 +12,7 @@ var walking := 0.0
 var stature := 1.0
 var body_profile: StringName = &"male"
 var tint := Color(0.12,0.82,0.9)
+var sitting := false
 
 func batch(mesh: Mesh, count: int, ink: Material) -> MultiMesh:
 	var instance := MultiMeshInstance3D.new()
@@ -88,6 +89,7 @@ func animate(delta: float, speed: float, gesturing: bool) -> void:
 		var stride := sin(cycle)*walking
 		var hip := pelvis+Vector3(side*hip_width,0,0)
 		var foot := Vector3(side*(hip_width+0.015),0.052+maxf(0,cos(cycle))*0.055*walking,stride*0.24)
+		if sitting: foot = pelvis+Vector3(side*(hip_width+0.04),-0.65,0.4)
 		var knee := knee_between(hip,foot)
 		segment(3+i*2,hip,knee)
 		segment(4+i*2,knee,foot)
@@ -97,6 +99,9 @@ func animate(delta: float, speed: float, gesturing: bool) -> void:
 		var shoulder := chest+Vector3(side*0.23,0,side*sway*0.018)
 		var elbow := shoulder+Vector3(side*0.035,-0.29,-stride*0.13+0.04)
 		var hand := elbow+Vector3(-side*0.025,-0.27,-stride*0.10+0.03)
+		if sitting:
+			elbow = shoulder+Vector3(0,-0.18,0.23)
+			hand = elbow+Vector3(0,-0.12,0.22)
 		if gesturing and i==1:
 			elbow += Vector3(0.08,0.08,0.05)
 			hand = elbow+Vector3(0.02,0.02+sin(clock*3)*0.045,0.25)

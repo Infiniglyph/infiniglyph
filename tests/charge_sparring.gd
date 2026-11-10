@@ -117,6 +117,10 @@ func _initialize() -> void:
 func run() -> void:
 	world = load("res://scenes/main.tscn").instantiate()
 	root.add_child(world)
+	# The stationary damage fixture measures animation/weapon timing, while
+	# civilian bodies can physically push it during this long sampling loop.
+	world.player.set_collision_mask_value(3,false)
+	world.player.set_collision_mask_value(4,false)
 	p = world.player
 	w = p.weapon_combat
 	controls = world.controls
@@ -233,6 +237,8 @@ func run() -> void:
 	await reset()
 	dummy.queue_free()
 	await frames(2)
+	p.set_collision_mask_value(3,true)
+	p.set_collision_mask_value(4,true)
 	# Invitation: distant input, decline, controller navigation and explicit Yes.
 	key(KEY_G)
 	key(KEY_G,false)

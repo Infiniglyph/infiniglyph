@@ -1,0 +1,181 @@
+extends CharacterBody3D
+## The same physical vehicle is used by traffic and by the player.
+const Chunk = preload("res://scripts/world_chunk.gd")
+const Neon = preload("res://scripts/neon.gd")
+const PersonVisual = preload("res://scripts/resident_visual.gd")
+var life: Node3D
+var record: Dictionary
+var kind := "car"
+var player_driver: CharacterBody3D
+var has_driver := false
+var signed_speed := 0.0
+var seat_height := 0.72
+var seat_z := 0.05
+var top_speed := 19.0
+var dimensions := Vector3(1.85,1.8,4.1)
+var driver_visual: Node3D
+var wheel_nodes: Array[Node3D] = []
+var lamps: Array[SpotLight3D] = []
+var _wait := 0.0
+var _wheel_phase := 0.0
+
+func _ready() -> void:
+	kind = record.kind
+	name = kind.capitalize()+"_"+str(record.id)
+	if kind=="motorcycle":
+		dimensions = Vector3(0.85,1.35,2.35)
+		seat_height = 0.83
+		top_speed = 23
+	elif kind=="truck":
+		dimensions = Vector3(2.25,2.5,5.4)
+		seat_height = 1.02
+		seat_z = 1.35
+		top_speed = 15
+	collision_layer = 8
+	collision_mask = 13
+	floor_snap_length = 0.4
+	floor_max_angle = deg_to_rad(38)
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = dimensions
+	shape.shape = box
+	shape.position.y = dimensions.y*0.5+0.06
+	add_child(shape)
+	build_visual()
+	global_position = record.point
+	rotation.y = record.get("yaw",0.0)
+	has_driver = record.traffic and not record.taken
+	driver_visual.visible = has_driver
+
+func build_visual() -> void:
+	var batch := Chunk.new()
+	add_child(batch)
+	var color: Color = record.color
+	if kind=="motorcycle":
+		batch.box(Vector3(0,0.62,0),Vector3(0.32,0.36,1.55),"Frame",color)
+		batch.box(Vector3(0,0.84,-0.12),Vector3(0.42,0.14,0.8),"Saddle",color)
+		batch.box(Vector3(0,1.16,0.58),Vector3(0.83,0.07,0.08),"Handlebars",color)
+	else:
+		batch.box(Vector3(0,0.62,0),Vector3(dimensions.x,0.72,dimensions.z),"Chassis",color)
+		# Open window apertures show the light-being driver inside the cabin.
+		var cab_z := 0.0 if kind=="car" else 1.35
+		var roof_y := 1.78 if kind=="car" else 2.1
+		batch.box(Vector3(0,roof_y,cab_z-0.1),Vector3(dimensions.x*0.82,0.08,1.65),"Roof",color)
+		for side in [-1,1]:
+			for end in [-1,1]:
+				var bottom := Vector3(side*dimensions.x*0.46,0.98,cab_z+end*0.95)
+				var top := Vector3(side*dimensions.x*0.40,roof_y,cab_z+end*0.78-0.1)
+				batch.line(bottom,top,color)
+			batch.line(Vector3(side*dimensions.x*0.46,1.0,cab_z-0.95),Vector3(side*dimensions.x*0.46,1.0,cab_z+0.95),color)
+		if kind=="truck": batch.box(Vector3(0,1.6,-0.85),Vector3(2.18,1.7,2.9),"Cargo",color)
+		else:
+			# Window divisions and hood seams keep the silhouette legible.
+			for side in [-1,1]:
+				batch.line(Vector3(side*0.84,1.45,-0.85),Vector3(side*0.84,1.45,0.85),color)
+				batch.line(Vector3(side*0.85,0.95,0.93),Vector3(side*0.85,0.95,1.95),color)
+	for axle in [-1,1]:
+		var z: float = axle*dimensions.z*0.31
+		for side in ([0] if kind=="motorcycle" else [-1,1]):
+			var wheel := Node3D.new()
+			wheel.position = Vector3(side*dimensions.x*0.5,0.38,z)
+			add_child(wheel)
+			var cylinder := MeshInstance3D.new()
+			var mesh := CylinderMesh.new()
+			mesh.top_radius = 0.36
+			mesh.bottom_radius = 0.36
+			mesh.height = 0.17
+			mesh.radial_segments = 10
+			mesh.material = Neon.dark
+			cylinder.mesh = mesh
+			cylinder.rotation.z = PI*0.5
+			wheel.add_child(cylinder)
+			var ring := PackedVector3Array()
+			for face in ([-1,1] if kind=="motorcycle" else [side]):
+				for n in range(12):
+					for i in [n,n+1]: ring.append(Vector3(face*0.095,sin(i*TAU/12)*0.365,cos(i*TAU/12)*0.365))
+				for direction in [-1,1]: ring.append_array([Vector3(face*0.096,0,0),Vector3(face*0.096,direction*0.32,0)])
+			wheel.add_child(Neon.lines(ring,Neon.material(color)))
+			wheel_nodes.append(wheel)
+	batch.commit()
+	# One envelope on this CharacterBody is the vehicle's collision authority.
+	batch.remove_child(batch.body)
+	batch.body.free()
+	for side in [-1,1]:
+		var lamp := SpotLight3D.new()
+		lamp.position = Vector3(side*dimensions.x*0.3,0.9,dimensions.z*0.5+0.03)
+		lamp.rotation.y = PI
+		lamp.light_color = Neon.ORANGE
+		lamp.light_energy = 1.5
+		lamp.spot_range = 13
+		lamp.spot_angle = 38
+		lamp.shadow_enabled = false
+		add_child(lamp)
+		lamps.append(lamp)
+		var marker := MeshInstance3D.new()
+		var lens := BoxMesh.new()
+		lens.size = Vector3(0.18,0.1,0.055)
+		lens.material = Neon.material(Neon.ORANGE)
+		marker.mesh = lens
+		marker.position = lamp.position
+		add_child(marker)
+	driver_visual = PersonVisual.new()
+	driver_visual.tint = record.driver.tint
+	driver_visual.body_profile = record.driver.body_profile
+	add_child(driver_visual)
+	driver_visual.position = Vector3(0,seat_height-0.946,seat_z)
+	driver_visual.scale = Vector3.ONE*0.9
+	driver_visual.sitting = true
+
+func _physics_process(delta: float) -> void:
+	var throttle := 0.0
+	var steering := 0.0
+	var desired := 0.0
+	if is_instance_valid(player_driver):
+		var controls: Node = player_driver.controls
+		throttle = -controls.move.y
+		steering = controls.move.x
+		desired = throttle*(top_speed if throttle>=0 else 6.0)
+		rotation.y += steering*signed_speed*0.055*delta
+	elif has_driver:
+		var route: PackedVector3Array = record.route
+		var goal: Vector3 = route[record.cursor]
+		var offset := goal-global_position
+		offset.y = 0
+		if offset.length()<4:
+			record.cursor = (record.cursor+1)%route.size()
+			_wait = 0.85+float(record.id%3)*0.15
+			goal = route[record.cursor]
+			offset = goal-global_position
+		var turn := wrapf(atan2(offset.x,offset.z)-rotation.y,-PI,PI)
+		rotation.y += clampf(turn,-1.8*delta,1.8*delta)
+		desired = minf(top_speed*0.47,4.0 if absf(turn)>0.38 else top_speed)
+		# Pause at each corner; deterministic stagger avoids synchronized convoys.
+		_wait = maxf(0,_wait-delta)
+		if _wait>0: desired = 0
+		var probe := PhysicsShapeQueryParameters3D.new()
+		var box := BoxShape3D.new()
+		box.size = Vector3(dimensions.x+0.25,1.25,2.0+absf(signed_speed)*0.35)
+		probe.shape = box
+		probe.transform = Transform3D(global_basis,global_position+Vector3.UP*0.9+global_basis.z*(dimensions.z*0.5+box.size.z*0.5+0.3))
+		probe.collision_mask = 13
+		probe.exclude = [get_rid()]
+		if not get_world_3d().direct_space_state.intersect_shape(probe,1).is_empty(): desired = 0
+	var rate := 16.0 if desired*signed_speed<0 or absf(desired)<absf(signed_speed) else 7.0
+	signed_speed = move_toward(signed_speed,desired,rate*delta)
+	velocity.x = global_basis.z.x*signed_speed
+	velocity.z = global_basis.z.z*signed_speed
+	velocity.y = -0.4 if is_on_floor() else maxf(-30,velocity.y-22*delta)
+	move_and_slide()
+	if is_on_wall():
+		# A sideways brush still permits forward sliding; only lost forward
+		# motion slows the vehicle. This avoids sticking beside a pedestrian.
+		var forward_speed := velocity.dot(global_basis.z)
+		if absf(forward_speed)<absf(signed_speed): signed_speed = move_toward(signed_speed,forward_speed,20*delta)
+	record.point = global_position
+	record.yaw = rotation.y
+	_wheel_phase += signed_speed*delta/0.36
+	for wheel: Node3D in wheel_nodes: wheel.rotation.x = _wheel_phase
+	driver_visual.visible = has_driver
+	if has_driver: driver_visual.animate(delta,0,false)
+	for lamp: SpotLight3D in lamps: lamp.visible = global_position.distance_squared_to(life.actor.global_position)<6400
+	if is_instance_valid(player_driver): player_driver.world_actions.anchor()

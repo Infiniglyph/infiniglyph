@@ -11,6 +11,19 @@ var actor: Node3D
 var items: Dictionary = {}
 var equipment: Dictionary = {}
 var _seeded := false
+var starter_glyphs_granted := false
+
+func count_type(type: StringName) -> int:
+	var total := 0
+	for item: Resource in items.values():
+		if item.item_type_id == type and item.owner_id == owner_id: total += item.quantity
+	return total
+
+func introduce_health_glyphs() -> void:
+	# One migration grant for existing saves as well as new players, never a refill.
+	if starter_glyphs_granted: return
+	starter_glyphs_granted = true # Claim before changed signals can reenter.
+	if not add_item(Catalog.create(&"health_glyph",3)): starter_glyphs_granted = false
 
 func seed_starter() -> void:
 	# A valid empty save represents real losses, never a reason to mint gear.
@@ -127,11 +140,12 @@ func serialize() -> Dictionary:
 	var assignments: Dictionary = {}
 	for slot: StringName in equipment:
 		assignments[String(slot)] = equipment[slot]
-	return {"version":1,"owner_id":owner_id,"items":entries,"equipment":assignments}
+	return {"version":1,"owner_id":owner_id,"items":entries,"equipment":assignments,"starter_glyphs_granted":starter_glyphs_granted}
 
 func restore(data: Variant) -> bool:
 	if not data is Dictionary or not Instance.whole_number(data.get("version"),1,1): return false
 	if not Instance.valid_text(data.get("owner_id")) or not data.get("items") is Array or not data.get("equipment") is Dictionary or data.items.size()>MAX_ITEMS: return false
+	if data.has("starter_glyphs_granted") and not data.starter_glyphs_granted is bool: return false
 	var restored: Dictionary = {}
 	for entry: Variant in data.items:
 		var item: Resource = Instance.from_dict(entry)
@@ -153,6 +167,7 @@ func restore(data: Variant) -> bool:
 	items = restored
 	equipment = assignments
 	_seeded = true
+	starter_glyphs_granted = data.get("starter_glyphs_granted",false)
 	equipment_changed.emit()
 	changed.emit()
 	return true

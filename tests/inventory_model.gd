@@ -24,7 +24,7 @@ func run() -> void:
 	var b := Inventory.new()
 	b.owner_id = "peer-b"
 	check(Catalog.get_definition(&"unknown") == null and Catalog.create(&"unknown") == null,"Unknown catalog IDs cannot mint items")
-	check(Catalog.all().size()==9,"Catalog enumeration includes weapons and all placeholder categories")
+	check(Catalog.all().size()==10 and Catalog.get_definition(&"health_glyph").category==&"consumables","Catalog includes Health Glyphs, weapons and all existing categories")
 	check(Catalog.create(&"katana",2) == null and Catalog.create(&"light_shard",0) == null,"Catalog quantities respect stack limits")
 	a.seed_starter()
 	check(a.items.size()==4 and a.equipment.size()==4,"A fresh character gets exactly four unique starter weapons")

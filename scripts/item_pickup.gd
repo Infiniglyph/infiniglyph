@@ -66,7 +66,7 @@ func _ready() -> void:
 				lines.append_array([points[a],points[b]])
 	for s in [-1,1]:
 		lines.append_array([Vector3(-0.21,0.103,s*0.21),Vector3(0.21,0.103,s*0.21),Vector3(s*0.21,0.103,-0.21),Vector3(s*0.21,0.103,0.21)])
-	add_child(Neon.lines(lines,Neon.material(Color(0.04,0.95,1.0))))
+	add_child(Neon.lines(lines,Neon.material(Color(0.25,1,0.6) if item_type_id==&"health_glyph" or item_instance!=null and item_instance.item_type_id==&"health_glyph" else Color(0.04,0.95,1.0))))
 	visible = not pending
 
 func activate() -> void:

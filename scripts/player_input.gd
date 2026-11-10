@@ -2,6 +2,9 @@ extends Node
 signal special_hold_cancelled(token: StringName)
 var gameplay_enabled := true
 var interaction_requested := false
+var heal_requested := false
+var _rt_used := false
+var _rt_pending := false
 var interaction_context: Node
 var _rt_interaction_latched := false
 var _resume_triggers := {JOY_AXIS_TRIGGER_LEFT:false,JOY_AXIS_TRIGGER_RIGHT:false}
@@ -60,8 +63,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		jump_requested = true
 	if event is InputEventJoypadButton and event.pressed and event.button_index == JOY_BUTTON_LEFT_STICK:
 		toggle_boost()
-	if event is InputEventJoypadButton and event.pressed and event.button_index == JOY_BUTTON_B:
-		dodge_requested = true
 	_combat_input(event)
 
 func sample() -> void:
@@ -137,13 +138,22 @@ func trigger_held(value: float, held: bool) -> bool:
 
 func set_right_trigger(value: float) -> void:
 	if not trigger_released(JOY_AXIS_TRIGGER_RIGHT,value): return
-	if value<=TRIGGER_RELEASE: _rt_interaction_latched = false
 	var held := trigger_held(value,_pad_modifier)
 	var fresh := held and not _pad_modifier
+	if not held and _pad_modifier:
+		# Resolve a bare RT tap on release, so RT+B/X/Y cannot also interact.
+		if _rt_pending and not _rt_used: interaction_requested = true
+		_rt_pending = false
+		_rt_interaction_latched = false
 	_pad_modifier = held
-	if fresh and not _rt_interaction_latched and is_instance_valid(interaction_context) and interaction_context.can_talk():
-		_rt_interaction_latched = true
-		interaction_requested = true
+	if fresh:
+		_rt_used = false
+		_rt_pending = is_instance_valid(interaction_context) and interaction_context.can_talk()
+
+func consume_heal() -> bool:
+	var result := heal_requested
+	heal_requested = false
+	return result
 
 func consume_combat_requests() -> Array[Dictionary]:
 	var requests := _combat_requests
@@ -214,7 +224,7 @@ func update_combat_hold(delta: float) -> void:
 func _combat_input(event: InputEvent) -> void:
 	if event is InputEventKey:
 		var code: int = event.physical_keycode if event.physical_keycode != KEY_NONE else event.keycode
-		if code not in [KEY_F,KEY_V,KEY_Q,KEY_R,KEY_TAB,KEY_G] and not WEAPON_KEYS.has(code) and not TARGET_KEYS.has(code): return
+		if code not in [KEY_F,KEY_V,KEY_Q,KEY_R,KEY_TAB,KEY_G,KEY_H] and not WEAPON_KEYS.has(code) and not TARGET_KEYS.has(code): return
 		if event.echo: return
 		var fresh: bool = event.pressed and not _combat_keys.has(code)
 		if event.pressed: _combat_keys[code] = true
@@ -234,6 +244,7 @@ func _combat_input(event: InputEvent) -> void:
 			_flick_armed = false
 		elif TARGET_KEYS.has(code): _lock_requests.append({"direction":TARGET_KEYS[code],"device":-1})
 		elif code == KEY_G: interaction_requested = true
+		elif code == KEY_H: heal_requested = true
 		elif WEAPON_KEYS.has(code):
 			_down_cancelled = true
 			_request(&"weapon",WEAPON_KEYS[code])
@@ -260,10 +271,18 @@ func _combat_input(event: InputEvent) -> void:
 			elif not event.pressed: _release_down(event.device)
 			return
 		if event.button_index in [JOY_BUTTON_X,JOY_BUTTON_Y]:
+			if fresh and _pad_modifier: _rt_used = true
 			if fresh or not event.pressed: _special(&"x" if event.button_index == JOY_BUTTON_X else &"y",event.device,event.pressed)
 			return
 		if not fresh: return
 		match event.button_index:
+			JOY_BUTTON_B:
+				if _pad_modifier:
+					_rt_used = true
+					_rt_pending = false
+					heal_requested = true
+					interaction_requested = false
+				else: dodge_requested = true
 			JOY_BUTTON_RIGHT_STICK:
 				_lock_requests.append({"direction":Vector2.ZERO,"device":event.device})
 				_flick_armed = false
@@ -275,6 +294,11 @@ func _combat_input(event: InputEvent) -> void:
 					_request(&"weapon",WEAPON_BUTTONS[event.button_index],event.device)
 
 func reset_combat_input() -> void:
+	_rt_pending = false
+	_rt_used = false
+	heal_requested = false
+	interaction_requested = false
+	dodge_requested = false
 	_held_specials.clear()
 	special_hold_cancelled.emit(&"")
 	_lock_requests.clear()
@@ -295,6 +319,11 @@ func reset_combat_input() -> void:
 func _on_joy_connection_changed(device: int, connected: bool) -> void:
 	if connected or device != _combat_pad: return
 	_rt_interaction_latched = false
+	_resume_triggers[JOY_AXIS_TRIGGER_LEFT] = true
+	_resume_triggers[JOY_AXIS_TRIGGER_RIGHT] = true
+	_rt_pending = false
+	heal_requested = false
+	dodge_requested = false
 	for token: StringName in _held_specials.keys():
 		if _held_specials[token] == device:
 			_held_specials.erase(token)
@@ -310,4 +339,6 @@ func _on_joy_connection_changed(device: int, connected: bool) -> void:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		_resume_triggers[JOY_AXIS_TRIGGER_LEFT] = true
+		_resume_triggers[JOY_AXIS_TRIGGER_RIGHT] = true
 		reset_combat_input()

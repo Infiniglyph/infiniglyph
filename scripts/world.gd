@@ -15,6 +15,11 @@ const WorldMemory = preload("res://scripts/world_memory.gd")
 const TerritorialBoss = preload("res://scripts/territorial_boss.gd")
 const TerritorialEncounter = preload("res://scripts/territorial_encounter.gd")
 const WorldRegions = preload("res://scripts/world_regions.gd")
+const WorldActions = preload("res://scripts/world_actions.gd")
+const DistrictLife = preload("res://scripts/district_life.gd")
+var world_actions: Node3D
+var district_life: Node3D
+@export var district_life_enabled := true
 var wider_world: Node3D
 var greefer: CharacterBody3D
 var boss_encounter: CanvasLayer
@@ -129,3 +134,14 @@ func _ready() -> void:
 		wider_world.encounter = boss_encounter
 		add_child(wider_world)
 		camera_rig.camera.far = 1800 # Keep the larger skyline/hills visible from Sky Jump height.
+	world_actions = WorldActions.new()
+	world_actions.actor = player
+	world_actions.session = inventory_session
+	add_child(world_actions)
+	if district_life_enabled and is_instance_valid(wider_world) and not inventory_session.networked():
+		district_life = DistrictLife.new()
+		district_life.actor = player
+		district_life.regions = wider_world
+		district_life.session = inventory_session
+		add_child(district_life)
+		world_actions.life = district_life

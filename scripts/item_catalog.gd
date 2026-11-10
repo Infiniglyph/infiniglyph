@@ -32,6 +32,7 @@ static func _prepare() -> void:
 			specials.append({"input":["X / Q","Y / R","RT+X / V+Q","RT+Y / V+R"][i],"name":move.name,"damage":move.damage,"reach":move.reach})
 		_add(weapon.id,weapon.name,descriptions[slot],&"weapons",1,true,true,true,{"weapon_slot":String(slot),"guard":weapon.guard,"damage_left":left.damage,"damage_right":right.damage,"reach":maxf(left.reach,right.reach),"specials":specials})
 	_add(&"light_shard","Light Shard","A compact fragment of stable light, prized as a material.",&"materials",99)
+	_add(&"health_glyph","Health Glyph","Restore 350 HP. Hold RT and press B, or press H. Consumed only when injured.",&"consumables",99,false,true,true,{"healing":350})
 	_add(&"signal_tonic","Signal Tonic","An amber pulse sealed in glass, awaiting a purpose.",&"consumables",20)
 	_add(&"civic_key","Civic Access Glyph","A civic credential keyed to its current bearer.",&"key_items",1,false,false,false)
 	_add(&"cyan_mantle","Cyan Mantle Pattern","An encoded weave of cyan light.",&"cosmetics",1)

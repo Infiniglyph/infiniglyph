@@ -103,6 +103,27 @@ func request_equip(inventory: Node, slot: StringName, instance_id: String) -> bo
 	_busy = false
 	return accepted
 
+func request_health_glyph(inventory: Node) -> bool:
+	if not _authorized(&"health_glyph",inventory,{}): return false
+	var actor := actor_for(inventory)
+	var combat: Node = actor.get("weapon_combat")
+	if not is_instance_valid(combat) or combat.health<=0 or combat.health>=combat.max_health: return false
+	var selected: Resource
+	for item: Resource in inventory.items.values():
+		if item.item_type_id==&"health_glyph" and item.owner_id==inventory.owner_id and item.is_valid():
+			selected = item
+			break
+	if selected==null: return false
+	_busy = true # Inventory signals cannot reenter this transaction.
+	var consumed: Resource = inventory.take_item(selected.instance_id,1)
+	if consumed!=null:
+		combat.health = minf(combat.max_health,combat.health+350)
+		consumed.quantity = 0
+		combat.changed.emit()
+	_busy = false
+	if consumed!=null: changed.emit()
+	return consumed!=null
+
 func request_unequip(inventory: Node, slot: StringName) -> bool:
 	if not _authorized(&"unequip",inventory,{"slot":slot}): return false
 	if not _equipment_allowed(inventory): return false

@@ -10,6 +10,7 @@ var duel: CanvasLayer
 var loot: Node3D
 var population: Node3D
 var boss_encounter: Node
+var world_actions: Node3D
 var ui: CanvasLayer
 @export var persistence_enabled := true
 @export var save_path := "user://inventory_v1.json"
@@ -20,6 +21,7 @@ var _previous_mouse := Input.MOUSE_MODE_CAPTURED
 var _hint_clock := 0.0
 var _notice_time := 0.0
 var _exiting := false
+var _checkpoint_usable := true
 var hint: Label
 var notice: Label
 var _loss_count := 0
@@ -75,6 +77,7 @@ func _ready() -> void:
 	resident_dialogue.hide()
 	if persistence_enabled and (FileAccess.file_exists(save_path) or FileAccess.file_exists(save_path+".bak")):
 		if not load_checkpoint():
+			_checkpoint_usable = false
 			# A corrupt checkpoint must not silently remint lost starter gear.
 			actor.inventory.restore({"version":1,"owner_id":actor.inventory.owner_id,"items":[],"equipment":{}})
 			persistence_enabled = false
@@ -82,6 +85,7 @@ func _ready() -> void:
 	elif not networked():
 		seed_demo_loot()
 	actor.inventory.changed.connect(_dirty)
+	if not networked() and _checkpoint_usable: actor.inventory.introduce_health_glyphs()
 	loot.changed.connect(_dirty)
 	loot.picked_up.connect(_picked_up)
 	loot.markers.changed.connect(_refresh_losses)
@@ -123,9 +127,12 @@ func _closed() -> void:
 
 func can_talk() -> bool:
 	if ui.is_open or not controls.gameplay_enabled or duel.dialogue_open or duel.active: return false
+	if is_instance_valid(world_actions) and world_actions.attached(): return true
 	if is_instance_valid(boss_encounter):
 		if boss_encounter.active: return false
 		if boss_encounter.can_challenge(): return true
+	if is_instance_valid(world_actions) and not world_actions.nearest().is_empty(): return true
+	if is_instance_valid(world_actions) and is_instance_valid(world_actions.life) and world_actions.life.nearest_talker()!=null: return true
 	return loot.nearest_pickup(actor) != null or duel.can_talk() or (is_instance_valid(population) and population.nearest_talker()!=null)
 
 func can_yield() -> bool:
@@ -133,6 +140,9 @@ func can_yield() -> bool:
 
 func interact() -> void:
 	if ui.is_open or not controls.gameplay_enabled: return
+	if is_instance_valid(world_actions) and world_actions.attached():
+		world_actions.leave()
+		return
 	if is_instance_valid(boss_encounter):
 		if boss_encounter.active: return
 		if boss_encounter.can_challenge():
@@ -145,8 +155,10 @@ func interact() -> void:
 	if pickup != null:
 		if not loot.request_pickup(actor.inventory,pickup): show_notice("Pickup unavailable.")
 	elif duel.can_talk(): duel.interact()
-	elif is_instance_valid(population):
+	elif is_instance_valid(world_actions) and not world_actions.nearest().is_empty(): world_actions.interact()
+	else:
 		var resident: CharacterBody3D = population.nearest_talker()
+		if resident==null and is_instance_valid(world_actions) and is_instance_valid(world_actions.life): resident = world_actions.life.nearest_talker()
 		if resident!=null:
 			resident.talk()
 			resident_dialogue.text = resident.profile.name.to_upper()+"  /  "+resident.profile.role+"\n"+resident.caption.text
@@ -155,6 +167,10 @@ func interact() -> void:
 
 func _process(delta: float) -> void:
 	if not is_instance_valid(ui): return
+	if controls.consume_heal():
+		if controls.gameplay_enabled and not ui.is_open:
+			if loot.request_health_glyph(actor.inventory): show_notice("Health Glyph restored your light.")
+			else: show_notice("Health already full." if actor.health>=actor.weapon_combat.max_health else "No Health Glyphs available.")
 	if controls.consume_interaction(): interact()
 	_resident_time = maxf(0,_resident_time-delta)
 	var resident: Node3D = _resident_speaker.get_ref() if _resident_speaker!=null else null
@@ -170,12 +186,17 @@ func _process(delta: float) -> void:
 	if is_instance_valid(boss_encounter) and boss_encounter.can_challenge():
 		hint.text = "G / RT: challenge Greefer again"
 		return
+	if is_instance_valid(world_actions) and world_actions.attached():
+		hint.text = "G / tap RT: exit  |  WASD / left stick: drive, S / stick back: brake" if is_instance_valid(world_actions.vehicle) else "G / tap RT / move / jump: stand up"
+		return
 	var pickup: Node3D = loot.nearest_pickup(actor)
 	if pickup != null:
 		var definition: Resource = Catalog.get_definition(pickup.item_instance.item_type_id)
 		hint.text = "G / RT: collect %s  x%d" % [definition.display_name,pickup.item_instance.quantity]
+	elif is_instance_valid(world_actions) and not world_actions.nearest().is_empty(): hint.text = "G / tap RT: "+world_actions.nearest().label
 	elif not duel.can_talk() and is_instance_valid(population):
 		var talker: CharacterBody3D = population.nearest_talker()
+		if talker==null and is_instance_valid(world_actions) and is_instance_valid(world_actions.life): talker = world_actions.life.nearest_talker()
 		if talker!=null: hint.text = "G / RT: talk to %s  |  %s" % [talker.profile.name,talker.state]
 
 func _picked_up(inventory: Node, item: Resource) -> void:
@@ -235,7 +256,7 @@ func load_checkpoint(path: String = "") -> bool:
 
 func seed_demo_loot() -> void:
 	# Editor-style instances demonstrate collection without changing starter gear.
-	var definitions: Array = Catalog.all()
+	var definitions: Array = [Catalog.get_definition(&"light_shard"),Catalog.get_definition(&"signal_tonic"),Catalog.get_definition(&"civic_key")]
 	if definitions.is_empty(): return
 	var index := 0
 	for definition: Resource in definitions:
@@ -248,6 +269,12 @@ func seed_demo_loot() -> void:
 		loot.register_pickup(pickup)
 		index += 1
 		if index>=3: break
+	var glyph := Pickup.new()
+	glyph.item_type_id = &"health_glyph"
+	glyph.quantity = 3
+	loot.add_child(glyph)
+	glyph.position = Vector3(3,0.2,12)
+	loot.register_pickup(glyph)
 	var weapon := Pickup.new()
 	weapon.item_type_id = &"katana"
 	weapon.upgrade_level = 1

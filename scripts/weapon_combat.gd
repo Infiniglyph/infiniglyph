@@ -424,6 +424,10 @@ func advance_stagger(delta: float) -> void:
 
 func _physics_process(delta: float) -> void:
 	advance_stagger(delta)
+	var world_actions: Node = actor.get("world_actions")
+	if is_instance_valid(world_actions) and world_actions.attached():
+		world_actions.apply_pose()
+		return
 	impact_feedback = maxf(0,impact_feedback-delta)
 	if actor.target_lock.is_locked(): _facing = actor.target_lock.facing()
 	var was_ready := parry_remaining>0

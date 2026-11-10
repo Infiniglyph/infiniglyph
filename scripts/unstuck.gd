@@ -70,6 +70,9 @@ func supported_candidate(point: Vector3, up: float = 0.65, down: float = 2.6) ->
 	return {"point":candidate}
 
 func recover() -> Dictionary:
+	var actions: Node = actor.get("world_actions")
+	if is_instance_valid(actions) and actions.attached():
+		return {"ok":actions.leave(),"message":"Stepped out onto clear ground." if not actions.attached() else "Stop and clear an exit before leaving."}
 	if _body == null or actor.health<=0: return {"ok":false,"message":"Recovery is unavailable right now."}
 	if not needs_recovery(): return {"ok":false,"message":"You have room to move. Unstick is for blocked positions."}
 	var origin := actor.global_position
