@@ -45,6 +45,11 @@ git -C infiniglyph-offline switch --detach checkpoint-2026-11-08
 
 ## Save future work
 
+The compact player HUD is preserved by `checkpoint-2026-11-09-minimal-hud`
+on `ui/minimal-player-hud`. Its independent complete-history offline bundle is
+`infiniglyph-minimal-hud-2026-11-09.bundle` in the parent workspace's `backups`
+directory.
+
 The Greefer rematch and animation/contact pass is preserved separately by
 `checkpoint-2026-11-09-greefer-readability` on `fix/greefer-readability`.
 Its complete-history offline bundle is

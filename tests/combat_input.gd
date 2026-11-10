@@ -81,7 +81,7 @@ func run() -> void:
 	combat.block_changed.connect(func(held: bool): blocks.append(held))
 	for i in range(20): await tick()
 	var hud: Control = world.find_child("CombatHUD",true,false)
-	check(root.get_visible_rect().encloses(hud.get_global_rect()),"Weapon-slot HUD stays inside the viewport")
+	check(root.get_visible_rect().encloses(hud.get_global_rect()),"Compact player HUD stays inside the viewport")
 	reset()
 	tap(JOY_BUTTON_RIGHT_SHOULDER)
 	tap(JOY_BUTTON_LEFT_SHOULDER)

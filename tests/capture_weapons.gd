@@ -24,9 +24,9 @@ func shot(label: String, distance: float = 4.4, view: Vector3 = Vector3(0.68,0.3
 	await process_frame
 	await RenderingServer.frame_post_draw
 	var hud: Control = world.find_child("CombatHUD",true,false)
-	for item: Label in hud.special_labels:
+	for item: Control in [hud.health_bar,hud.exhaustion_bar]:
 		if not root.get_visible_rect().encloses(item.get_global_rect()):
-			push_error("Special label leaves viewport: "+item.text)
+			push_error("Player bar leaves viewport: "+item.name)
 			failures += 1
 	root.get_texture().get_image().save_png("res://captures/weapon_"+label+".png")
 	captures += 1

@@ -64,7 +64,7 @@ func _ready() -> void:
 	panel.hide()
 	hint = Label.new()
 	hint.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
-	hint.position = Vector2(-300,-190)
+	hint.position = Vector2(-300,-40)
 	hint.custom_minimum_size.x = 600
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint.add_theme_font_size_override("font_size",20)

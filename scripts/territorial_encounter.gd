@@ -24,7 +24,6 @@ var entries: Dictionary = {}
 var result_text := ""
 var result_time := 0.0
 var challenge_point := Vector3(5,0.045,-40)
-var objective: Label
 var dialogue: Label
 var bar_root: Control
 var health_bar: ProgressBar
@@ -173,7 +172,6 @@ func _label(at: Vector2, size_value: int) -> Label:
 	return label
 
 func _build_hud() -> void:
-	objective = _label(Vector2(30,100),16)
 	dialogue = _label(Vector2(285,115),20)
 	dialogue.custom_minimum_size.x = 620
 	dialogue.size.x = 620
@@ -182,7 +180,7 @@ func _build_hud() -> void:
 	bar_root = Control.new()
 	bar_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bar_root.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
-	bar_root.position = Vector2(-260,-210)
+	bar_root.position = Vector2(-260,-70)
 	add_child(bar_root)
 	boss_name = Label.new()
 	boss_name.text = "GREEFER  /  GRIFFIN OF CENTRAL TOWER"
@@ -327,9 +325,4 @@ func _process(delta: float) -> void:
 		strain_bar.value = boss.weapon_combat.psi_meter
 		boss_name.text = "GREEFER  /  GRIFFIN OF CENTRAL TOWER"+("  OPEN" if boss.weapon_combat.is_staggered() else "")
 	dialogue.text = result_text if result_time>0 else ""
-	objective.text = "Central Tower: confront its guardian" if not progress.intro_completed and not active else ("G / RT: challenge Greefer again" if can_challenge() else "")
-	if not active and is_intro and progress.intro_completed and result_time>0:
-		objective.text = "First confrontation complete - explore Central District"
 	_beacon.visible = progress.intro_completed
-	if progress.intro_completed and not active and not can_challenge():
-		objective.text = "Greefer rematch: violet sigil at Central Tower  /  %.0f m" % player.global_position.distance_to(challenge_point)

@@ -298,7 +298,7 @@ func run() -> void:
 	await seconds(0.15)
 	check(w.health==w.max_health and w.last_parried and w.parry_feedback>0,"A correctly timed LT/F block parries the actual counter sentry")
 	var hud: Control = world.find_child("CombatHUD",true,false)
-	check(hud.guard.text=="PARRY!","A successful parry has persistent HUD feedback")
+	check(hud.health_bar.value == w.max_health and hud.exhaustion_bar.value == w.psi_meter,"Parry preserves HP and the compact HUD reflects actual strain")
 	await shot("parry")
 	await seconds(0.3)
 	sentry._counter_time = 0.08

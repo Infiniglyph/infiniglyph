@@ -195,6 +195,9 @@ func run() -> void:
 	for other in [left,right,upper,lower]: other.queue_free()
 	await frames(2)
 	# Test actual target-relative acceleration, signed travel and facing while moving.
+	# This requires open space. Random pedestrian crossings must not turn a
+	# deliberate body collision into a controller-speed/alignment failure.
+	p.set_collision_mask_value(3,false)
 	for mode in [0,1,2]:
 		for direction: Vector2 in [Vector2.UP,Vector2.DOWN,Vector2.LEFT,Vector2.RIGHT,Vector2(1,1).normalized(),Vector2(-1,-1).normalized()]:
 			await reset_player()
@@ -213,6 +216,7 @@ func run() -> void:
 			var expected_speed := 3.5 if mode == 0 else (7.5 if mode == 1 else 10.2)
 			check(worst_facing>0.999 and worst_alignment>0.97,"Facing held during strafe/backpedal/diagonal, mode %d %s" % [mode,str(direction)])
 			check(absf(Vector2(p.velocity.x,p.velocity.z).length()-expected_speed)<0.3 and p.rotation.is_zero_approx(),"Existing speed and unrotated capsule, mode %d %s" % [mode,str(direction)])
+	p.set_collision_mask_value(3,true)
 	await reset_player()
 	lock_on.select(center)
 	input.look = Vector2(1,1)
@@ -403,7 +407,7 @@ func run() -> void:
 	input.move = Vector2.ZERO
 	await seconds(0.7)
 	var hud: Control = world.find_child("CombatHUD",true,false)
-	check(root.get_visible_rect().encloses(hud.lock_status.get_global_rect()) and root.get_visible_rect().encloses(hud.impact.get_global_rect()),"Lock and impact HUD labels fit the viewport")
+	check(root.get_visible_rect().encloses(hud.health_bar.get_global_rect()) and root.get_visible_rect().encloses(hud.exhaustion_bar.get_global_rect()),"Player HP and exhaustion bars fit the viewport during locked combat")
 	world.queue_free()
 	input.queue_free()
 	await process_frame

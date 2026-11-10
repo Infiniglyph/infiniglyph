@@ -98,25 +98,8 @@ func _ready() -> void:
 	var hud := CanvasLayer.new()
 	add_child(hud)
 	var combat_hud := CombatHUD.new()
-	combat_hud.intent = player.combat
 	combat_hud.weapons = player.weapon_combat
 	hud.add_child(combat_hud)
-	var title := Label.new()
-	title.position = Vector2(30,24)
-	title.text = "I N F I N I G L Y P H\nCENTRAL DISTRICT    /    PHASE 003"
-	title.add_theme_color_override("font_color",Color(0.16,0.85,0.93))
-	title.add_theme_font_size_override("font_size",20)
-	title.add_theme_constant_override("outline_size",5)
-	title.add_theme_color_override("font_outline_color",Color.BLACK)
-	hud.add_child(title)
-	var help := Label.new()
-	help.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
-	help.position = Vector2(30,-130)
-	help.text = "WASD move    SHIFT run    CTRL fast run    SPACE sky step    E dodge    TAB lock    G interact    B inventory    ESC menu\nCONTROLLER    Left stick move / run    L3 fast run    R3 lock    A jump    B dodge    RT talk / collect    VIEW inventory    START menu\nLMB/RMB left/right attack    F block / parry    Q/R specials    V + Q/R modified    Hold specials: charge, release: attack\nLB/RB left/right attack    LT block / parry    X/Y specials    RT + X/Y modified    Hold specials: charge, release: attack\nTap arrows / D-pad: draw weapon    Hold DOWN: sheathe / draw    I J K L: switch locked target"
-	help.add_theme_color_override("font_color",Color(0.42,0.64,0.69))
-	help.add_theme_constant_override("outline_size",3)
-	help.add_theme_color_override("font_outline_color",Color.BLACK)
-	hud.add_child(help)
 	start_menu = StartMenu.new()
 	start_menu.actor = player
 	start_menu.session = inventory_session

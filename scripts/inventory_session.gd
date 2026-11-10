@@ -22,7 +22,7 @@ var _notice_time := 0.0
 var _exiting := false
 var hint: Label
 var notice: Label
-var loss_hint: Label
+var _loss_count := 0
 var resident_dialogue: Label
 var _resident_speaker: WeakRef
 var _resident_time := 0.0
@@ -55,12 +55,11 @@ func _ready() -> void:
 	var layer := CanvasLayer.new()
 	layer.layer = 18
 	add_child(layer)
-	hint = _label(layer,Vector2(-350,-216),Color(0.65,1,1))
-	notice = _label(layer,Vector2(-350,-246),Color(1,0.6,0.25))
-	loss_hint = _label(layer,Vector2(-350,-276),Color(1,0.6,0.25))
+	hint = _label(layer,Vector2(-350,-40),Color(0.65,1,1))
+	notice = _label(layer,Vector2(-350,-72),Color(1,0.6,0.25))
 	resident_dialogue = Label.new()
 	resident_dialogue.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
-	resident_dialogue.position = Vector2(30,-316)
+	resident_dialogue.position = Vector2(30,-172)
 	resident_dialogue.size = Vector2(820,88)
 	resident_dialogue.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	resident_dialogue.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -190,17 +189,9 @@ func show_notice(message: String, duration: float = 3.0) -> void:
 
 func _refresh_losses() -> void:
 	var entries: Array = loot.markers.for_owner(actor.inventory.owner_id)
-	loss_hint.text = ""
-	if entries.is_empty(): return
-	var nearest: Dictionary = entries[0]
-	var distance := INF
-	for entry: Dictionary in entries:
-		var next: float = actor.global_position.distance_to(entry.world_position)
-		if next<distance:
-			nearest = entry
-			distance = next
-	var point: Vector3 = nearest.world_position
-	loss_hint.text = "LOST GEAR  %.0f m  |  map marker (%d, %d, %d)  |  %d unclaimed" % [distance,point.x,point.y,point.z,entries.size()]
+	if entries.size()>_loss_count:
+		show_notice("Lost gear remains where you fell. %d unclaimed." % entries.size(),6)
+	_loss_count = entries.size()
 
 func _dirty() -> void:
 	if _exiting or not is_inside_tree() or _loading or not persistence_enabled or networked() or _save_queued: return

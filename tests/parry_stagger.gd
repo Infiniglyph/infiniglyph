@@ -107,7 +107,7 @@ func run() -> void:
 	check(w.health == 1000,"Respawn restores the new base health")
 	var hud: Control = world.find_child("CombatHUD",true,false)
 	w.changed.emit()
-	check(hud.health.text.contains("1000 / 1000"),"HUD uses the actual maximum health")
+	check(hud.health_bar.value == 1000 and hud.health_bar.max_value == 1000,"HP bar uses the actual current and maximum health")
 	trigger(1)
 	await frames(2)
 	check(not duel.dialogue_open and controls.special_modified(),"RT away from Ember keeps its special modifier mapping")

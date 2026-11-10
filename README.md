@@ -37,6 +37,20 @@ An existing sibling `rag/context_builder.py` takes precedence, preserving the
 development workspace's live connection. No API keys, cloud services or Python
 packages are required to play.
 
+## Gameplay HUD
+
+The permanent HUD contains only a cyan HP bar in the top left and a thin orange
+exhaustion bar directly beneath it. Both use the actual combat maximum/current
+values; exhaustion fills as strain accumulates and empties during recovery.
+The phase title, weapon/debug panel, control sheet, move/guard text, momentum
+readout and permanent objective text are removed. Controls and weapon arts
+remain documented here; equipment and item arts remain available in inventory.
+
+Nearby interaction prompts, short notices/dialogue and encounter health appear
+only in their relevant context. Lost gear produces a short notice rather than
+persistent world coordinates; its physical pickup and ownership markers remain.
+Start, Settings and inventory continue to run the world without pausing.
+
 ## NPC visual attention
 
 TED-RAG-guided attention budgets NPC pose updates. Offscreen NPC poses skip
@@ -99,8 +113,7 @@ challenge sigil labeled **GREEFER / REMATCH** at `(5,0,-40)` and press **G / RT*
 Choose **Yes - challenge** in the live Ember-style confirmation for a
 full-strength rematch. Left/right or controller D-pad chooses, Enter/A confirms,
 Escape/B cancels. A returning Greefer can accept immediately; a victory's brief
-defeat reaction finishes first. The objective shows the sigil's distance when
-you are farther away. Inventory and Start cannot stack over the confirmation.
+defeat reaction finishes first. Inventory and Start cannot stack over the confirmation.
 Later outcomes never erase the original first-encounter result. The latest
 rematch result is saved separately and changes his next challenge dialogue.
 
@@ -310,8 +323,8 @@ eligible. Death tokens and the player death gate prevent repeated rolls; respawn
 does not remint lost gear. Nonlethal Ember rounds never apply this penalty.
 
 `LostItemMarkers.for_owner(owner_id)` supplies marker dictionaries with pickup ID,
-item identity and world position for a future map. The current HUD shows unclaimed
-loss count, distance and coordinates. Markers disappear when anyone collects the
+item identity and world position for a future map. A brief notice reports newly unclaimed
+gear; its physical pickup remains in the city. Markers disappear when anyone collects the
 item or it is legitimately removed. Trading drops create no loss marker; acquired
 items belong to their new possessor and are not permanently tracked.
 
@@ -387,14 +400,13 @@ has long thrusts and reverse haft swings, a three-hit spiral, a full orbit, a na
 seven-metre skewer and a descending spear constellation. The katana has precise
 returning cuts, a crescent, crossed cuts, three afterimage strikes and a charged
 long-range sever. Twin blades alternate hands, with a three-hit cyclone, crossed
-fangs, a four-hit lattice and twin spiralling comets. The HUD lists the equipped
-weapon's four specials. These are initial tuning values for playtesting.
+fangs, a four-hit lattice and twin spiralling comets. The inventory lists each
+weapon's arts. These are initial tuning values for playtesting.
 
 All sixteen specials now support **hold to charge, release to attack**. A quick
 release before 0.4 seconds executes the existing move with its existing timing
 and damage. Holds from 0.4 to 1.2 seconds build an extended version; at 1.2 seconds
-the charge is full. Holding longer never auto-fires. A percentage in the HUD,
-whole-body windup and a brief full-charge glyph give feedback. Movement, jumping
+the charge is full. Holding longer never auto-fires. Whole-body windup and a brief full-charge glyph give feedback. Movement, jumping
 and target-facing locomotion remain responsive while holding.
 
 An extended special keeps its weapon's animation/effect profile, adds one finishing
@@ -416,7 +428,7 @@ current camera yaw. While locked, both track the current opponent. Vertical
 camera pitch does not tilt the player's capsule.
 
 R3/Tab toggles lock-on to a living, visible opponent within 32 metres, preferring
-the centre of the screen. White/cyan brackets and the HUD identify the target.
+the centre of the screen. White/cyan brackets identify the target.
 Forward input approaches, backward input backpedals, and sideways input strafes
 around the opponent. Diagonals retain their normalized magnitude. The visual
 root faces the target even at rest, during attacks, jumps and dodges; the collision
@@ -447,8 +459,8 @@ controls the bonus without changing movement. Existing hit timing, reach, arcs,
 terrain occlusion, health limits and guard/parry/dodge rules still apply.
 
 Floating numbers show damage actually applied (including remaining-health limits).
-The HUD briefly shows the last successful impact's damage, speed and multiplier;
-a later miss does not overwrite that feedback. Numbers expire after 0.85 seconds
+The combat component records the last successful impact's damage, speed and
+multiplier for inspection; these debug values do not occupy the gameplay HUD. Numbers expire after 0.85 seconds
 and are limited to 24 at once.
 
 Hand-held wireframe weapons follow the existing forearms. The katana uses a
@@ -512,7 +524,7 @@ retains its shared two-hand grip. The reaction follows the incoming direction an
 settles after the mechanical window. No outside animation assets are imported.
 Parries bypass exhaustion and fortitude and do not damage the defender.
 Gold contact sparks, a sharp synthesized metallic clash, seven reference frames
-of visual hitstop, a small directional camera jolt and a target **OPEN** countdown
+of visual hitstop, a small directional camera jolt and full-body stagger
 make the initiative change readable.
 
 Ordinary blocks preserve the existing weapon-specific reduction, including chip
@@ -539,8 +551,8 @@ own strain once per target, including when several body shapes overlap. Aegis
 Bloom's automatic mitigation retains its previous behavior; defender strain
 requires an active frontal basic guard. Player and Ember share this same hit
 resolver and existing meter. Movement, attacks, sprinting, Sky Jumps and dodging
-have no exhaustion cost. The thin exhaustion bar beneath HP remains a future HUD
-polish task; this update adds no stamina or MP resource.
+have no exhaustion cost. The thin exhaustion bar beneath HP displays this existing strain meter;
+there is no stamina or MP resource.
 
 Clean hits always apply health damage. Authored move strength is compared with
 the defender's effective fortitude. Weapon choice, attack phase, heavy techniques
@@ -657,8 +669,8 @@ Combat inputs now reach `player.combat`, which emits
 `weapon_slot_selected(slot)`. Available action identifiers are `attack_left`,
 `attack_right`, `special_x`, `special_y`, `special_rt_x` and `special_rt_y`.
 `player.weapon_combat` executes those commands using `weapon_library.gd`'s
-authored timing, reach, arc, damage and visual profiles. The HUD highlights the
-selected loadout and shows health, drawn/sheathed state, guard and move name.
+authored timing, reach, arc, damage and visual profiles. The compact HUD displays current health and exhaustion; the weapon model
+and inventory show the selected equipment.
 
 LT/F is a held state. Analog triggers activate at 55% and release at 40% to avoid
 jitter. RT/V is sampled when the special button is pressed; a modified special
@@ -843,8 +855,8 @@ drive the movement calculations.
 - `scripts/player_input.gd`: keyboard, mouse and the first connected controller;
   radial stick deadzone, separate move/look intents, held triggers and ordered
   combat/weapon-slot requests.
-- `scripts/combat_intent.gd`, `scripts/combat_hud.gd`: ordered commands, guard,
-  draw/sheathe state and four directional loadouts with contextual move names.
+- `scripts/combat_intent.gd`: ordered commands, guard, draw/sheathe state and
+  four directional loadouts. `scripts/combat_hud.gd` displays HP and exhaustion.
 - `scripts/weapon_library.gd`, `scripts/weapon_combat.gd`: four authored movesets,
   timed physics hit checks, impact-speed damage, terrain occlusion, health,
   guard and two-handed IK.
@@ -974,6 +986,11 @@ Edit `data/motion_constraints.json` to tune the live recipes, then restart the g
 
 ## Verification
 
+`tests/hud.gd`: 14 layout/state checks cover the two permanent bars, full and
+partial values, recovery/respawn, live menus and viewport bounds at 800x600,
+1280x720 and 1920x1080. Run without `--headless` and add `-- --capture` for
+the rendered full/partial HUD screenshots in `captures/hud_*.png`.
+
 Greefer: **48 checks at 30/60/120 Hz** in `tests/greefer_encounter.gd` exercise the real boss/player resolver,
 solid tower perch, automatic detection, continuous arrival/landing, shared chip,
 parries, defender/attacker exhaustion, dodge immunity, explicit pulse
@@ -1000,6 +1017,8 @@ defensive interactions (48), defender exhaustion (36), inventory integration
 (36), Start/recovery (29), population flow (15), traversal and dodge suites also
 passed at 60 Hz. The open-space dodge fixture excludes pedestrian collisions;
 the actual game and the separate population collision tests retain them.
+The lock/momentum fixture also excludes pedestrian collisions only for its
+unobstructed travel cases, then restores the player's normal collision mask.
 Native Compatibility/ANGLE captures were reviewed for the perched, airborne and
 combat poses, violet/cyan silhouette and boss health/strain HUD.
 
