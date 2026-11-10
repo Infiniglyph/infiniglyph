@@ -525,7 +525,7 @@ func resolve_strike(move: Dictionary, pulse: int, origin: Vector3, candidates: A
 		if use_arc and float(move.arc)<359 and planar.normalized().dot(_facing)<cos(deg_to_rad(float(move.arc)*0.5)): continue
 		# Hurt volumes are separate from terrain. Opaque world geometry must stop
 		# every strike, including radial pulses and long-range glyph cuts.
-		var obstruction := space.intersect_ray(PhysicsRayQueryParameters3D.create(origin,point,1,excluded))
+		var obstruction := space.intersect_ray(PhysicsRayQueryParameters3D.create(origin,point,9,excluded)) # Architecture and physical vehicles.
 		if not obstruction.is_empty(): continue
 		visited[target] = true
 		# Carry attacker identity for real parry recoil. Legacy targets keep their

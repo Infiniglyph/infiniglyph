@@ -71,7 +71,7 @@ func run() -> void:
 	var bodies := true
 	for resident: CharacterBody3D in population.residents:
 		attitudes[resident.profile.attitude] = true
-		bodies = bodies and resident.collision_layer==(4 if resident.active else 0) and resident.collision_mask==(5 if resident.active else 0) and not resident.is_in_group("combat_targets")
+		bodies = bodies and resident.collision_layer==(4 if resident.active else 0) and resident.collision_mask==(13 if resident.active else 0) and not resident.is_in_group("combat_targets")
 	check(attitudes.size()==5,"Curiosity, friendship, pragmatism, prejudice and indifference coexist")
 	check(bodies and world.player.get_collision_mask_value(3),"Residents have physical capsules without entering combat target or architectural query layers")
 	check(population.residents[0].visual.get_child_count()==2,"Each pedestrian uses two mesh batches with no per-NPC retrieval service")
@@ -120,6 +120,7 @@ func run() -> void:
 	check(a.visits==1 and world.inventory_session.resident_dialogue.text.begins_with("ILEX"),"G speaks to the named resident and shows their individual greeting")
 	world.controls.set_right_trigger(0)
 	world.controls.set_right_trigger(1)
+	world.controls.set_right_trigger(0) # Bare RT now resolves on release, reserving chords.
 	await ticks(3)
 	check(a.visits==2 and "came back" in world.inventory_session.resident_dialogue.text,"RT uses the same interaction and remembers a previous meeting")
 	world.controls.set_right_trigger(0)

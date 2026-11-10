@@ -17,6 +17,8 @@ const TerritorialEncounter = preload("res://scripts/territorial_encounter.gd")
 const WorldRegions = preload("res://scripts/world_regions.gd")
 const WorldActions = preload("res://scripts/world_actions.gd")
 const DistrictLife = preload("res://scripts/district_life.gd")
+const TheftReactions = preload("res://scripts/theft_reactions.gd")
+var theft_reactions: Node3D
 var world_actions: Node3D
 var district_life: Node3D
 @export var district_life_enabled := true
@@ -145,3 +147,8 @@ func _ready() -> void:
 		district_life.session = inventory_session
 		add_child(district_life)
 		world_actions.life = district_life
+		theft_reactions = TheftReactions.new()
+		theft_reactions.actor = player
+		theft_reactions.life = district_life
+		theft_reactions.population = population
+		add_child(theft_reactions)

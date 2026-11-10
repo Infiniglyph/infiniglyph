@@ -20,6 +20,9 @@ var _wait := 0.0
 var _wheel_phase := 0.0
 
 func _ready() -> void:
+	# Register child shapes at the real spawn, never briefly at world origin.
+	global_position = record.point
+	rotation.y = record.get("yaw",0.0)
 	kind = record.kind
 	name = kind.capitalize()+"_"+str(record.id)
 	if kind=="motorcycle":
@@ -42,8 +45,6 @@ func _ready() -> void:
 	shape.position.y = dimensions.y*0.5+0.06
 	add_child(shape)
 	build_visual()
-	global_position = record.point
-	rotation.y = record.get("yaw",0.0)
 	has_driver = record.traffic and not record.taken
 	driver_visual.visible = has_driver
 
@@ -135,7 +136,10 @@ func _physics_process(delta: float) -> void:
 		throttle = -controls.move.y
 		steering = controls.move.x
 		desired = throttle*(top_speed if throttle>=0 else 6.0)
-		rotation.y += steering*signed_speed*0.055*delta
+		# The vehicle's nose is +Z. Its physical right is therefore -X:
+		# subtract yaw to steer right, reversing naturally when backing up.
+		# Camera yaw/look never participates in either throttle or steering.
+		rotation.y -= steering*signed_speed*0.055*delta
 	elif has_driver:
 		var route: PackedVector3Array = record.route
 		var goal: Vector3 = route[record.cursor]

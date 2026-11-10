@@ -126,20 +126,26 @@ func begin_attachment() -> void:
 
 func board(candidate: CharacterBody3D) -> bool:
 	if attached() or not allowed() or not is_instance_valid(candidate) or actor.global_position.distance_to(candidate.global_position)>3 or absf(candidate.signed_speed)>=2.5: return false
+	var theft: bool = not candidate.record.get("taken",false)
+	var displaced: CharacterBody3D
 	if candidate.has_driver:
 		var exit := exit_point(candidate.global_position,candidate.global_basis.x,candidate.get_rid())
 		if exit.is_empty():
 			session.show_notice("No clear place for the driver to step out.")
 			return false
-		life.eject_driver(candidate,exit.point)
+		displaced = life.eject_driver(candidate,exit.point)
 	vehicle = candidate
 	vehicle.player_driver = actor
 	vehicle.has_driver = false
+	vehicle.record.taken = true
 	begin_attachment()
 	actor.camera_rig.arm.add_excluded_object(vehicle.get_rid())
 	actor.camera_rig.arm.spring_length = 8.5
+	# Start behind the +Z-facing vehicle, then leave orbit entirely to look input.
+	actor.camera_rig.yaw = wrapf(vehicle.rotation.y+PI,-PI,PI)
 	anchor()
 	actor.camera_rig.reset_follow()
+	if theft and is_instance_valid(life) and is_instance_valid(life.get("reactions")): life.reactions.observe_theft(vehicle,displaced)
 	return true
 
 func exit_point(origin: Vector3, right: Vector3, excluded: RID = RID()) -> Dictionary:
@@ -151,7 +157,7 @@ func exit_point(origin: Vector3, right: Vector3, excluded: RID = RID()) -> Dicti
 		if hit.is_empty() or hit.normal.y<0.7 or hit.collider is CharacterBody3D: continue
 		var point: Vector3 = hit.position+Vector3.UP*0.04
 		var query: PhysicsShapeQueryParameters3D = actor.unstuck.query_at(point)
-		query.collision_mask = 5
+		query.collision_mask = 13 # Other vehicles are occupied exit space too.
 		query.exclude = exclude
 		if get_world_3d().direct_space_state.intersect_shape(query,1).is_empty() and actor.unstuck.broad_support(point): return {"point":point}
 	return {}

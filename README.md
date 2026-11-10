@@ -141,6 +141,38 @@ the movement input to slow down; exit with **RT / G** once stopped. A moving
 vehicle or blocked exit refuses unsafe dismounts. Entering and leaving keeps
 the camera attached and restores the player's original capsule settings.
 
+Driving is **vehicle-relative**: stick up/W always moves toward the vehicle's
+nose, and left/right always steer toward its physical left/right. Camera yaw
+does not enter the driving calculation. Entering starts the camera behind the
+vehicle; after that, right-stick/mouse orbit is free. Reverse naturally reverses
+the steering response. The original acceleration, braking and speed limits are
+preserved. The +Z-facing models use a negative yaw change for a right turn.
+
+Stealing an occupied vehicle provokes its displaced driver. Up to six nearby,
+visible residents can also witness theft (including original hub residents).
+They use varied anti-human remarks and individual temperament-based **anger**;
+calmer residents can complain without immediately fighting. A brief overhead
+anger readout accompanies their remarks. Further thefts can build on existing
+anger, which cools after the incident. Reentering the same stolen vehicle does
+not generate another theft, and residents cannot perceive theft through walls.
+
+At **100 anger**, a resident shouts before starting normal combat. Up to **three**
+street opponents fight simultaneously using the same 1000 HP, weapon arts,
+momentum damage, chip, parries, one-second parry stagger, exhaustion, dodges and
+Sky Jumps as the player/Ember. Their existing identity, color and body silhouette
+remain. Once hostile, they can damage the player and be killed. Red/orange damage
+sparks and normal damage numbers come from the shared hit pipeline. Physical
+vehicles stop weapon hits. There is no new player stamina cost or global police
+system. Street fights yield to Ember/Greefer encounters; distant pursuers give
+up after a short grace period.
+
+A defeated resident reappears at its own spawn after **six seconds**, with anger
+reset and the same identity/memories. A blocked spawn waits for safe clearance.
+Hub building schedules reserve the fighter's civilian slot so combat and respawn
+cannot duplicate an NPC. These reactions/respawns are current-session state.
+Balance values are exported on `TheftReactions`: `enrage_threshold`,
+`anger_recovery`, `respawn_delay` and `max_fighters`.
+
 Nearby activity is bounded to **28 regional pedestrians and 22 vehicles**,
 in addition to the original hub population. Distant traffic retains lightweight
 route/driver records rather than full physics and animated meshes. Neighborhood
@@ -174,6 +206,22 @@ bounded activation, real autonomous travel, support and a solid obstacle sweep.
 Native captures are available through `city_life.gd -- --capture`; add
 `--performance` for live frame-time/draw-call samples in urban/suburban/country
 views. Generated captures and personal saves are excluded from source backups.
+
+`tests/vehicle_controls.gd` checks vehicle-relative directions at four headings,
+camera orbit, analog throttle, reverse and live menus for all three vehicle
+types. `tests/theft_combat.gd` checks actual theft/witness visibility, escalation,
+shared defenses/strain/momentum, real AI damage, death/blocked-spawn recovery,
+fighter limits, encounter isolation and hub identity reservations. Both accept
+`-- --hz=30` or `-- --hz=120` with a matching engine `--fixed-fps` value. The
+theft test accepts `-- --capture` for native reaction and combat screenshots.
+
+The steering suite passes **90 checks at each of 30/60/120 Hz**; the theft suite
+passes **27 at each rate**, including native captures at 60 Hz. Charge/sparring,
+Greefer, lock/momentum, vehicle interactions, traffic and live-menu regressions
+also pass. The older civilian routine soak still detects a 5 cm curb overlap
+near `(40.78,-62.16)`. The identical contact reproduces with the previous
+`checkpoint-2026-11-10-city-life` game and the same test fixture; it remains a
+known civilian pathing issue.
 
 ## Canonical narrative reference
 

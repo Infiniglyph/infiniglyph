@@ -14,6 +14,7 @@ var _pose_clock := 0.0
 var _stalled := 0.0
 
 func _ready() -> void:
+	global_position = record.point
 	profile = record.profile
 	name = profile.name
 	collision_layer = 4
@@ -46,7 +47,6 @@ func _ready() -> void:
 	caption.pixel_size = 0.004
 	caption.outline_size = 7
 	add_child(caption)
-	global_position = record.point
 
 func talk() -> void:
 	record.meetings += 1

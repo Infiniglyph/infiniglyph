@@ -72,6 +72,7 @@ func run() -> void:
 	actor = world.player
 	actor.visual.retrieval.enabled = false
 	world.greefer.think_enabled = false
+	world.theft_reactions.max_fighters = 0 # Handling/interaction fixture; retaliation has its own combat suite.
 	actions = world.world_actions
 	life = world.district_life
 	await frames(5)

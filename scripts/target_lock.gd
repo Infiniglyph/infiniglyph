@@ -52,7 +52,7 @@ func in_range(target: Node3D) -> bool:
 func visible_target(target: Node3D) -> bool:
 	var excluded: Array[RID] = [actor.get_rid()]
 	if target is CollisionObject3D: excluded.append(target.get_rid())
-	var ray := PhysicsRayQueryParameters3D.create(actor.global_position+Vector3.UP*1.35,point(target),1,excluded)
+	var ray := PhysicsRayQueryParameters3D.create(actor.global_position+Vector3.UP*1.35,point(target),9,excluded)
 	return actor.get_world_3d().direct_space_state.intersect_ray(ray).is_empty()
 
 func screen_point(target: Node3D) -> Vector2:

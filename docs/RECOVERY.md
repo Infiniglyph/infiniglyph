@@ -1,5 +1,12 @@
 # Recovering the first public checkpoint
 
+Vehicle-relative steering/free look and NPC theft reactions are preserved by
+`checkpoint-2026-11-10-theft-reactions` on `fix/steering-and-theft-reactions`.
+Its complete-history offline bundle is
+`infiniglyph-theft-reactions-2026-11-10.bundle` in the parent workspace's `backups`
+directory. It includes shared-combat retaliation and identity-preserving NPC
+respawns. Earlier checkpoints remain unchanged.
+
 The seating, expanded population, drivable traffic and Health Glyph milestone
 is preserved by `checkpoint-2026-11-10-city-life` on `feat/city-life-vehicles`.
 Its complete-history offline bundle is `infiniglyph-city-life-2026-11-10.bundle`

@@ -98,7 +98,7 @@ func sample() -> void:
 	else: move = Vector2(circle*0.32,0)
 	if not actor.weapon_combat.active_move.is_empty() or decision>0: return
 	if distance>float(spec.reach)*0.95 or absf(toward.y)>1.7: return
-	var ray := PhysicsRayQueryParameters3D.create(actor.combat_point(),opponent.combat_point(),1,[actor.get_rid(),opponent.get_rid()])
+	var ray := PhysicsRayQueryParameters3D.create(actor.combat_point(),opponent.combat_point(),9,[actor.get_rid(),opponent.get_rid()])
 	if not actor.get_world_3d().direct_space_state.intersect_ray(ray).is_empty(): return
 	choose_attack(slot,action)
 

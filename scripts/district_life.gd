@@ -9,6 +9,7 @@ const Chunk = preload("res://scripts/world_chunk.gd")
 var actor: CharacterBody3D
 var regions: Node3D
 var session: Node
+var reactions: Node3D
 var vehicles: Dictionary = {}
 var people: Dictionary = {}
 var vehicle_records: Array[Dictionary] = []
@@ -137,6 +138,7 @@ func refresh_active() -> void:
 			vehicle.queue_free()
 	for id: int in people.keys():
 		var resident: CharacterBody3D = people[id]
+		if resident.record.get("combat",false): continue
 		if resident.global_position.distance_to(origin)>155:
 			resident.record.point = resident.global_position
 			people.erase(id)
@@ -154,11 +156,14 @@ func refresh_active() -> void:
 		var vehicle := Vehicle.new()
 		vehicle.life = self
 		vehicle.record = record
+		# Enter physics at the real spawn, avoiding a transient origin collider.
+		vehicle.position = record.point
+		vehicle.rotation.y = record.get("yaw",0.0)
 		add_child(vehicle)
 		vehicles[record.id] = vehicle
 	nearby.clear()
 	for record: Dictionary in resident_records:
-		if not people.has(record.id) and record.point.distance_squared_to(origin)<125*125 and record.valid: nearby.append(record)
+		if not people.has(record.id) and not record.get("combat",false) and record.point.distance_squared_to(origin)<125*125 and record.valid: nearby.append(record)
 	nearby.sort_custom(func(a: Dictionary,b: Dictionary): return a.point.distance_squared_to(origin)<b.point.distance_squared_to(origin))
 	for record: Dictionary in nearby:
 		if people.size()>=resident_budget: break
@@ -169,11 +174,12 @@ func spawn_person(record: Dictionary) -> CharacterBody3D:
 	var resident := Resident.new()
 	resident.record = record
 	resident.life = self
+	resident.position = record.point
 	add_child(resident)
 	people[record.id] = resident
 	return resident
 
-func eject_driver(vehicle: CharacterBody3D, at: Vector3) -> void:
+func eject_driver(vehicle: CharacterBody3D, at: Vector3) -> CharacterBody3D:
 	vehicle.has_driver = false
 	vehicle.record.taken = true
 	var id := resident_records.size()
@@ -196,6 +202,7 @@ func eject_driver(vehicle: CharacterBody3D, at: Vector3) -> void:
 	if people.size()>=resident_budget:
 		var farthest: CharacterBody3D
 		for resident: CharacterBody3D in people.values():
+			if resident.record.get("combat",false): continue
 			if farthest==null or resident.global_position.distance_to(actor.global_position)>farthest.global_position.distance_to(actor.global_position): farthest = resident
 		people.erase(farthest.record.id)
 		farthest.queue_free()
@@ -203,11 +210,13 @@ func eject_driver(vehicle: CharacterBody3D, at: Vector3) -> void:
 	resident.wait = 2.5
 	resident.caption.text = "That's my ride!"
 	resident.record.meetings = 1
+	return resident
 
 func nearest_talker() -> CharacterBody3D:
 	var result: CharacterBody3D
 	var best := 2.8
 	for resident: CharacterBody3D in people.values():
+		if not resident.is_visible_in_tree() or resident.record.get("combat",false): continue
 		var distance := resident.global_position.distance_to(actor.global_position)
 		if distance<best:
 			best = distance

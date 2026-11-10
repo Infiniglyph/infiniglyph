@@ -10,6 +10,7 @@ const Profiles = preload("res://scripts/resident_profiles.gd")
 var player: CharacterBody3D
 var duel: CanvasLayer
 var residents: Array[CharacterBody3D] = []
+var reserved_outdoors := 0 # Street-combat proxies reserve their civilian slot.
 var active_residents: Array[CharacterBody3D] = []
 var entrances: Dictionary = {}
 var public_places: Array[StringName] = []
@@ -283,7 +284,7 @@ func service_indoors(delta: float) -> void:
 		var resident: CharacterBody3D = residents[index]
 		if resident.active: continue
 		resident.indoor_left -= delta
-		if resident.indoor_left>0 or active_residents.size()>=max_outdoors: continue
+		if resident.indoor_left>0 or active_residents.size()+reserved_outdoors>=max_outdoors: continue
 		var door: Node3D = entrances[resident.home_building]
 		if not door.available() or not hidden_from_player(door.concealed()): continue
 		if not spawn_space_free(resident,door.concealed()): continue
