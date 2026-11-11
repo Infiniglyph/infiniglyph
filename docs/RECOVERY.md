@@ -1,5 +1,11 @@
 # Recovering the first public checkpoint
 
+The native performance harness and measured audit are preserved by
+`checkpoint-2026-11-10-performance-audit` on `analysis/rendering-performance`,
+with `infiniglyph-performance-audit-2026-11-10.bundle` in the parent workspace's
+`backups` directory. This adds diagnostics/documentation without changing
+gameplay or graphics settings; the tighter-turning game remains intact.
+
 Tighter low/medium-speed vehicle turning, with bounded high-speed steering,
 is preserved by `checkpoint-2026-11-10-tighter-turning` on
 `tweak/tighter-vehicle-turning`. Its complete-history offline bundle is

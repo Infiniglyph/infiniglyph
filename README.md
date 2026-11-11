@@ -117,6 +117,55 @@ remains the heaviest view and the larger skyline has a render cost. The game
 camera's far plane is 1,800 m for the expanded landscape. Use the native capture
 helper with `-- --performance` to inspect frame time, physics time and draw calls.
 
+The **2026-11-10 performance audit** adds `tests/performance_audit.gd` for native,
+uncapped rendering and civilian-simulation comparisons. The startup warning is
+Godot selecting its ANGLE OpenGL ES-over-Direct3D 11 compatibility path for this
+Intel driver, as described in the [Windows driver settings](https://docs.godotengine.org/en/stable/classes/class_projectsettings.html#class-projectsettings-property-rendering-gl-compatibility-driver-windows).
+The audit retains that working backend. On the i5-7200U / Intel
+HD 620 through Compatibility/ANGLE at 1280x720, the outer-city simulation pass
+observed these median frame times (lower is better):
+
+| Diagnostic state | Outer city | Countryside |
+| --- | ---: | ---: |
+| Live scene | 44.8 ms | 14.4 ms |
+| Original hub civilian updates stopped | 32.0 ms | 6.4 ms |
+| Regional people/traffic updates stopped | 16.5 ms | 13.5 ms |
+| Both civilian systems' updates stopped | 11.9 ms | 7.3 ms |
+
+These temporary switches are confined to the diagnostic process. Bodies and
+geometry stay present. Normal gameplay still runs continuously behind menus.
+The same-view live repeats were 45.2 ms and 19.8 ms; changing crowds and desktop
+load affect the samples. Player movement, boss thinking and the retrieval helper
+are disabled for repeatability. This is a debug executable, with VSync disabled,
+120 sampled frames per variant and at least 1.1 seconds of warmup. GPU timestamp
+queries returned zero on this driver, so no isolated GPU-time claim is made.
+These comparisons identify costs; they do not predict playable optimized FPS.
+
+A separate render snapshot observed about 750 hub draw calls versus about
+24 in the country. Frozen hub frames measured 26-27 ms, versus 21 ms with street
+light shadows disabled. A 640x360 window measured about 21 ms in that snapshot;
+reduced resolution alone leaves substantial overhead. Glow and lighting changes
+varied by view and need paired validation before choosing quality defaults.
+Full raw local results are in `captures/performance_audit.json` and
+`captures/performance_simulation.json` (generated, excluded from Git).
+
+The recommended implementation order is civilian simulation LOD for both hub
+and regional rosters; cached/staggered vehicle probes and incremental spawn/route
+validation; then spatial batching/material reuse for hub props and vehicle
+details. The hub's distant residents currently retain full movement physics,
+while TED-RAG budgets their poses only. Regional residents and seated vehicle
+drivers have separate animation loops. Preserve full-rate player/combat physics,
+identity and live virtual journeys, and all static map collision. A nearby
+shadow budget and cheaper glow/render-resolution options can follow. Validate a
+release export separately before setting a hardware FPS target.
+
+Run the audit alone, from this directory, with a native Godot executable:
+
+```powershell
+godot --path . --script res://tests/performance_audit.gd
+godot --path . --script res://tests/performance_audit.gd -- --simulation-only --views=urban,country --output=res://captures/performance_simulation.json
+```
+
 ## Seating, neighborhood life, vehicles and Health Glyphs
 
 Tap **RT** or press **G** near a bench to sit; use it again, move, or jump to
