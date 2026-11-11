@@ -4,6 +4,7 @@ const Interface = preload("res://scripts/inventory_ui.gd")
 const Store = preload("res://scripts/inventory_store.gd")
 const Pickup = preload("res://scripts/item_pickup.gd")
 const Catalog = preload("res://scripts/item_catalog.gd")
+const TowerShop = preload("res://scripts/tower_shop.gd")
 var actor: CharacterBody3D
 var controls: Node
 var duel: CanvasLayer
@@ -12,6 +13,7 @@ var population: Node3D
 var boss_encounter: Node
 var world_actions: Node3D
 var ui: CanvasLayer
+var shop: CanvasLayer
 @export var persistence_enabled := true
 @export var save_path := "user://inventory_v1.json"
 @export var live_session := false
@@ -51,6 +53,11 @@ func _ready() -> void:
 	add_child(ui)
 	ui.opened.connect(_opened)
 	ui.closed.connect(_closed)
+	shop = TowerShop.new()
+	shop.session = self
+	add_child(shop)
+	shop.opened.connect(_opened)
+	shop.closed.connect(_closed)
 	ui.save_requested.connect(func():
 		var saved := save_checkpoint()
 		ui.set_status("Inventory and world drops saved." if saved else "Save failed; items remain in memory.",not saved))
@@ -110,6 +117,7 @@ func _input(event: InputEvent) -> void:
 		if is_instance_valid(actor.get_parent().get("start_menu")) and actor.get_parent().start_menu.is_open: return
 		if is_instance_valid(duel) and duel.dialogue_open: return
 		if is_instance_valid(boss_encounter) and boss_encounter.dialogue_open: return
+		if shop.is_open: shop.close_menu()
 		ui.toggle()
 
 func _opened() -> void:
@@ -132,6 +140,7 @@ func can_talk() -> bool:
 		if boss_encounter.active: return false
 		if boss_encounter.can_challenge(): return true
 	if is_instance_valid(world_actions) and not world_actions.nearest().is_empty(): return true
+	if shop.can_use(actor): return true
 	if is_instance_valid(world_actions) and is_instance_valid(world_actions.life) and world_actions.life.nearest_talker()!=null: return true
 	return loot.nearest_pickup(actor) != null or duel.can_talk() or (is_instance_valid(population) and population.nearest_talker()!=null)
 
@@ -155,6 +164,7 @@ func interact() -> void:
 	if pickup != null:
 		if not loot.request_pickup(actor.inventory,pickup): show_notice("Pickup unavailable.")
 	elif duel.can_talk(): duel.interact()
+	elif shop.can_use(actor): shop.open_menu()
 	elif is_instance_valid(world_actions) and not world_actions.nearest().is_empty(): world_actions.interact()
 	else:
 		var resident: CharacterBody3D = population.nearest_talker()
@@ -193,6 +203,7 @@ func _process(delta: float) -> void:
 	if pickup != null:
 		var definition: Resource = Catalog.get_definition(pickup.item_instance.item_type_id)
 		hint.text = "G / RT: collect %s  x%d" % [definition.display_name,pickup.item_instance.quantity]
+	elif shop.can_use(actor): hint.text = "G / tap RT: Tower Exchange"
 	elif is_instance_valid(world_actions) and not world_actions.nearest().is_empty(): hint.text = "G / tap RT: "+world_actions.nearest().label
 	elif not duel.can_talk() and is_instance_valid(population):
 		var talker: CharacterBody3D = population.nearest_talker()

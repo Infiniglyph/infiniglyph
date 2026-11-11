@@ -3,6 +3,7 @@ extends Node3D
 const Neon = preload("res://scripts/neon.gd")
 const CELL_SIZE := 16.0
 const TOWER := Vector3(0,0,-64)
+const DAIS_HEIGHT := 3.12
 class Cell extends RefCounted:
 	var faces := PackedVector3Array()
 	var edges := PackedVector3Array()
@@ -244,9 +245,11 @@ func light_at(at: Vector3, range_value: float = 5.8, energy: float = 1.0) -> voi
 func build_tower() -> void:
 	# Terraced civic dais, approached from the existing north avenue.
 	for tier in range(5): disk(TOWER+Vector3(0,0.42+tier*0.6,0),11-tier*0.4,0.6,"TowerDais")
-	for step in range(12):
-		var h := (step+1)*0.25
-		block(TOWER+Vector3(0,0.12+h*0.5,15.25-step*0.5),Vector3(4,h,0.5),"TowerStair")
+	# Start on the avenue, not the raised sidewalk. Thirteen 24cm risers
+	# stay within the existing 29cm step sweep and overlap the top dais.
+	for step in range(13):
+		var h := (step+1)*0.24
+		block(TOWER+Vector3(0,h*0.5,15.5-step*0.5),Vector3(4,h,0.5),"TowerStair")
 	block(TOWER+Vector3(0,4.62,0),Vector3(2.5,3,2.5),"CrystalPedestal")
 	for x in [-6.5,6.5]:
 		for z in [-6.5,6.5]:

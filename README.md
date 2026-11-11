@@ -459,7 +459,7 @@ your controller playtest; automated checks do not judge those subjective parts.
 | Modified special X / Y | Hold V, tap Q / R | Hold RT, tap X / Y |
 | Charged special (including modified) | Hold Q / R, then release | Hold X / Y, then release |
 | Inventory / equipment | Press B | Press View / Back / Select |
-| Talk / collect nearby loot / challenge Greefer | Press G | Press RT nearby |
+| Talk / collect nearby loot / shop / challenge Greefer | Press G | Tap RT nearby |
 | Live system menu | Escape | Press Start |
 | Yield in a duel | Press G | Start menu: Yield sparring duel |
 | Draw / select weapon | Tap Down / Left / Right / Up arrows | Tap D-pad Down / Left / Right / Up |
@@ -475,6 +475,28 @@ both avenues join this complete loop. The southern curve ends widen into guarded
 lookouts. Walk up the west stairs near `(-15,0,13.5)` to the 12 m route, or the
 east stairs near `(15,0,16.3)` to the 16 m route. These are open-riser stairs with
 physical treads, stringers and handrails. Sky steps can reach the higher rings.
+
+The south-facing tower steps begin near `(0,0,-48)` and climb to the civic
+platform at 3.12 m. Their visible boxes and collision now use thirteen 24 cm
+risers: the former first step was 37 cm high, beyond the player's existing
+29 cm step sweep. Movement speeds, controls and the controller are unchanged.
+Walk up to the crystal pedestal and press **G / tap RT** for the **Tower
+Exchange**. It offers Longsword + Shield, Spear, Katana, Twin Blades and Health
+Glyphs, one per selection, all currently free. Purchases enter the existing
+inventory without replacing equipped weapons; equip weapons from inventory.
+Use A / Enter to acquire and B (controller) / Escape to leave. View opens
+inventory and Start opens the system menu. The world continues running.
+
+Authoritative prices are configurable in `scripts/tower_shop.gd`; paid offers
+remain unavailable until a currency settlement is implemented. The loot service
+validates registered offers, ownership, proximity, line of sight and living
+combat state, and guards purchase notifications against reentrant grants.
+Purchases use normal stack limits, Health Glyph counts and inventory saves.
+`tests/tower_shop.gd` checks real walking/running/descent, keyboard/controller
+menus, RT+B priority, host validation, reentrancy and checkpoint restoration.
+All 35 checks pass at 30/60/120 Hz and in a native Compatibility window at
+60 Hz. Another 222 inventory/model/loot/UI, Start-menu and metropolis checks
+pass; the native exchange and stair views were also inspected visually.
 
 Infinity banners, sixteen geometric trees, illuminated benches and ten additional
 tall towers establish the denser metropolis seen in the supplied visual reference.

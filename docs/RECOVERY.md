@@ -1,5 +1,12 @@
 # Recovering the first public checkpoint
 
+The walkable tower approach and free crystal-pedestal exchange are preserved by
+`checkpoint-2026-11-10-tower-exchange` on `feat/tower-shop-stairs`. Its
+complete-history offline bundle is `infiniglyph-tower-exchange-2026-11-10.bundle`
+in the parent workspace's `backups` directory. Inventory ownership, quantities
+and purchased gear use the existing per-user checkpoint. Earlier tags and
+bundles remain unchanged.
+
 Civilian simulation levels, bounded traffic/spawn work, static prop/wheel
 batching and live graphics controls are preserved by
 `checkpoint-2026-11-10-performance-budgets` on `perf/civilian-render-budgets`.

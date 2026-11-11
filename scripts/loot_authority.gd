@@ -18,6 +18,7 @@ var markers := Markers.new()
 var rng := RandomNumberGenerator.new()
 var _inventories: Dictionary = {}
 var _death_results: Dictionary = {}
+var _shops: Dictionary = {}
 var _busy := false
 
 func transaction_active() -> bool:
@@ -123,6 +124,24 @@ func request_health_glyph(inventory: Node) -> bool:
 	_busy = false
 	if consumed!=null: changed.emit()
 	return consumed!=null
+
+func register_shop(id: StringName, shop: Node) -> void:
+	# World-authored offers, never client-supplied items or prices.
+	_shops[id] = weakref(shop)
+
+func request_shop_purchase(inventory: Node, shop_id: StringName, item_type_id: StringName) -> bool:
+	if not _authorized(&"shop_purchase",inventory,{"shop_id":shop_id,"item_type_id":item_type_id}): return false
+	var shop: Node = _shops[shop_id].get_ref() if _shops.has(shop_id) else null
+	if not is_instance_valid(shop) or not shop.can_use(actor_for(inventory)): return false
+	var offer: Dictionary = shop.offer(item_type_id)
+	# Paid transactions need a future authoritative currency settlement. A
+	# nonzero authored price must never accidentally issue a free item.
+	if offer.is_empty() or offer.price!=0: return false
+	_busy = true
+	var accepted: bool = inventory.add_item(Catalog.create(item_type_id,1))
+	if accepted: changed.emit()
+	_busy = false
+	return accepted
 
 func request_unequip(inventory: Node, slot: StringName) -> bool:
 	if not _authorized(&"unequip",inventory,{"slot":slot}): return false
