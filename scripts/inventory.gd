@@ -3,6 +3,7 @@ extends Node
 const Catalog = preload("res://scripts/item_catalog.gd")
 const Instance = preload("res://scripts/item_instance.gd")
 const SLOTS: Array[StringName] = [&"down",&"left",&"right",&"up"]
+const EQUIPMENT_SLOTS: Array[StringName] = [&"down",&"left",&"right",&"up",&"body"]
 const MAX_ITEMS := 4096
 signal changed
 signal equipment_changed
@@ -93,11 +94,10 @@ func equipped_item(slot: StringName) -> Resource:
 	return get_item(equipment.get(slot,""))
 
 func assign(slot: StringName, iid: String) -> bool:
-	if not slot in SLOTS: return false
 	var item: Resource = get_item(iid)
 	if item == null or not item.is_valid() or item.owner_id != owner_id: return false
 	var definition: Resource = Catalog.get_definition(item.item_type_id)
-	if definition.category != &"weapons" or not definition.is_equippable or not StringName(definition.custom_properties.get("weapon_slot","")) in SLOTS: return false
+	if not fits_slot(definition,slot): return false
 	if equipment.get(slot,"") == iid: return true
 	for existing: StringName in equipment.keys():
 		if equipment[existing] == iid: equipment.erase(existing)
@@ -107,11 +107,16 @@ func assign(slot: StringName, iid: String) -> bool:
 	return true
 
 func unequip(slot: StringName) -> bool:
-	if not slot in SLOTS or not equipment.has(slot): return false
+	if not slot in EQUIPMENT_SLOTS or not equipment.has(slot): return false
 	equipment.erase(slot)
 	equipment_changed.emit()
 	changed.emit()
 	return true
+
+static func fits_slot(definition: Resource, slot: StringName) -> bool:
+	if definition==null or not definition.is_equippable: return false
+	if slot==&"body": return definition.category==&"cosmetics" and definition.custom_properties.get("cosmetic_slot","")=="body"
+	return slot in SLOTS and definition.category==&"weapons" and StringName(definition.custom_properties.get("weapon_slot","")) in SLOTS
 
 func weapon_slot(slot: StringName) -> StringName:
 	var item: Resource = equipped_item(slot)
@@ -121,7 +126,7 @@ func weapon_slot(slot: StringName) -> StringName:
 
 func eligible_equipped() -> Array:
 	var result: Array[String] = []
-	for slot: StringName in SLOTS:
+	for slot: StringName in EQUIPMENT_SLOTS:
 		var item: Resource = equipped_item(slot)
 		if item == null or not item.is_valid() or item.owner_id != owner_id or result.has(item.instance_id): continue
 		var definition: Resource = Catalog.get_definition(item.item_type_id)
@@ -157,10 +162,10 @@ func restore(data: Variant) -> bool:
 		if not Instance.valid_text(key): return false
 		var slot := StringName(key)
 		var iid: Variant = data.equipment[key]
-		if not slot in SLOTS or not Instance.valid_text(iid) or not restored.has(String(iid)) or assigned.has(String(iid)): return false
+		if not slot in EQUIPMENT_SLOTS or not Instance.valid_text(iid) or not restored.has(String(iid)) or assigned.has(String(iid)): return false
 		var item: Resource = restored[String(iid)]
 		var definition: Resource = Catalog.get_definition(item.item_type_id)
-		if definition.category != &"weapons" or not definition.is_equippable or not StringName(definition.custom_properties.get("weapon_slot","")) in SLOTS: return false
+		if not fits_slot(definition,slot): return false
 		assignments[slot] = String(iid)
 		assigned[String(iid)] = true
 	owner_id = String(data.owner_id)

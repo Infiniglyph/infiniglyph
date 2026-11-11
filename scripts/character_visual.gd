@@ -3,6 +3,8 @@ extends Node3D
 const Neon = preload("res://scripts/neon.gd")
 const Spring = preload("res://scripts/pose_spring.gd")
 const Retrieval = preload("res://scripts/motion_retrieval.gd")
+const ScribeRobe = preload("res://scripts/eternal_scribe_robe.gd")
+var robe: Node3D
 const REST_HIP_HEIGHT := 0.946
 const MAX_LANDING_COMPRESSION := 0.34
 @export var live_retrieval := true
@@ -45,6 +47,20 @@ var _sprint_context := 0.0
 var _reversal_context := 0.0
 var _combat_rotations: Dictionary = {}
 var _combat_positions: Dictionary = {}
+
+func sync_clothing(inventory: Node) -> void:
+	var item: Resource = inventory.equipped_item(&"body")
+	var worn: bool = item!=null and item.item_type_id==&"eternal_scribe_robes"
+	if worn and not is_instance_valid(robe):
+		robe = ScribeRobe.new()
+		robe.name = "EternalScribeRobe"
+		chest.add_child(robe)
+		# Source robes face -Z; this procedural figure faces +Z. Follow the
+		# existing chest and pelvis without touching the controller or collider.
+		robe.position.y = -REST_HIP_HEIGHT
+		robe.rotation.y = PI
+		robe.configure(get_parent(),self,chest,joints.LeftArm,joints.RightArm)
+	if is_instance_valid(robe): robe.set_equipped(worn)
 
 func clear_combat_pose() -> void:
 	for joint: Node3D in _combat_positions:

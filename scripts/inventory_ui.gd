@@ -6,6 +6,7 @@ const CATEGORIES := [&"weapons",&"cosmetics",&"consumables",&"materials",&"key_i
 const CATEGORY_NAMES := ["WEAPONS","ARMOR / COSMETICS","CONSUMABLES","MATERIALS","KEY ITEMS","MISCELLANEOUS"]
 const CATEGORY_GLYPHS := ["/|","<>" ,"+","#","*","::"]
 const DIRECTIONS := [&"up",&"left",&"right",&"down"]
+const EQUIPMENT_SLOTS := [&"up",&"left",&"right",&"down",&"body"]
 const PAGE_SIZE := 8
 const CYAN := Color(0.12,0.9,0.96)
 const WHITE := Color(0.9,0.96,0.98)
@@ -321,7 +322,7 @@ func _item_name(iid: String) -> String:
 
 func _equipped_slots(iid: String) -> Array[StringName]:
 	var result: Array[StringName] = []
-	for slot: StringName in DIRECTIONS:
+	for slot: StringName in EQUIPMENT_SLOTS:
 		if String(inventory.equipment.get(slot,""))==iid and not iid.is_empty(): result.append(slot)
 	return result
 
@@ -396,7 +397,7 @@ func _refresh_items() -> void:
 	if visible_ids.is_empty():
 		_empty_label.show()
 		_empty_label.text = "No "+CATEGORY_NAMES[category_index].to_lower()+" in your field kit."
-		if category_index==1: _empty_label.text += "\n\nNo cosmetic equipment slots."
+		if category_index==1: _empty_label.text += "\n\nClothing can be equipped in Body."
 	for index in range(visible_ids.size()):
 		var iid := visible_ids[index]
 		var item: Resource = inventory.get_item(iid)
@@ -416,23 +417,23 @@ func _refresh_items() -> void:
 	_actions_button.text = "A / ENTER   ITEM ACTIONS"
 
 func _refresh_equipment() -> void:
-	selected_index = clampi(selected_index,0,3)
+	selected_index = clampi(selected_index,0,EQUIPMENT_SLOTS.size()-1)
 	visible_ids.clear()
-	_list_title.text = "QUICK-SELECT WEAPONS"
-	for index in range(DIRECTIONS.size()):
-		var slot: StringName = DIRECTIONS[index]
+	_list_title.text = "WEAPONS / CLOTHING"
+	for index in range(EQUIPMENT_SLOTS.size()):
+		var slot: StringName = EQUIPMENT_SLOTS[index]
 		var iid := String(inventory.equipment.get(slot,""))
 		visible_ids.append(iid)
-		var button := _button(String(slot).to_upper()+"    /    "+_item_name(iid),_select_row.bind(index),64)
+		var button := _button(String(slot).to_upper()+"    /    "+_item_name(iid),_select_row.bind(index),52)
 		button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		_rows.add_child(button)
 		_mark(button,index==selected_index)
 		equipment_buttons.append(button)
 	selected_iid = visible_ids[selected_index]
-	var note := _label("Any owned weapon can occupy a direction.\nEmpty directions cannot draw or attack.\n\nNo cosmetic equipment slots.",14,MUTED)
+	var note := _label("Any owned weapon can occupy a direction.\nEmpty directions cannot draw or attack.\nBody holds cosmetic clothing.",14,MUTED)
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_rows.add_child(note)
-	_page_label.text = "4 QUICK-SELECT DIRECTIONS"
+	_page_label.text = "4 WEAPON DIRECTIONS / 1 CLOTHING SLOT"
 	_previous.disabled = true
 	_next.disabled = true
 	_actions_button.disabled = false
@@ -453,9 +454,9 @@ func _inspect() -> void:
 	var item: Resource = inventory.get_item(selected_iid)
 	var definition := _definition(item)
 	if item==null or definition==null:
-		_name_label.text = "Empty direction" if tab_index==1 else "Nothing selected"
-		_meta_label.text = String(DIRECTIONS[selected_index]).to_upper()+" QUICK SELECT" if tab_index==1 else CATEGORY_NAMES[category_index]
-		_description.text = "Choose Change weapon to assign an owned weapon." if tab_index==1 else "Choose another category or pick up an item in the city."
+		_name_label.text = "Empty slot" if tab_index==1 else "Nothing selected"
+		_meta_label.text = String(EQUIPMENT_SLOTS[selected_index]).to_upper() if tab_index==1 else CATEGORY_NAMES[category_index]
+		_description.text = "Choose Change to assign an owned weapon or clothing." if tab_index==1 else "Choose another category or pick up an item in the city."
 		_stats.text = ""
 		_arts.text = ""
 		_equipped.text = ""
@@ -476,7 +477,7 @@ func _inspect() -> void:
 			_arts.text += "\n%s   %s\n%d damage  /  %.1f m reach" % [bindings[index],move.name,move.damage,move.reach]
 	else:
 		_stats.text = "STACK LIMIT    %d\nDROP    %s     TRADE    %s" % [definition.max_stack,"YES" if definition.is_droppable else "NO","YES" if definition.is_tradeable else "NO"]
-		_arts.text = "No cosmetic equipment slots." if definition.category==&"cosmetics" else "Stored in your field kit.\nNo use action is available for this item."
+		_arts.text = ("BODY CLOTHING\nCosmetic; movement and combat values stay unchanged." if definition.is_equippable else "Stored cosmetic pattern.") if definition.category==&"cosmetics" else "Stored in your field kit.\nNo use action is available for this item."
 	var slots := _equipped_slots(selected_iid)
 	var names: Array[String] = []
 	for slot: StringName in slots: names.append(String(slot).to_upper())
@@ -487,9 +488,9 @@ func activate_selection() -> void:
 		if _modal_index<_modal_buttons.size(): _modal_buttons[_modal_index].pressed.emit()
 		return
 	if tab_index==1:
-		_target_slot = DIRECTIONS[selected_index]
-		_begin_modal(&"equipment","%s QUICK SELECT" % String(_target_slot).to_upper())
-		_modal_choice("CHANGE WEAPON",_choose_weapon)
+		_target_slot = EQUIPMENT_SLOTS[selected_index]
+		_begin_modal(&"equipment","%s EQUIPMENT" % String(_target_slot).to_upper())
+		_modal_choice("CHANGE CLOTHING" if _target_slot==&"body" else "CHANGE WEAPON",_choose_weapon)
 		if not selected_iid.is_empty(): _modal_choice("UNEQUIP",func(): _unequip_slot(_target_slot))
 		_modal_choice("BACK",_close_modal)
 		return
@@ -498,6 +499,7 @@ func activate_selection() -> void:
 	if definition==null: return
 	_begin_modal(&"actions",definition.display_name)
 	if definition.category==&"weapons" and definition.is_equippable: _modal_choice("EQUIP TO DIRECTION",_choose_slot)
+	if definition.category==&"cosmetics" and definition.is_equippable: _modal_choice("WEAR IN BODY",_equip.bind(&"body",selected_iid))
 	if not _equipped_slots(selected_iid).is_empty(): _modal_choice("UNEQUIP",_unequip_item)
 	if definition.is_droppable and definition.is_tradeable: _modal_choice("DROP",_choose_quantity)
 	if _modal_buttons.is_empty(): _modal_rows.add_child(_label("This item has no available actions.",15,MUTED))
@@ -535,19 +537,19 @@ func _choose_slot() -> void:
 	_modal_choice("BACK",_close_modal)
 
 func _choose_weapon() -> void:
-	_begin_modal(&"weapon_pick","CHOOSE WEAPON FOR "+String(_target_slot).to_upper())
+	_begin_modal(&"weapon_pick","CHOOSE EQUIPMENT FOR "+String(_target_slot).to_upper())
 	var choices: Array[String] = []
 	for iid in inventory.items:
 		var definition := _definition(inventory.get_item(String(iid)))
-		if definition != null and definition.category==&"weapons" and definition.is_equippable: choices.append(String(iid))
+		if inventory.fits_slot(definition,_target_slot): choices.append(String(iid))
 	choices.sort_custom(func(a: String,b: String): return _item_name(a).naturalnocasecmp_to(_item_name(b))<0)
 	# Weapon choice remains paged in the normal inventory for larger collections.
 	if choices.size()>8:
-		_modal_rows.add_child(_label("Choose a weapon in Inventory, then Equip to direction.",15,MUTED))
-		_modal_choice("OPEN WEAPONS",func(): select_category(0))
+		_modal_rows.add_child(_label("Choose an item in Inventory, then equip it.",15,MUTED))
+		_modal_choice("OPEN INVENTORY",func(): select_category(1 if _target_slot==&"body" else 0))
 	else:
 		for iid: String in choices: _modal_choice(_item_name(iid),_equip.bind(_target_slot,iid))
-	if choices.is_empty(): _modal_rows.add_child(_label("No owned weapons are available.",15,MUTED))
+	if choices.is_empty(): _modal_rows.add_child(_label("No compatible owned items are available.",15,MUTED))
 	_modal_choice("BACK",_close_modal)
 
 func _equip(slot: StringName, iid: String) -> void:
@@ -555,7 +557,7 @@ func _equip(slot: StringName, iid: String) -> void:
 	var success: bool = is_instance_valid(loot) and loot.request_equip(inventory,slot,iid)
 	_close_modal()
 	refresh()
-	set_status(title+" assigned to "+String(slot).to_upper()+"." if success else "This weapon could not be assigned.",not success)
+	set_status(title+" assigned to "+String(slot).to_upper()+"." if success else "This item could not be assigned.",not success)
 
 func _unequip_slot(slot: StringName) -> void:
 	var success: bool = is_instance_valid(loot) and loot.request_unequip(inventory,slot)
@@ -569,7 +571,7 @@ func _unequip_item() -> void:
 		success = is_instance_valid(loot) and loot.request_unequip(inventory,slot) and success
 	_close_modal()
 	refresh()
-	set_status("Weapon removed from quick-select directions." if success else "This weapon could not be unequipped.",not success)
+	set_status("Item unequipped." if success else "This item could not be unequipped.",not success)
 
 func _choose_quantity() -> void:
 	var item: Resource = inventory.get_item(selected_iid)

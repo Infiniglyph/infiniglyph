@@ -1,5 +1,12 @@
 # Recovering the first public checkpoint
 
+The first wearable clothing and Tower Exchange robe offer are preserved by
+`checkpoint-2026-11-11-scribe-robes` on `feat/eternal-scribe-robes`. The verified
+complete-history bundle is `infiniglyph-scribe-robes-2026-11-11.bundle` in the
+parent workspace's `backups` directory. The Body assignment and owned robe use
+the existing version-one inventory checkpoint; older saves remain readable.
+All preceding checkpoint tags and bundles remain unchanged.
+
 The weapon-grip drift correction and matching Godot 4.7 project feature tag are
 preserved by `checkpoint-2026-11-11-weapon-grips` on `fix/weapon-grip-drift`.
 Its complete-history offline bundle is

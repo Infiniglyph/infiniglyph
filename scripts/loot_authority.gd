@@ -99,6 +99,8 @@ func request_drop(inventory: Node, instance_id: String, quantity: int, at: Vecto
 func request_equip(inventory: Node, slot: StringName, instance_id: String) -> bool:
 	if not _authorized(&"equip",inventory,{"slot":slot,"instance_id":instance_id}): return false
 	if not _equipment_allowed(inventory): return false
+	var phase: Node = actor_for(inventory).get("dodge")
+	if slot==&"body" and is_instance_valid(phase) and phase.active: return false
 	_busy = true
 	var accepted: bool = inventory.assign(slot,instance_id)
 	_busy = false

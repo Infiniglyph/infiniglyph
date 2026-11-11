@@ -483,8 +483,8 @@ platform at 3.12 m. Their visible boxes and collision now use thirteen 24 cm
 risers: the former first step was 37 cm high, beyond the player's existing
 29 cm step sweep. Movement speeds, controls and the controller are unchanged.
 Walk up to the crystal pedestal and press **G / tap RT** for the **Tower
-Exchange**. It offers Longsword + Shield, Spear, Katana, Twin Blades and Health
-Glyphs, one per selection, all currently free. Purchases enter the existing
+Exchange**. It offers Longsword + Shield, Spear, Katana, Twin Blades, Health
+Glyphs and Eternal Scribe Robes, one per selection, all currently free. Purchases enter the existing
 inventory without replacing equipped weapons; equip weapons from inventory.
 Use A / Enter to acquire and B (controller) / Escape to leave. View opens
 inventory and Start opens the system menu. The world continues running.
@@ -578,9 +578,37 @@ rendering and collision. No per-resident motion-retrieval requests are made.
 
 ## Inventory, equipment and loot
 
+**Eternal Scribe Robes** are the first wearable clothing. Buy them free from the
+bipyramid's **Tower Exchange** (G / tap RT), then open Inventory (B / View),
+choose **Armor / Cosmetics**, select the robes and **Wear in Body**. The
+Equipment tab also supports Body -> Change clothing / Unequip. Clothing
+coexists with all four weapons and persists in the existing inventory save;
+older saves without a Body assignment still load without a migration grant.
+
+The robes adapt the actual code-native Eternal Scribe garment from the sibling
+Infinite Library project: dark split front, open scholar's hood, silver edges,
+geometric back sigil, six front and six back living inscriptions, twelve pooled
+specks and nine trailing symbols. Their +Z-facing fit and split elbow sleeves
+follow this game's existing character rig. Motion drives visual flow only;
+there is no cloth physics, armor bonus, movement cost or additional collision.
+Symbol meshes are cached, and stable mesh instances preserve phase fades.
+Unequipped clothing hides every sleeve and stops its process callback. Geometry
+is built only after the first equip, and the game has no runtime dependency on
+Infinite Library files, commands or saves.
+
+The Body slot uses normal owned item identities, host-validated equipment,
+transferable gear drop/death rules and checkpoint persistence. Inventory and
+store menus keep the world live. `tests/scribe_robes.gd` covers the complete
+purchase/wear/unequip/save/drop loop, old-save compatibility, articulated sleeves,
+two-handed combat grips, jumping/Sky Jump and phase restoration. Native front,
+back, inventory and store previews are available through its `--capture` option.
+All 31 clothing checks pass at 30/60/120 Hz and in a native Compatibility
+window at 60 Hz. Another 411 inventory, store, combat-motion, grip and menu
+regression checks pass. Front/back clothing and both UI previews were reviewed.
+
 Press **View / Back / Select** (Godot `JOY_BUTTON_BACK`, button 4) or keyboard
 **B** to open the field kit. Inventory has six categories and eight rows per page;
-Equipment shows the four D-pad assignments. Left stick/D-pad or arrows navigate,
+Equipment shows the four D-pad assignments and a Body clothing slot. Left stick/D-pad or arrows navigate,
 **A / Enter** opens item actions, **B / Escape** backs out, **LB/RB** changes tabs,
 and **LT/RT** or Left/Right changes categories. Use the Equip action to assign an
 owned weapon to any direction; use Drop to choose a stack quantity or drop one
@@ -597,8 +625,8 @@ On a fresh local save, four demo pickups are on the east sidewalk around
 `(13,0.2,18)` through `(13,0.2,25.2)`: Light Shards, a Signal Tonic, a protected
 Civic Access Glyph and a separate upgraded katana. Approach and press **G / RT**.
 A pickup notification confirms successful collection. Materials/consumables
-stack when type, upgrade and custom properties match. The prototype consumable,
-cosmetic and material items are collectible data; no use/crafting/armor-stat or
+stack when type, upgrade and custom properties match. The Signal Tonic, Cyan
+Mantle Pattern and material items remain collectible data; no crafting/armor-stat or
 upgrade mechanic is added here. Existing weapon damage and movesets stay intact.
 
 Item definitions are native `Resource` data in `item_definition.gd`, built by
@@ -660,7 +688,7 @@ callable gate mutations; synchronous claim/transaction guards reject rapid and
 reentrant transfers. Future peer sessions must forward requests to their host and
 derive inventory ownership from authenticated peers. Local checkpoints cannot
 restore or save authoritative multiplayer ownership. Actual networking, full map
-UI, cosmetic equipment slots and additional item-use systems remain future work.
+UI and additional item-use systems remain future work.
 
 Created: `item_definition.gd`, `item_instance.gd`, `item_catalog.gd`, `inventory.gd`,
 `inventory_store.gd`, `item_pickup.gd`, `loot_authority.gd`, `lost_item_markers.gd`,

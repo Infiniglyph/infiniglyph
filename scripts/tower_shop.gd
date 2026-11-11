@@ -2,10 +2,10 @@ extends CanvasLayer
 ## A live exchange at the civic crystal; grants go through the loot authority.
 const Catalog = preload("res://scripts/item_catalog.gd")
 const SHOP_ID := &"central_tower"
-const ITEMS: Array[StringName] = [&"sword_shield",&"spear",&"katana",&"twin_blades",&"health_glyph"]
+const ITEMS: Array[StringName] = [&"sword_shield",&"spear",&"katana",&"twin_blades",&"health_glyph",&"eternal_scribe_robes"]
 # Authoritative offer prices. Currency settlement can be added here later;
 # nonzero prices are displayed but unavailable until that system exists.
-@export var prices: Dictionary = {"sword_shield":0,"spear":0,"katana":0,"twin_blades":0,"health_glyph":0}
+@export var prices: Dictionary = {"sword_shield":0,"spear":0,"katana":0,"twin_blades":0,"health_glyph":0,"eternal_scribe_robes":0}
 signal opened
 signal closed
 var session: Node
@@ -91,7 +91,7 @@ func _build() -> void:
 	panel.add_child(scroll)
 	var box := VBoxContainer.new()
 	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	box.add_theme_constant_override("separation",12)
+	box.add_theme_constant_override("separation",10)
 	scroll.add_child(box)
 	box.add_child(_label("TOWER EXCHANGE",26))
 	box.add_child(_label("Central tower  /  All items currently free",16))
@@ -102,17 +102,21 @@ func _build() -> void:
 	_status.modulate = Color(1,0.66,0.28)
 	box.add_child(_status)
 	_add_button(box,"Leave exchange",close_menu)
-	box.add_child(_label("A / ENTER: acquire   B / ESC: leave\nWeapons go to inventory. Equip them there.",14))
+	box.add_child(_label("A / ENTER: acquire   B / ESC: leave\nEquip weapons and clothing from inventory.",14))
 
 func _add_button(box: VBoxContainer, text: String, action: Callable) -> void:
 	var button := Button.new()
 	button.text = text
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	button.custom_minimum_size.y = 52
+	button.custom_minimum_size.y = 46
 	button.add_theme_font_size_override("font_size",18)
-	button.add_theme_stylebox_override("normal",_style())
-	button.add_theme_stylebox_override("focus",_style(true))
-	button.add_theme_stylebox_override("hover",_style(true))
+	var normal := _style()
+	var focused := _style(true)
+	normal.set_content_margin_all(10)
+	focused.set_content_margin_all(10)
+	button.add_theme_stylebox_override("normal",normal)
+	button.add_theme_stylebox_override("focus",focused)
+	button.add_theme_stylebox_override("hover",focused)
 	button.pressed.connect(action)
 	box.add_child(button)
 	_buttons.append(button)
