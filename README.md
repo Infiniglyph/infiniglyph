@@ -147,6 +147,11 @@ does not enter the driving calculation. Entering starts the camera behind the
 vehicle; after that, right-stick/mouse orbit is free. Reverse naturally reverses
 the steering response. The original acceleration, braking and speed limits are
 preserved. The +Z-facing models use a negative yaw change for a right turn.
+Low/medium-speed steering now allows much tighter intersection turns: about a
+5 m radius with strong steering and 40% throttle, rather than the previous
+20 m radius at the same input. The turning rate is capped at higher speeds,
+and partial stick steering remains proportional. `traffic_vehicle.gd` exposes
+`steering_turn_per_meter` (0.22) and `steering_max_yaw_rate` (2.1 rad/s) for tuning.
 
 Stealing an occupied vehicle provokes its displaced driver. Up to six nearby,
 visible residents can also witness theft (including original hub residents).
@@ -209,13 +214,15 @@ views. Generated captures and personal saves are excluded from source backups.
 
 `tests/vehicle_controls.gd` checks vehicle-relative directions at four headings,
 camera orbit, analog throttle, reverse and live menus for all three vehicle
-types. `tests/theft_combat.gd` checks actual theft/witness visibility, escalation,
-shared defenses/strain/momentum, real AI damage, death/blocked-spawn recovery,
+types, plus measured tight left/right turns, stationary steering and bounded
+high-speed/partial-stick response. `tests/theft_combat.gd` checks actual theft,
+witness visibility, escalation, shared defenses/strain/momentum, real AI damage,
+death/blocked-spawn recovery,
 fighter limits, encounter isolation and hub identity reservations. Both accept
 `-- --hz=30` or `-- --hz=120` with a matching engine `--fixed-fps` value. The
 theft test accepts `-- --capture` for native reaction and combat screenshots.
 
-The steering suite passes **90 checks at each of 30/60/120 Hz**; the theft suite
+The steering suite passes **147 checks at each of 30/60/120 Hz**; the theft suite
 passes **27 at each rate**, including native captures at 60 Hz. Charge/sparring,
 Greefer, lock/momentum, vehicle interactions, traffic and live-menu regressions
 also pass. The older civilian routine soak still detects a 5 cm curb overlap

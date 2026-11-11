@@ -12,6 +12,10 @@ var signed_speed := 0.0
 var seat_height := 0.72
 var seat_z := 0.05
 var top_speed := 19.0
+# Full-lock low-speed radius is about 4.5 m; bound yaw at speed so a sharp
+# parking/intersection turn does not become a twitchy high-speed spin.
+@export_range(0.01,0.5,0.01) var steering_turn_per_meter := 0.22
+@export_range(0.1,4.0,0.1) var steering_max_yaw_rate := 2.1
 var dimensions := Vector3(1.85,1.8,4.1)
 var driver_visual: Node3D
 var wheel_nodes: Array[Node3D] = []
@@ -139,7 +143,8 @@ func _physics_process(delta: float) -> void:
 		# The vehicle's nose is +Z. Its physical right is therefore -X:
 		# subtract yaw to steer right, reversing naturally when backing up.
 		# Camera yaw/look never participates in either throttle or steering.
-		rotation.y -= steering*signed_speed*0.055*delta
+		var turn_rate := clampf(signed_speed*steering_turn_per_meter,-steering_max_yaw_rate,steering_max_yaw_rate)
+		rotation.y -= steering*turn_rate*delta
 	elif has_driver:
 		var route: PackedVector3Array = record.route
 		var goal: Vector3 = route[record.cursor]
