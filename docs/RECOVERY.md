@@ -1,5 +1,14 @@
 # Recovering the first public checkpoint
 
+The fitted Scribe robe and responsive dodge chaining are preserved by
+`checkpoint-2026-11-11-fitted-robes-dodge` on
+`feat/fitted-robes-responsive-dodge`. The verified complete-history bundle is
+`infiniglyph-fitted-robes-dodge-2026-11-11.bundle` in the parent workspace's
+`backups` directory. This checkpoint retains the same owned Body item and save
+format, fits the garment to the animated rig, and removes dodge cooldown/input
+loss while retaining collision sweeps and hidden-only invulnerability. Earlier
+checkpoint tags and bundles remain fixed.
+
 The first wearable clothing and Tower Exchange robe offer are preserved by
 `checkpoint-2026-11-11-scribe-robes` on `feat/eternal-scribe-robes`. The verified
 complete-history bundle is `infiniglyph-scribe-robes-2026-11-11.bundle` in the

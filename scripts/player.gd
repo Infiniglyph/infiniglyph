@@ -107,14 +107,22 @@ func _physics_process(delta: float) -> void:
 	if controls.has_method("update_combat_hold"): controls.update_combat_hold(delta)
 	combat.poll(controls)
 	var jump: bool = controls.consume_jump()
-	var dodge_requested: bool = controls.consume_dodge() if controls.has_method("consume_dodge") else false
+	var dodge_requests := 0
+	if controls.has_method("consume_dodge_requests"): dodge_requests = controls.consume_dodge_requests()
+	elif controls.has_method("consume_dodge"): dodge_requests = int(controls.consume_dodge())
 	var staggered: bool = weapon_combat.is_staggered()
 	if staggered:
 		jump = false
-		dodge_requested = false
+		dodge_requests = 0
 		_jump_after_dodge = false
 	var move_input: Vector2 = Vector2.ZERO if staggered else controls.move
-	dodge.cooldown = maxf(0,dodge.cooldown-delta)
+	var intent := Vector3(move_input.x,0,move_input.y).rotated(Vector3.UP,camera_rig.yaw)
+	if target_lock.is_locked(): intent = target_lock.movement(move_input)
+	var idle_forward: Vector3 = target_lock.facing() if target_lock.is_locked() else Vector3.FORWARD.rotated(Vector3.UP,camera_rig.yaw)
+	var dodge_direction := intent if not intent.is_zero_approx() else idle_forward
+	# Consume every fresh press before advancing an existing phase. The dodge
+	# owns immediate chaining, rather than losing requests in an active return.
+	for _request in range(dodge_requests): dodge.start(dodge_direction)
 	if dodge.active:
 		_jump_after_dodge = _jump_after_dodge or jump
 		dodge.advance(delta)
@@ -122,15 +130,6 @@ func _physics_process(delta: float) -> void:
 		return
 	var grounded := is_on_floor()
 	if grounded: air_step_count = 0
-	var intent := Vector3(move_input.x,0,move_input.y).rotated(Vector3.UP,camera_rig.yaw)
-	if target_lock.is_locked(): intent = target_lock.movement(move_input)
-	var idle_forward: Vector3 = target_lock.facing() if target_lock.is_locked() else Vector3.FORWARD.rotated(Vector3.UP,camera_rig.yaw)
-	var dodge_direction := intent if not intent.is_zero_approx() else idle_forward
-	if dodge_requested and dodge.start(dodge_direction):
-		_jump_after_dodge = _jump_after_dodge or jump
-		dodge.advance(delta)
-		face_locked_target()
-		return
 	jump = jump or _jump_after_dodge
 	_jump_after_dodge = false
 	var speed := run_speed if controls.sprint else walk_speed

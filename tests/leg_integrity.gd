@@ -170,7 +170,6 @@ func run() -> void:
 		equip(&"right")
 		attack(&"special_rt_x")
 		await seconds(0.1,"pre-dodge combat")
-		actor.dodge.cooldown = 0
 		actor.dodge.start(Vector3.RIGHT if cycle%2 == 0 else Vector3.LEFT)
 		await seconds(0.14,"vanishing dodge")
 		if cycle%2 == 0:

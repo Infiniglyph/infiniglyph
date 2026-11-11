@@ -585,13 +585,16 @@ Equipment tab also supports Body -> Change clothing / Unequip. Clothing
 coexists with all four weapons and persists in the existing inventory save;
 older saves without a Body assignment still load without a migration grant.
 
-The robes adapt the actual code-native Eternal Scribe garment from the sibling
-Infinite Library project: dark split front, open scholar's hood, silver edges,
-geometric back sigil, six front and six back living inscriptions, twelve pooled
-specks and nine trailing symbols. Their +Z-facing fit and split elbow sleeves
-follow this game's existing character rig. Motion drives visual flow only;
-there is no cloth physics, armor bonus, movement cost or additional collision.
-Symbol meshes are cached, and stable mesh instances preserve phase fades.
+The robes adapt the code-native Eternal Scribe garment from the sibling Infinite
+Library project into a fitted open jacket: a wrapped torso, narrow scholar's hood
+and collar, articulated sleeves, a belt and a small hip tome. Four separate,
+angular coat tails follow the hips and legs through running, Sky Jump, sitting
+and mounted poses. Silver edges, the geometric back sigil, six front and six back
+living inscriptions, twelve pooled specks and nine trailing symbols retain the
+Scribe's identity. Their +Z-facing fit follows this game's existing character
+rig. Motion drives visual flow only; there is no cloth physics, armor bonus,
+movement cost or additional collision. Symbol meshes are cached, and stable
+mesh instances preserve phase fades.
 Unequipped clothing hides every sleeve and stops its process callback. Geometry
 is built only after the first equip, and the game has no runtime dependency on
 Infinite Library files, commands or saves.
@@ -605,6 +608,13 @@ back, inventory and store previews are available through its `--capture` option.
 All 31 clothing checks pass at 30/60/120 Hz and in a native Compatibility
 window at 60 Hz. Another 411 inventory, store, combat-motion, grip and menu
 regression checks pass. Front/back clothing and both UI previews were reviewed.
+
+The fitted adaptation adds **21 checks at each of 30/60/120 Hz**, plus a native
+Compatibility run and seven reviewed front/back/side, running, Sky Jump, seated
+and motorcycle captures (`tests/fitted_robes.gd -- --capture`). It measures the
+actual wrapped fabric and limb attachments, independent tail motion and fixed
+mesh pools. The outfit uses 97 mesh instances and 942 fabric vertices; it adds
+no colliders and keeps the existing owned Body item.
 
 Press **View / Back / Select** (Godot `JOY_BUTTON_BACK`, button 4) or keyboard
 **B** to open the field kit. Inventory has six categories and eight rows per page;
@@ -1130,11 +1140,16 @@ the blink's height. Direction is fixed at the moment of the press.
 The dodge adapts `../infinite-library/scripts/traveler.gd`'s phase-dash range,
 timing, central collapse and departure/arrival rings. Actual carried horizontal
 speed sets the distance, from **3.2 m** at rest to **6.4 m** at sprint speed. The
-phase lasts **0.34 s**, shifts at 43% of that cycle, and has a **0.62 s cooldown**
-from activation. Position and gravity pause during the brief phase; both carried
-horizontal and vertical velocity return on exit. A jump pressed during the phase
-is retained once and fires on the next normal physics tick. Ground/air movement
-then continues normally, including falling after a blink off a rooftop.
+phase lasts **0.34 s** and shifts at 43% of that cycle. There is **no cooldown**:
+each fresh B/E press starts another dodge, including during an active phase.
+Chaining safely sweeps and settles any unfinished displacement before beginning
+the next phase, so rapid presses do not discard travel or bypass collision.
+Position and gravity pause during the brief phase; both carried horizontal and
+vertical velocity return on exit. A jump pressed during the phase is retained
+once and fires on the next normal physics tick. Ground/air movement then
+continues normally, including falling after a blink off a rooftop. RT+B retains
+its Health Glyph mapping, and menus continue running the world while gating
+local gameplay input.
 
 The middle **30–60%** of the phase is fully invisible and invincible to incoming
 combat damage: **0.102 seconds** of the 0.34-second cycle, spanning the teleport
@@ -1147,11 +1162,19 @@ dodges cannot leave immunity active.
 The upright capsule stays enabled throughout. Full-volume sweeps shorten the
 blink before solid walls, posts or low overhangs. A second sweep when committing
 also catches blockers added during the fade. Less than 0.35 m of available travel
-rejects the dodge without using the cooldown. Camera angles and current drop-height
-history survive the blink. A local alpha material makes the fade work in the
-Compatibility renderer; it restores the original body material on exit. Cyan
+rejects the dodge. Camera angles and current drop-height history survive the
+blink. A local alpha material makes the fade work in the Compatibility renderer;
+it restores the original body material on exit. Cyan
 rings expire after 0.28 s. The Library's source files remain unchanged and are
 not required to run this component.
+
+`tests/responsive_dodge.gd` passes **68 checks at each of 30/60/120 Hz**. It routes
+real B/E press/release events across varied intervals, same-frame bursts and
+rapid chains with all four weapons and the fitted robe. It checks swept travel,
+momentum, hidden-only immunity, late blockers, original material restoration,
+RT+B healing and input cleanup through menus, focus changes and respawn.
+Existing dodge, defense, fall-damage, lock/momentum and limb-integrity fixtures
+also pass at 60 Hz.
 
 ## Phase 002 brief review and tuning
 
@@ -1170,7 +1193,7 @@ glass, explicit sprint/aerial retrieval profiles, and high-speed verification.
 | `character_visual.gd: trigger_air_step` | 0.25 s pose response | Counter-motion and directional kick recovery |
 | `glass_step.gd: LIFETIME` | 0.62 s | Effect expiry; at most 12 tiles are retained |
 | `phase_dodge.gd: DISTANCE / MAX_DISTANCE` | 3.2 / 6.4 m | Range based on actual horizontal momentum |
-| `phase_dodge.gd: DURATION / COOLDOWN` | 0.34 / 0.62 s | Phase cycle / interval between accepted dodges |
+| `phase_dodge.gd: DURATION` | 0.34 s | Phase cycle; fresh presses can chain without a cooldown |
 | `data/motion_constraints.json` | 18 profiles | Bounded pose weights and retrieval contexts |
 
 Physical velocity has no gameplay cap. Pose gains, foot reach, effect size and
@@ -1610,8 +1633,8 @@ check passes in a display-capable run.
 Dodge/sky-step tuning: neutral airborne steps rose 1.773/1.847/1.885 m at
 30/60/120 Hz. Ground paces remain 3.5/7.5/10.2 m/s. Tests cover B/E routing,
 one request per press, 24 direction/camera cases, momentum-scaled blink range,
-carried velocity on exit, phase/cooldown timing, thin walls, narrow posts,
-diagonal contacts, low overhangs and blockers added before the shift. Queued
+carried velocity on exit, phase timing and rapid press chaining, thin walls,
+narrow posts, diagonal contacts, low overhangs and blockers added before the shift. Queued
 jumps, roof-edge falling, drop-history retention, respawn and effect cleanup
 are also exercised. Use `-- --capture` for departure/shift/arrival review frames.
 

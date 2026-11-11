@@ -384,7 +384,6 @@ func run() -> void:
 	w.cancel()
 	p.velocity = Vector3.ZERO
 	center.position.z = -8
-	p.dodge.cooldown = 0
 	check(p.dodge.start(Vector3.FORWARD),"Phase dodge still accepts a normal direction")
 	p.dodge.advance(0.17)
 	check(p.dodge.is_invulnerable() and p.velocity.is_zero_approx(),"Teleport displacement grants no fake impact velocity and keeps its invulnerability")

@@ -23,6 +23,9 @@ var _upper_body: Node3D
 var _back_cloak: Node3D
 var _left_front_panel: Node3D
 var _right_front_panel: Node3D
+var _waist: Node3D
+var _tails: Array[Node3D] = []
+var _sleeves: Array[Dictionary] = []
 var _external_pieces: Array[Node3D] = []
 var _glyph_nodes: Array[Node3D] = []
 var _glyph_base_positions: Array[Vector3] = []
@@ -163,97 +166,163 @@ func _process(delta: float) -> void:
 	var target_turn := clampf(yaw_delta / maxf(delta, 0.001) * 0.08, -0.32, 0.32)
 	_turn_amount = move_toward(_turn_amount, target_turn, delta * 3.2)
 
-	var breathing := sin(_elapsed * 1.15) * 0.008
-	_back_cloak.rotation.x = lerpf(
-		_back_cloak.rotation.x,
-		-0.035 - _flow_amount * 0.22 + breathing,
-		1.0 - exp(-4.4 * delta)
-	)
-	_back_cloak.rotation.z = lerpf(
-		_back_cloak.rotation.z,
-		-_turn_amount,
-		1.0 - exp(-5.0 * delta)
-	)
-	_left_front_panel.rotation.x = lerpf(
-		_left_front_panel.rotation.x,
-		-0.012 - _flow_amount * 0.10,
-		1.0 - exp(-4.0 * delta)
-	)
-	_right_front_panel.rotation.x = _left_front_panel.rotation.x
-	var panel_sway := sin(_elapsed * (2.0 + _flow_amount * 4.0)) * 0.035 * _flow_amount
-	_left_front_panel.rotation.z = lerpf(
-		_left_front_panel.rotation.z,
-		-panel_sway - _turn_amount * 0.34,
-		1.0 - exp(-4.2 * delta)
-	)
-	_right_front_panel.rotation.z = lerpf(
-		_right_front_panel.rotation.z,
-		panel_sway - _turn_amount * 0.34,
-		1.0 - exp(-4.2 * delta)
-	)
+	_fit_tails(delta)
 	_update_living_inscriptions()
 	_update_trail(motion_velocity)
 
 
 func _build_body_layers() -> void:
 	_back_cloak = Node3D.new()
-	_back_cloak.name = "FlowingBackCloak"
-	_back_cloak.position.y = 1.456
+	_back_cloak.name = "FittedScholarJacket"
+	_back_cloak.position.y = 1.43
 	add_child(_back_cloak)
-	var back_vertices := PackedVector3Array([
-		Vector3(-0.34, 0.0, 0.055), Vector3(0.34, 0.0, 0.055),
-		Vector3(0.48, -1.30, 0.13), Vector3(-0.34, 0.0, 0.055),
-		Vector3(0.48, -1.30, 0.13), Vector3(-0.48, -1.30, 0.13),
-	])
-	_back_cloak.add_child(_make_fabric_surface("BackFabric", back_vertices, FABRIC))
-	_back_cloak.add_child(LineGeometryScript.polyline(PackedVector3Array([
-		Vector3(-0.34, 0.0, 0.145), Vector3(0.34, 0.0, 0.145),
-		Vector3(0.48, -1.30, 0.145), Vector3(-0.48, -1.30, 0.145),
-	]), SILVER, true))
-	_back_cloak.add_child(LineGeometryScript.segments(PackedVector3Array([
-		Vector3(0.0, -0.08, 0.150), Vector3(0.0, -1.24, 0.150),
-		Vector3(-0.31, -0.23, 0.151), Vector3(-0.42, -1.16, 0.151),
-		Vector3(0.31, -0.23, 0.151), Vector3(0.42, -1.16, 0.151),
-	]), FABRIC_HIGHLIGHT, 1.7))
+	# Open elliptical shell: a narrow waist, shaped chest and real side depth.
+	# The front slit exposes the light being rather than covering it with a slab.
+	var levels := [Vector3(0.165, -0.49, 0.105), Vector3(0.18, -0.31, 0.125), Vector3(0.22, -0.15, 0.14), Vector3(0.245, 0.03, 0.145)]
+	var vertices := PackedVector3Array()
+	for row in range(levels.size() - 1):
+		for segment in range(12):
+			var angle_a := lerpf(-PI + 0.30, PI - 0.30, float(segment) / 12.0)
+			var angle_b := lerpf(-PI + 0.30, PI - 0.30, float(segment + 1) / 12.0)
+			var a := _jacket_point(levels[row], angle_a)
+			var b := _jacket_point(levels[row], angle_b)
+			var c := _jacket_point(levels[row + 1], angle_b)
+			var d := _jacket_point(levels[row + 1], angle_a)
+			vertices.append_array(PackedVector3Array([a, b, c, a, c, d]))
+	_back_cloak.add_child(_make_fabric_surface("TailoredTorsoFabric", vertices, FABRIC))
+	for level in [levels[0], levels[-1]]:
+		var rim := PackedVector3Array()
+		for segment in range(13):
+			rim.append(_jacket_point(level, lerpf(-PI + 0.30, PI - 0.30, float(segment) / 12.0)))
+		_back_cloak.add_child(LineGeometryScript.polyline(rim, SILVER))
+	for angle in [-PI + 0.30, -PI * 0.5, 0.0, PI * 0.5, PI - 0.30]:
+		var seam := PackedVector3Array()
+		for level in levels:
+			seam.append(_jacket_point(level, angle) * Vector3(1.015, 1.0, 1.015))
+		_back_cloak.add_child(LineGeometryScript.polyline(seam, CYAN if absf(angle) > 2.0 else SILVER_BLUE))
+	for side in [-1.0, 1.0]:
+		var lapel := PackedVector3Array([
+			Vector3(side * 0.065, 1.49, -0.15), Vector3(side * 0.125, 1.565, -0.055),
+			Vector3(side * 0.18, 1.46, -0.12), Vector3(side * 0.07, 1.255, -0.15),
+		])
+		var collar := Node3D.new()
+		collar.name = "RaisedLapelLeft" if side < 0.0 else "RaisedLapelRight"
+		add_child(collar)
+		collar.add_child(_make_fabric_surface("LapelFabric", PackedVector3Array([
+			lapel[0], lapel[1], lapel[2], lapel[0], lapel[2], lapel[3],
+		]), FABRIC_HIGHLIGHT))
+		collar.add_child(LineGeometryScript.polyline(lapel, SILVER, true))
+		collar.add_child(LineGeometryScript.polyline(PackedVector3Array([
+			Vector3(side * 0.18, 1.46, -0.12), Vector3(side * 0.22, 1.475, 0.0), Vector3(side * 0.18, 1.46, 0.12),
+		]), SILVER_BLUE))
 
-	_left_front_panel = _build_front_panel("LeftOpenFrontPanel", -1.0)
-	_right_front_panel = _build_front_panel("RightOpenFrontPanel", 1.0)
-	add_child(_left_front_panel)
-	add_child(_right_front_panel)
-
-	var mantle := Node3D.new()
-	mantle.name = "SilverEdgedMantle"
-	mantle.position = Vector3(0.0, 1.37, 0.025)
-	add_child(mantle)
-	mantle.add_child(LineGeometryScript.polyline(PackedVector3Array([
-		Vector3(-0.37, 0.0, 0.02), Vector3(-0.23, -0.16, -0.075),
-		Vector3(0.0, -0.22, -0.09), Vector3(0.23, -0.16, -0.075),
-		Vector3(0.37, 0.0, 0.02),
-	]), SILVER_BLUE))
+	_left_front_panel = _build_tail("LeftFrontTail", -1.0, true)
+	_right_front_panel = _build_tail("RightFrontTail", 1.0, true)
+	_build_tail("LeftRearTail", -1.0, false)
+	_build_tail("RightRearTail", 1.0, false)
+	_build_belt_and_tome()
 
 
-func _build_front_panel(label: String, side: float) -> Node3D:
+func _jacket_point(level: Vector3, angle: float) -> Vector3:
+	return Vector3(sin(angle) * level.x, level.y, cos(angle) * level.z)
+
+
+func _build_tail(label: String, side: float, front: bool) -> Node3D:
 	var panel := Node3D.new()
 	panel.name = label
-	panel.position.y = 1.31
-	var inner_top := 0.085 * side
-	var outer_top := 0.32 * side
-	var inner_bottom := 0.13 * side
-	var outer_bottom := 0.43 * side
-	var vertices := PackedVector3Array([
-		Vector3(inner_top, 0.0, -0.065), Vector3(outer_top, 0.0, -0.065),
-		Vector3(outer_bottom, -1.25, -0.035), Vector3(inner_top, 0.0, -0.065),
-		Vector3(outer_bottom, -1.25, -0.035), Vector3(inner_bottom, -1.25, -0.035),
-	])
+	panel.position.y = 0.946
+	panel.set_meta("side", side)
+	panel.set_meta("front", front)
+	add_child(panel)
+	_tails.append(panel)
+	var facing := -1.0 if front else 1.0
+	var points := PackedVector3Array()
+	for row in range(3):
+		for column in range(3):
+			var amount := float(row) / 2.0
+			var top_x: float = [0.045, 0.115, 0.185][column]
+			var hem_x: float = [0.085, 0.205, 0.315][column]
+			var hem_y: float = [-0.69, -0.79, -0.71][column]
+			var top_z: float = [0.132, 0.115, 0.018][column]
+			var hem_z: float = [0.15, 0.135, 0.012][column]
+			points.append(Vector3(side * lerpf(top_x, hem_x, amount), amount * hem_y, facing * lerpf(top_z, hem_z, amount)))
+	var vertices := PackedVector3Array()
+	for row in range(2):
+		for column in range(2):
+			var i := row * 3 + column
+			vertices.append_array(PackedVector3Array([points[i], points[i + 1], points[i + 4], points[i], points[i + 4], points[i + 3]]))
 	panel.add_child(_make_fabric_surface("Fabric", vertices, FABRIC))
 	panel.add_child(LineGeometryScript.polyline(PackedVector3Array([
-		Vector3(inner_top, 0.0, -0.075), Vector3(outer_top, 0.0, -0.075),
-		Vector3(outer_bottom, -1.25, -0.045), Vector3(inner_bottom, -1.25, -0.045),
+		points[0], points[1], points[2], points[5], points[8], points[7], points[6], points[3],
 	]), SILVER, true))
-	panel.add_child(LineGeometryScript.segments(PackedVector3Array([
-		Vector3(inner_top, -0.10, -0.080), Vector3(inner_bottom, -1.18, -0.050),
-	]), VIOLET if side < 0.0 else GOLD, 2.5))
+	panel.add_child(LineGeometryScript.polyline(PackedVector3Array([points[1], points[4], points[7]]), SILVER_BLUE))
 	return panel
+
+
+func _build_belt_and_tome() -> void:
+	_waist = Node3D.new()
+	_waist.name = "ScholarBeltAndTome"
+	_waist.position.y = 0.946
+	add_child(_waist)
+	_add_tube(_waist, "Belt", 0.037, -0.037, Vector2(0.192, 0.145), Vector2(0.192, 0.145), FABRIC_HIGHLIGHT)
+	var buckle := LineGeometryScript.box(Vector3(0.15, 0.085, 0.026), SILVER)
+	buckle.position = Vector3(0.0, 0.0, -0.156)
+	_waist.add_child(buckle)
+	var buckle_core := LineGeometryScript.box(Vector3(0.064, 0.043, 0.028), CYAN)
+	buckle_core.position = buckle.position + Vector3(0.0, 0.0, -0.003)
+	_waist.add_child(buckle_core)
+	var tome := Node3D.new()
+	tome.name = "HipBoundTome"
+	tome.position = Vector3(0.235, -0.065, -0.055)
+	tome.rotation.z = -0.12
+	_waist.add_child(tome)
+	var cover := PackedVector3Array([
+		Vector3(-0.067, 0.092, -0.03), Vector3(0.067, 0.092, -0.03), Vector3(0.067, -0.092, -0.03),
+		Vector3(-0.067, 0.092, -0.03), Vector3(0.067, -0.092, -0.03), Vector3(-0.067, -0.092, -0.03),
+	])
+	tome.add_child(_make_fabric_surface("TomeCover", cover, FABRIC_HIGHLIGHT))
+	tome.add_child(LineGeometryScript.box(Vector3(0.134, 0.184, 0.06), VIOLET))
+	tome.add_child(LineGeometryScript.segments(PackedVector3Array([
+		Vector3(-0.049, 0.085, -0.033), Vector3(-0.049, -0.085, -0.033),
+		Vector3(-0.057, 0.082, 0.01), Vector3(0.056, 0.082, 0.01),
+		Vector3(-0.057, 0.082, 0.02), Vector3(0.056, 0.082, 0.02),
+	]), SILVER))
+	var tome_glyph := _make_living_glyph(2, CYAN)
+	tome_glyph.scale = Vector3.ONE * 0.36
+	tome_glyph.position.z = -0.034
+	tome.add_child(tome_glyph)
+
+
+func _fit_tails(delta: float) -> void:
+	# The jacket follows the animated chest; the belt and split tails follow hips.
+	# Rebuild local bases from those anchors, never accumulate global transforms.
+	var hip: Node3D = _figure.pelvis
+	var source_basis := hip.global_basis * Basis(Vector3.UP, PI)
+	var anchor := to_local(hip.global_position)
+	var relative_basis := global_basis.inverse() * source_basis
+	_waist.position = anchor
+	_waist.basis = relative_basis
+	var mounted: bool = is_instance_valid(_traveler.world_actions) and is_instance_valid(_traveler.world_actions.vehicle)
+	var hem_scale := 1.0
+	if _traveler.is_on_floor() and not mounted:
+		hem_scale = clampf((hip.global_position.y - _traveler.global_position.y - 0.10) / 0.82, 0.42, 1.0)
+	for index in range(_tails.size()):
+		var tail := _tails[index]
+		var side: float = tail.get_meta("side")
+		var front: bool = tail.get_meta("front")
+		var leg: Node3D = _figure.joints.LeftLeg if side > 0.0 else _figure.joints.RightLeg
+		var thigh := source_basis.inverse() * (leg.global_basis * Vector3.DOWN)
+		var leg_pitch := atan2(-thigh.z, -thigh.y)
+		var pose_pitch := maxf(leg_pitch, 0.0) * 0.82 if front else minf(leg_pitch, 0.0) * 0.72
+		if mounted:
+			pose_pitch = maxf(pose_pitch, 1.08) if front else minf(pose_pitch, -0.38)
+		var sway := sin(_elapsed * (2.0 + _flow_amount * 4.0) + float(index) * 1.7) * (0.008 + _flow_amount * 0.045)
+		var target := Vector3(pose_pitch - _flow_amount * (0.13 if front else 0.28) + sway, -_turn_amount * 0.45, side * (0.018 + _flow_amount * 0.045) + sway * 0.4)
+		var previous: Vector3 = tail.get_meta("cloth_angles", Vector3.ZERO)
+		var angles := previous.lerp(target, 1.0 - exp(-10.0 * delta))
+		tail.set_meta("cloth_angles", angles)
+		tail.position = anchor
+		tail.basis = relative_basis * Basis.from_euler(angles).scaled(Vector3(1.0, hem_scale, 1.0))
 
 
 func _build_hood() -> void:
@@ -261,10 +330,10 @@ func _build_hood() -> void:
 	hood.name = "OpenScholarHood"
 	add_child(hood)
 	var levels := [
-		Vector3(0.32, 1.42, 0.01),
-		Vector3(0.35, 1.69, 0.02),
-		Vector3(0.26, 1.91, 0.035),
-		Vector3(0.055, 2.01, 0.07),
+		Vector3(0.20, 1.49, 0.015),
+		Vector3(0.23, 1.73, 0.015),
+		Vector3(0.18, 1.89, 0.025),
+		Vector3(0.035, 1.98, 0.05),
 	]
 	var vertices := PackedVector3Array()
 	const SEGMENTS := 10
@@ -301,8 +370,8 @@ func _hood_point(level: Vector3, angle: float) -> Vector3:
 
 
 func _build_sleeve(arm: Node3D, label: String, side: float) -> void:
-	# The Library sleeve follows one arm pivot. Here the elbow articulates:
-	# separate upper and lower fabric panels follow the existing two links.
+	# Fitted fabric tubes articulate at the existing elbow. The wrist and hand
+	# remain exposed, so the garment does not obscure weapon grips.
 	for part in range(2):
 		var sleeve := Node3D.new()
 		sleeve.name = label+("Upper" if part==0 else "Lower")
@@ -310,47 +379,54 @@ func _build_sleeve(arm: Node3D, label: String, side: float) -> void:
 		joint.add_child(sleeve)
 		sleeve.rotation.y = PI
 		_external_pieces.append(sleeve)
-		var length_value := 0.30 if part==0 else 0.26
-		var inside := -0.10*side
-		var outside := 0.14*side
-		var cuff := 0.18*side
-		var vertices := PackedVector3Array([
-			Vector3(inside,0.02,0.045),Vector3(outside,0.02,0.045),
-			Vector3(cuff,-length_value,0.07),Vector3(inside,0.02,0.045),
-			Vector3(cuff,-length_value,0.07),Vector3(inside,-length_value,0.07),
-		])
-		sleeve.add_child(_make_fabric_surface("SleeveFabric",vertices,FABRIC))
+		var length_value := 0.30 if part==0 else 0.25
+		_sleeves.append({"node": sleeve, "joint": joint, "length": length_value})
+		_add_tube(sleeve, "SleeveFabric", 0.018, -length_value, Vector2(0.069, 0.069), Vector2(0.056, 0.056), FABRIC)
 		sleeve.add_child(LineGeometryScript.polyline(PackedVector3Array([
-			Vector3(inside,0.02,0.078),Vector3(outside,0.02,0.078),
-			Vector3(cuff,-length_value,0.085),Vector3(inside,-length_value,0.085),
-		]),SILVER,true))
+			Vector3(side * 0.072, 0.016, 0.0), Vector3(side * 0.059, -length_value, 0.0),
+		]), SILVER_BLUE))
+		if part == 0:
+			_add_tube(sleeve, "ShoulderCap", 0.04, -0.07, Vector2(0.09, 0.086), Vector2(0.092, 0.082), FABRIC_HIGHLIGHT)
+		else:
+			_add_tube(sleeve, "SilverCuff", -length_value + 0.045, -length_value, Vector2(0.068, 0.068), Vector2(0.066, 0.066), FABRIC_HIGHLIGHT)
+
+
+func _add_tube(parent: Node3D, label: String, top: float, bottom: float, upper_radius: Vector2, lower_radius: Vector2, color: Color) -> void:
+	var vertices := PackedVector3Array()
+	var upper := PackedVector3Array()
+	var lower := PackedVector3Array()
+	for segment in range(8):
+		var angle := TAU * float(segment) / 8.0
+		upper.append(Vector3(cos(angle) * upper_radius.x, top, sin(angle) * upper_radius.y))
+		lower.append(Vector3(cos(angle) * lower_radius.x, bottom, sin(angle) * lower_radius.y))
+	for segment in range(8):
+		var next := (segment + 1) % 8
+		vertices.append_array(PackedVector3Array([upper[segment], upper[next], lower[next], upper[segment], lower[next], lower[segment]]))
+	parent.add_child(_make_fabric_surface(label, vertices, color))
+	parent.add_child(LineGeometryScript.polyline(upper, SILVER, true))
+	parent.add_child(LineGeometryScript.polyline(lower, SILVER, true))
 
 func _build_inscriptions() -> void:
 	_build_back_sigil()
-	var placements := [
-		Vector3(-0.23, -0.30, 0.158), Vector3(0.24, -0.34, 0.158),
-		Vector3(-0.27, -0.83, 0.158), Vector3(0.28, -0.88, 0.158),
-		Vector3(-0.12, -1.11, 0.158), Vector3(0.13, -1.12, 0.158),
-	]
 	var colors := [SILVER_BLUE, VIOLET, SILVER, GOLD, CYAN, SILVER_BLUE]
-	for index in range(placements.size()):
-		_register_living_inscription(
-			_back_cloak,
-			"LivingInscription%02d" % (index + 1),
-			placements[index],
-			colors[index],
-			index,
-			0.62 + float(index % 3) * 0.08,
-			float(index) * 1.047
-		)
+	for panel_index in range(2):
+		var tail := _tails[panel_index + 2]
+		var side: float = tail.get_meta("side")
+		for row in range(3):
+			var index := panel_index * 3 + row
+			_register_living_inscription(
+				tail, "LivingInscription%02d" % (index + 1),
+				Vector3(side * (0.12 + float(row) * 0.04), -0.13 - float(row) * 0.235, 0.15),
+				colors[index], index, 0.43 + float(row) * 0.025, float(index) * 1.047
+			)
 	_build_front_inscriptions()
 
 
 func _build_front_inscriptions() -> void:
 	var panels := [_left_front_panel, _right_front_panel]
 	var sides := [-1.0, 1.0]
-	var row_x := [0.18, 0.245, 0.31]
-	var row_y := [-0.24, -0.62, -0.99]
+	var row_x := [0.12, 0.16, 0.20]
+	var row_y := [-0.13, -0.365, -0.60]
 	var colors := [SILVER_BLUE, VIOLET, GOLD, CYAN, SILVER, SILVER_BLUE]
 	for panel_index in range(panels.size()):
 		for row in range(row_y.size()):
@@ -362,10 +438,10 @@ func _build_front_inscriptions() -> void:
 					"Left" if panel_index == 0 else "Right",
 					row + 1,
 				],
-				Vector3(side * row_x[row], row_y[row], -0.092),
+				Vector3(side * row_x[row], row_y[row], -0.15),
 				colors[inscription_index],
 				inscription_index + 2,
-				0.52 + float(row) * 0.055,
+				0.43 + float(row) * 0.025,
 				float(inscription_index + 6) * 0.91
 			)
 			_front_inscription_count += 1
@@ -396,7 +472,8 @@ func _register_living_inscription(
 func _build_back_sigil() -> void:
 	var sigil := Node3D.new()
 	sigil.name = "InfiniglyphBackSigil"
-	sigil.position = Vector3(0.0, -0.61, 0.166)
+	sigil.position = Vector3(0.0, -0.24, 0.142)
+	sigil.scale = Vector3.ONE * 0.60
 	sigil.set_meta("visual_reference", "infiniglyph-geometric-overlay")
 	_back_cloak.add_child(sigil)
 	var orbit := LineGeometryScript.circle(0.235, 24, SILVER_BLUE)
@@ -598,8 +675,8 @@ func _update_living_inscriptions() -> void:
 			clampf((1.0 - descent) / 0.14, 0.0, 1.0)
 		)
 		glyph.position = base + Vector3(
-			sin(_elapsed * 0.43 + phase) * 0.025,
-			lerpf(0.12, -0.19, descent),
+			sin(_elapsed * 0.43 + phase) * 0.010,
+			lerpf(0.04, -0.09, descent),
 			0.0
 		)
 		glyph.rotation.z = sin(_elapsed * 0.27 + phase) * 0.08

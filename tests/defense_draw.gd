@@ -278,9 +278,9 @@ func run() -> void:
 	check(boundaries,"Invincibility is confined to the defined 30-to-60-percent phase interval")
 	p.dodge.cancel()
 	check(not p.dodge.is_invulnerable() and front_hit(1)==1,"Cancelling a phase cannot leave invincibility behind")
-	p.dodge.cooldown = 1
+	w.stagger_remaining = 1
 	check(not p.dodge.start(Vector3.RIGHT) and not p.dodge.is_invulnerable(),"A rejected dodge grants no invincibility")
-	p.dodge.cooldown = 0
+	w.stagger_remaining = 0
 	p.dodge.start(Vector3.RIGHT)
 	p.dodge.advance(p.dodge.DURATION*0.43)
 	p.respawn()

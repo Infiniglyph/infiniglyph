@@ -13,7 +13,12 @@ var _held_specials: Dictionary = {}
 var move := Vector2.ZERO
 var look := Vector2.ZERO
 var jump_requested := false
-var dodge_requested := false
+var _dodge_requests := 0
+## The bool remains available to AI intent sources; event routing counts every
+## fresh press so two taps between physics samples cannot collapse into one.
+var dodge_requested: bool:
+	get: return _dodge_requests>0
+	set(value): _dodge_requests = maxi(1,_dodge_requests) if value else 0
 var sprint := false
 var boost := false
 var _boost_had_movement := false
@@ -54,7 +59,6 @@ func _unhandled_input(event: InputEvent) -> void:
 			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED else Input.MOUSE_MODE_CAPTURED
 		if event.keycode == KEY_SPACE: jump_requested = true
 		if event.keycode == KEY_CTRL: toggle_boost()
-		if event.physical_keycode == KEY_E or event.keycode == KEY_E: dodge_requested = true
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		var was_captured := Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
@@ -123,9 +127,16 @@ func consume_jump() -> bool:
 	return value
 
 func consume_dodge() -> bool:
-	var value := dodge_requested
-	dodge_requested = false
-	return value
+	# Legacy boolean consumers (including attached seats) drain the whole batch.
+	return consume_dodge_requests()>0
+
+func consume_dodge_requests() -> int:
+	var count := _dodge_requests
+	_dodge_requests = 0
+	return count
+
+func request_dodge() -> void:
+	_dodge_requests += 1
 
 func is_blocking() -> bool:
 	return _keyboard_block or _pad_block
@@ -224,7 +235,7 @@ func update_combat_hold(delta: float) -> void:
 func _combat_input(event: InputEvent) -> void:
 	if event is InputEventKey:
 		var code: int = event.physical_keycode if event.physical_keycode != KEY_NONE else event.keycode
-		if code not in [KEY_F,KEY_V,KEY_Q,KEY_R,KEY_TAB,KEY_G,KEY_H] and not WEAPON_KEYS.has(code) and not TARGET_KEYS.has(code): return
+		if code not in [KEY_E,KEY_F,KEY_V,KEY_Q,KEY_R,KEY_TAB,KEY_G,KEY_H] and not WEAPON_KEYS.has(code) and not TARGET_KEYS.has(code): return
 		if event.echo: return
 		var fresh: bool = event.pressed and not _combat_keys.has(code)
 		if event.pressed: _combat_keys[code] = true
@@ -243,6 +254,7 @@ func _combat_input(event: InputEvent) -> void:
 			_lock_requests.append({"direction":Vector2.ZERO,"device":-1})
 			_flick_armed = false
 		elif TARGET_KEYS.has(code): _lock_requests.append({"direction":TARGET_KEYS[code],"device":-1})
+		elif code == KEY_E: request_dodge()
 		elif code == KEY_G: interaction_requested = true
 		elif code == KEY_H: heal_requested = true
 		elif WEAPON_KEYS.has(code):
@@ -282,7 +294,7 @@ func _combat_input(event: InputEvent) -> void:
 					_rt_pending = false
 					heal_requested = true
 					interaction_requested = false
-				else: dodge_requested = true
+				else: request_dodge()
 			JOY_BUTTON_RIGHT_STICK:
 				_lock_requests.append({"direction":Vector2.ZERO,"device":event.device})
 				_flick_armed = false

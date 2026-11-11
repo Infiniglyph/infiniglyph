@@ -145,9 +145,9 @@ func run() -> void:
 	check(restored_materials and p.visual.position.is_zero_approx() and Neon.body.albedo_color.a == 1,"Phase exit restores original body materials and visual position")
 	await shot("complete")
 	await start(Vector2.RIGHT)
-	check(not p.dodge.active,"Cooldown blocks an immediate second dodge")
+	check(p.dodge.active,"A fresh press immediately starts another dodge without cooldown")
 	await frames(40)
-	check(not p.dodge.active and p.dodge.cooldown == 0,"Holding the button cannot dodge again after the cooldown")
+	check(not p.dodge.active,"Holding the button cannot repeatedly dodge without a fresh press")
 	var directions := 0
 	for yaw in [0.0,PI*0.5,PI,PI*1.5]:
 		for move in [Vector2.ZERO,Vector2.RIGHT,Vector2.LEFT,Vector2.UP,Vector2.DOWN,Vector2(1,-1).normalized()]:
@@ -187,7 +187,7 @@ func run() -> void:
 	var close_wall := Neon.block(world,Vector3(0.55,1,0),Vector3(0.1,3,12))
 	await tick()
 	await start(Vector2.RIGHT)
-	check(not p.dodge.active and p.dodge.cooldown == 0,"An obstructed dodge with less than 0.35m clearance is rejected")
+	check(not p.dodge.active,"An obstructed dodge with less than 0.35m clearance is rejected")
 	close_wall.queue_free()
 	await tick()
 	await place(Vector3.ZERO)
@@ -221,7 +221,7 @@ func run() -> void:
 	await place(Vector3.ZERO)
 	await start(Vector2.RIGHT)
 	p.respawn()
-	check(not p.dodge.active and p.dodge.cooldown == 0 and p.visual.scale == Vector3.ONE,"Respawn cancels a phase and restores the full visual")
+	check(not p.dodge.active and p.visual.scale == Vector3.ONE,"Respawn cancels a phase and restores the full visual")
 	await frames(40)
 	check(get_nodes_in_group("phase_traces").is_empty(),"Phase traces expire without leaving geometry behind")
 	world.queue_free()

@@ -9,7 +9,6 @@ const DURATION := 0.34
 const SHIFT_POINT := 0.43
 const VANISH_START := 0.30
 const VANISH_END := 0.60
-const COOLDOWN := 0.62
 const CLEARANCE := 0.10
 const MIN_DISTANCE := 0.35
 signal started(origin: Vector3, destination: Vector3)
@@ -19,7 +18,6 @@ var actor: CharacterBody3D
 var active := false
 var has_shifted := false
 var elapsed := 0.0
-var cooldown := 0.0
 var origin := Vector3.ZERO
 var destination := Vector3.ZERO
 var requested_distance := DISTANCE
@@ -58,10 +56,16 @@ func safe_motion(motion: Vector3) -> Vector3:
 	return direction*maxf(0,collision.get_travel().dot(direction)-CLEARANCE)
 
 func start(direction: Vector3) -> bool:
-	if is_instance_valid(actor.weapon_combat) and actor.weapon_combat.is_staggered(): return false
-	if active or cooldown > 0 or direction.is_zero_approx(): return false
+	if is_instance_valid(actor.weapon_combat) and not actor.weapon_combat.can_act(): return false
+	if direction.is_zero_approx(): return false
 	_direction = Vector3(direction.x,0,direction.z).normalized()
 	if _direction.is_zero_approx(): return false
+	if active:
+		# A fresh press chains immediately, even during departure. Settle the old
+		# swept displacement first so rapid presses cannot keep resetting its
+		# clock before it travels. Restore materials before caching the new phase.
+		if not has_shifted: commit_shift()
+		finish_phase()
 	var momentum := Vector2(actor.velocity.x,actor.velocity.z).length()
 	requested_distance = lerpf(DISTANCE,MAX_DISTANCE,clampf(momentum/actor.boost_speed,0,1))
 	_motion = safe_motion(_direction*requested_distance)
@@ -72,7 +76,6 @@ func start(direction: Vector3) -> bool:
 	elapsed = 0.0
 	has_shifted = false
 	active = true
-	cooldown = COOLDOWN
 	_saved_velocity = actor.velocity
 	actor.velocity = Vector3.ZERO
 	trace(origin,false)
@@ -84,22 +87,27 @@ func advance(delta: float) -> void:
 	elapsed = minf(DURATION,elapsed+delta)
 	var progress := elapsed/DURATION
 	if not has_shifted and progress >= SHIFT_POINT:
-		# Repeat the full-capsule sweep when committing: a new blocker must also
-		# stop the blink. Collision remains enabled throughout the phase.
-		var motion := safe_motion(_motion)
-		if motion.length() >= MIN_DISTANCE: actor.move_and_collide(motion)
-		destination = actor.global_position
-		has_shifted = true
-		actor.camera_rig.reset_follow()
-		trace(destination,true)
-		shifted.emit(destination)
+		commit_shift()
 	present(phase_opacity())
-	if progress >= 1:
-		active = false
-		present(1.0)
-		actor.visual.rebase_after_phase()
-		actor.velocity = _saved_velocity
-		finished.emit()
+	if progress >= 1: finish_phase()
+
+func commit_shift() -> void:
+	# Repeat the full-capsule sweep when committing: a new blocker must also
+	# stop the blink. Collision remains enabled throughout the phase.
+	var motion := safe_motion(_motion)
+	if motion.length() >= MIN_DISTANCE: actor.move_and_collide(motion)
+	destination = actor.global_position
+	has_shifted = true
+	actor.camera_rig.reset_follow()
+	trace(destination,true)
+	shifted.emit(destination)
+
+func finish_phase() -> void:
+	active = false
+	present(1.0)
+	actor.visual.rebase_after_phase()
+	actor.velocity = _saved_velocity
+	finished.emit()
 
 func is_invulnerable() -> bool:
 	var progress := elapsed/DURATION
@@ -131,5 +139,4 @@ func cancel() -> void:
 	active = false
 	has_shifted = false
 	elapsed = 0.0
-	cooldown = 0.0
 	present(1.0)
