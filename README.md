@@ -1,9 +1,11 @@
 # Infiniglyph · Phase 003
 
 A small, genuine 3D neon city and third-person movement foundation for a future
-skill-based martial arts game. Open `project.godot` in Godot 4.3 or newer and
+skill-based martial arts game. Open `project.godot` in Godot 4.7.2 and
 press **F6** on `scenes/main.tscn`, or **F5** to run the project. Development and
-verification use Godot 4.7.2; earlier 4.x versions have not been tested.
+verification use Godot 4.7.2; earlier 4.x versions have not been tested. The
+project feature tag is 4.7, matching the editor line used for development;
+the PowerShell launcher selects the actual executable independently of that tag.
 
 To add this project to Godot's project manager, click **Import**, choose
 `project.godot` inside your clone, then click **Import & Edit**. Creating a
@@ -785,6 +787,18 @@ right hip, blade trailing backward and slightly downward rather than in front.
 The off hand follows a point 17 cm behind the primary grip throughout cuts,
 specials, guards and traversal. The shared grip stays within both arms' reach.
 Carry angle adapts to sprint lean and actual floor clearance without wrist flips.
+Grip orientation changes only the local basis, preserving each wrist's fixed
+attachment position. Reassigning a global basis used to round-trip its origin
+through the parent transform each frame; floating-point error accumulated into
+visible weapon drift in distant districts. Both ordinary grip orientation and
+katana floor-clearance corrections now use the position-preserving path.
+`tests/weapon_grip_drift.gd` verifies 24,000 changing poses at each of three
+world locations (including both far corners), unchanged blade orientation and
+all four weapon hit-segment anchors. The previous implementation failed the
+attachment checks; the corrected path records zero local-position drift.
+Verification passes 21 attachment checks, 146 combat-motion checks, 123 weapon
+checks and 38 dodge/sky-step checks. Native Compatibility captures retain the
+existing twin-blade grips and two-handed katana stance.
 Sheathed longsword and twin-blade tips angle downward across the back. The katana
 has a wireframe saya on the left hip, with the hilt forward and its tip angled
 backward/downward. Its mount follows the pelvis rather than chest motion.

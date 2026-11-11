@@ -73,8 +73,14 @@ func equip(slot: StringName, stow: bool) -> void:
 		models[key].stowed.visible = key == slot and stow
 
 func orient(right: Vector3, left: Vector3) -> void:
-	right_hand.global_basis = visual.chest.global_basis*Basis.from_euler(right)
-	left_hand.global_basis = visual.chest.global_basis*Basis.from_euler(left)
+	orient_hand(right_hand,visual.chest.global_basis*Basis.from_euler(right))
+	orient_hand(left_hand,visual.chest.global_basis*Basis.from_euler(left))
+
+func orient_hand(hand: Node3D, world_basis: Basis) -> void:
+	# A global-basis assignment round-trips the global origin through the
+	# parent's inverse too. Repeated float error drifts the wrist attachment,
+	# especially in distant districts. Change only the local basis instead.
+	hand.basis = hand.get_parent().global_basis.inverse()*world_basis
 
 func blade_segments() -> Array:
 	if sheathed or not models.has(selected): return []

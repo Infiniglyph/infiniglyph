@@ -741,7 +741,7 @@ func clear_katana_tip() -> void:
 	var planar := Vector3(axis.x,0,axis.z).normalized()
 	if planar.is_zero_approx(): planar = actor.visual.global_basis.z
 	var raised := planar*sqrt(1-vertical*vertical)+Vector3.UP*vertical
-	rig.right_hand.global_basis = Basis(Quaternion(axis,raised))*rig.right_hand.global_basis
+	rig.orient_hand(rig.right_hand,Basis(Quaternion(axis,raised))*rig.right_hand.global_basis)
 	var local: Basis = actor.visual.chest.global_basis.inverse()*rig.right_hand.global_basis
 	var primary := local.get_euler()
 	var alternate := Vector3(PI-primary.x,primary.y+PI,primary.z+PI)

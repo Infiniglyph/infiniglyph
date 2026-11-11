@@ -3,7 +3,7 @@ config_version=5
 [application]
 config/name="Infiniglyph — The Neon City"
 run/main_scene="res://scenes/main.tscn"
-config/features=PackedStringArray("4.3", "GL Compatibility")
+config/features=PackedStringArray("4.7", "GL Compatibility")
 
 [display]
 window/size/viewport_width=1280

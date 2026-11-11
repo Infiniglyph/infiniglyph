@@ -1,5 +1,12 @@
 # Recovering the first public checkpoint
 
+The weapon-grip drift correction and matching Godot 4.7 project feature tag are
+preserved by `checkpoint-2026-11-11-weapon-grips` on `fix/weapon-grip-drift`.
+Its complete-history offline bundle is
+`infiniglyph-weapon-grips-2026-11-11.bundle` in the parent workspace's `backups`
+directory. The launcher already used Godot 4.7.2; this checkpoint corrects the
+old metadata label and keeps the existing renderer. Earlier tags stay fixed.
+
 The walkable tower approach and free crystal-pedestal exchange are preserved by
 `checkpoint-2026-11-10-tower-exchange` on `feat/tower-shop-stairs`. Its
 complete-history offline bundle is `infiniglyph-tower-exchange-2026-11-10.bundle`
