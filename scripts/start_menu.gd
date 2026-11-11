@@ -22,6 +22,7 @@ var _repeat_clock := 0.0
 var _mouse: HSlider
 var _stick_speed: HSlider
 var _fov: HSlider
+var _distance: HSlider
 var _volume: HSlider
 var _shake: CheckBox
 var _shadows: HSlider
@@ -155,6 +156,7 @@ func _build() -> void:
 	_mouse = _slider(box,"Mouse look sensitivity",0.0005,0.006,0.0001,actor.camera_rig.mouse_sensitivity,func(value: float): actor.camera_rig.mouse_sensitivity = value)
 	_stick_speed = _slider(box,"Controller look sensitivity",0.5,5,0.1,actor.camera_rig.stick_sensitivity,func(value: float): actor.camera_rig.stick_sensitivity = value)
 	_fov = _slider(box,"Field of view",60,95,1,actor.camera_rig.camera.fov,func(value: float): actor.camera_rig.camera.fov = value)
+	_distance = _slider(box,"Camera distance (m)",actor.camera_rig.MIN_FOLLOW_DISTANCE,actor.camera_rig.MAX_FOLLOW_DISTANCE,0.1,actor.camera_rig.get_follow_distance(),func(value: float): actor.camera_rig.set_follow_distance(value))
 	_volume = _slider(box,"Master volume",0,100,1,100,func(value: float):
 		AudioServer.set_bus_mute(0,value<=0)
 		AudioServer.set_bus_volume_db(0,linear_to_db(maxf(0.001,value/100))))
@@ -323,6 +325,7 @@ func save_settings(path: String = "") -> bool:
 	config.set_value("camera","mouse",_mouse.value)
 	config.set_value("camera","stick",_stick_speed.value)
 	config.set_value("camera","fov",_fov.value)
+	config.set_value("camera","distance",_distance.value)
 	config.set_value("camera","shake",_shake.button_pressed)
 	config.set_value("audio","volume",_volume.value)
 	config.set_value("graphics","shadows",_shadows.value)
@@ -334,8 +337,8 @@ func load_settings(path: String = "") -> bool:
 	var config := ConfigFile.new()
 	if config.load(path if not path.is_empty() else settings_path)!=OK: return false
 	if config.get_value("meta","version",1)!=1: return false
-	for entry: Array in [[_mouse,"camera","mouse"],[_stick_speed,"camera","stick"],[_fov,"camera","fov"],[_volume,"audio","volume"],[_shadows,"graphics","shadows"],[_glow,"graphics","glow"],[_resolution,"graphics","resolution"]]:
-		var value: Variant = config.get_value(entry[1],entry[2],entry[0].value)
+	for entry: Array in [[_mouse,"camera","mouse"],[_stick_speed,"camera","stick"],[_fov,"camera","fov"],[_distance,"camera","distance",actor.camera_rig.DEFAULT_FOLLOW_DISTANCE],[_volume,"audio","volume"],[_shadows,"graphics","shadows"],[_glow,"graphics","glow"],[_resolution,"graphics","resolution"]]:
+		var value: Variant = config.get_value(entry[1],entry[2],entry[3] if entry.size()>3 else entry[0].value)
 		if (value is float or value is int) and is_finite(float(value)): entry[0].value = clampf(value,entry[0].min_value,entry[0].max_value)
 	var shake: Variant = config.get_value("camera","shake",true)
 	if shake is bool: _shake.button_pressed = shake

@@ -47,6 +47,7 @@ var _elapsed := 0.0
 var _flow_amount := 0.0
 var _turn_amount := 0.0
 var _last_figure_yaw := 0.0
+var _mounted_kind := ""
 var _symbol_meshes: Dictionary = {}
 
 
@@ -303,26 +304,45 @@ func _fit_tails(delta: float) -> void:
 	_waist.position = anchor
 	_waist.basis = relative_basis
 	var mounted: bool = is_instance_valid(_traveler.world_actions) and is_instance_valid(_traveler.world_actions.vehicle)
+	var mounted_kind: String = _traveler.world_actions.vehicle.kind if mounted else ""
+	var changed_mount := mounted_kind != _mounted_kind
+	_mounted_kind = mounted_kind
+	# Long hems are inside the enclosed cabin. Stop drawing those occluded parts
+	# rather than letting a hanging tail protrude through its solid floor.
+	var stowed := mounted and mounted_kind != "motorcycle"
 	var hem_scale := 1.0
 	if _traveler.is_on_floor() and not mounted:
 		hem_scale = clampf((hip.global_position.y - _traveler.global_position.y - 0.10) / 0.82, 0.42, 1.0)
 	for index in range(_tails.size()):
 		var tail := _tails[index]
+		tail.visible = not stowed
 		var side: float = tail.get_meta("side")
 		var front: bool = tail.get_meta("front")
 		var leg: Node3D = _figure.joints.LeftLeg if side > 0.0 else _figure.joints.RightLeg
 		var thigh := source_basis.inverse() * (leg.global_basis * Vector3.DOWN)
 		var leg_pitch := atan2(-thigh.z, -thigh.y)
 		var pose_pitch := maxf(leg_pitch, 0.0) * 0.82 if front else minf(leg_pitch, 0.0) * 0.72
-		if mounted:
-			pose_pitch = maxf(pose_pitch, 1.08) if front else minf(pose_pitch, -0.38)
 		var sway := sin(_elapsed * (2.0 + _flow_amount * 4.0) + float(index) * 1.7) * (0.008 + _flow_amount * 0.045)
 		var target := Vector3(pose_pitch - _flow_amount * (0.13 if front else 0.28) + sway, -_turn_amount * 0.45, side * (0.018 + _flow_amount * 0.045) + sway * 0.4)
+		if mounted:
+			# A sport-bike's rear-set pegs leave no room for hems beside the shins.
+			# Stream all four behind the saddle, above the rear wheel, even at rest.
+			# Speed adds a little lift and flutter, without changing rider geometry.
+			target = Vector3(-1.50 - _flow_amount * 0.10 + sway * 0.28, -_turn_amount * 0.15, side * 0.025 + sway * 0.15)
 		var previous: Vector3 = tail.get_meta("cloth_angles", Vector3.ZERO)
-		var angles := previous.lerp(target, 1.0 - exp(-10.0 * delta))
+		var angles := target if changed_mount else previous.lerp(target, 1.0 - exp(-10.0 * delta))
 		tail.set_meta("cloth_angles", angles)
 		tail.position = anchor
-		tail.basis = relative_basis * Basis.from_euler(angles).scaled(Vector3(1.0, hem_scale, 1.0))
+		var cloth_basis := Basis.from_euler(angles).scaled(Vector3(1.0, hem_scale, 1.0))
+		if mounted:
+			# Rotate about each panel's own belt attachment, keeping the seam on
+			# the hips instead of rotating the front tails down through the saddle.
+			var seam := Vector3(side * 0.115, 0.0, -0.115 if front else 0.115)
+			tail.position += relative_basis * (seam - cloth_basis * seam)
+			# Fold the seam over the belt before trailing behind the saddle;
+			# a flat waist-height fold would cut through the top of the thigh.
+			tail.position += relative_basis * Vector3(0.0, 0.055, 0.0)
+		tail.basis = relative_basis * cloth_basis
 
 
 func _build_hood() -> void:

@@ -1,5 +1,12 @@
 # Recovering the first public checkpoint
 
+Mounted contact poses, vehicle-safe robe fitting and the saved camera-distance
+slider are preserved by `checkpoint-2026-11-11-mounted-poses-camera` on
+`fix/mounted-poses-camera-distance`. Its verified complete-history bundle is
+`infiniglyph-mounted-poses-camera-2026-11-11.bundle` in the parent workspace's
+`backups` directory. Existing inventory saves remain compatible; camera distance
+uses the existing version-one settings file. Earlier tags and bundles stay fixed.
+
 The fitted Scribe robe and responsive dodge chaining are preserved by
 `checkpoint-2026-11-11-fitted-robes-dodge` on
 `feat/fitted-robes-responsive-dodge`. The verified complete-history bundle is

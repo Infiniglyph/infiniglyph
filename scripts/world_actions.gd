@@ -1,6 +1,7 @@
 extends Node3D
 ## Shared contextual actions. Seats use the Library's claim/anchor/exit pattern.
 const Neon = preload("res://scripts/neon.gd")
+const MountedPose = preload("res://scripts/mounted_rider_pose.gd")
 var actor: CharacterBody3D
 var session: Node
 var life: Node3D
@@ -140,7 +141,7 @@ func board(candidate: CharacterBody3D) -> bool:
 	vehicle.record.taken = true
 	begin_attachment()
 	actor.camera_rig.arm.add_excluded_object(vehicle.get_rid())
-	actor.camera_rig.arm.spring_length = 8.5
+	actor.camera_rig.set_vehicle_mode(true)
 	# Start behind the +Z-facing vehicle, then leave orbit entirely to look input.
 	actor.camera_rig.yaw = wrapf(vehicle.rotation.y+PI,-PI,PI)
 	anchor()
@@ -188,7 +189,7 @@ func detach() -> void:
 		vehicle.record.taken = true
 		actor.camera_rig.arm.remove_excluded_object(vehicle.get_rid())
 	vehicle = null
-	actor.camera_rig.arm.spring_length = 5.8
+	actor.camera_rig.set_vehicle_mode(false)
 	actor.collision_layer = _layer
 	actor.collision_mask = _mask
 	actor.velocity = Vector3.ZERO
@@ -202,7 +203,8 @@ func detach() -> void:
 
 func anchor() -> void:
 	if is_instance_valid(vehicle):
-		actor.global_position = vehicle.to_global(Vector3(0,vehicle.seat_height-0.946,vehicle.seat_z))
+		var contacts: Dictionary = vehicle.rider_anchors()
+		actor.global_position = vehicle.to_global(contacts.hip-Vector3.UP*0.946)
 		actor.visual.rotation.y = vehicle.rotation.y
 		actor.velocity = vehicle.velocity
 	elif not seat.is_empty():
@@ -230,11 +232,22 @@ func apply_pose() -> void:
 	visual.pelvis.position = Vector3(0,0.946,0)
 	visual.pelvis.rotation = Vector3.ZERO
 	visual.chest.rotation = Vector3(-0.06,0,0)
-	var bike: bool = is_instance_valid(vehicle) and vehicle.kind=="motorcycle"
+	if is_instance_valid(vehicle):
+		var contacts: Dictionary = vehicle.rider_anchors()
+		visual.chest.rotation.x = contacts.chest_pitch
+		for side: String in ["Left","Right"]:
+			var key := side.to_lower()
+			MountedPose.solve_limb(visual.joints[side+"Leg"],vehicle.to_global(contacts[key+"_foot"]),vehicle.global_basis*contacts.knee_pole,0.45,0.45)
+			# Elbows bend down/out while both hands remain on the controls.
+			var elbow_pole: Vector3 = contacts.elbow_pole
+			elbow_pole.x = -0.35 if side=="Left" else 0.35
+			MountedPose.solve_limb(visual.joints[side+"Arm"],vehicle.to_global(contacts[key+"_hand"]),vehicle.global_basis*elbow_pole,0.30,0.29)
+		return
+	# Preserve the existing bench pose, independently of vehicle contacts.
 	for side: String in ["Left","Right"]:
 		var leg: Node3D = visual.joints[side+"Leg"]
-		leg.rotation = Vector3(-0.95 if bike else -1.14,0,0.22 if side=="Left" and bike else (-0.22 if bike else 0))
-		leg.get_node("Hinge").rotation = Vector3(1.42 if bike else 1.14,0,0)
+		leg.rotation = Vector3(-1.14,0,0)
+		leg.get_node("Hinge").rotation = Vector3(1.14,0,0)
 		var arm: Node3D = visual.joints[side+"Arm"]
-		arm.rotation = Vector3(-1.02 if is_instance_valid(vehicle) else -0.3,0,0)
+		arm.rotation = Vector3(-0.3,0,0)
 		arm.get_node("Hinge").rotation = Vector3(-0.65,0,0)

@@ -233,7 +233,9 @@ func run() -> void:
 	await frames(4)
 	check(actions.board(bike),"The fitted robe can enter an actual motorcycle through the shared attachment path")
 	await frames(hz/2)
-	check(attachments_safe() and finite_pose() and absf(p.visual.joints.LeftArm.rotation.x)>0.9,"Mounted posture preserves articulated sleeves, attached hems and free wrists")
+	var contact: Vector3 = bike.rider_anchors().left_hand
+	var wrist: Vector3 = p.visual.joints.LeftArm.get_node("Hinge").to_global(Vector3(0,-0.29,0))
+	check(attachments_safe() and finite_pose() and bike.to_local(wrist).distance_to(contact)<0.025,"Mounted posture preserves articulated sleeves, attached hems and wrists on the actual controls")
 	await shot("motorcycle",Vector3(3.8,1.5,-2.5))
 	actions.detach()
 	bike.queue_free()

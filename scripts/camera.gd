@@ -1,4 +1,8 @@
 extends Node3D
+const DEFAULT_FOLLOW_DISTANCE := 4.2
+const MIN_FOLLOW_DISTANCE := 2.4
+const MAX_FOLLOW_DISTANCE := 9.0
+const VEHICLE_DISTANCE_SCALE := 1.45
 @export var mouse_sensitivity := 0.0025
 @export var stick_sensitivity := 2.3
 @export var follow_speed := 14.0
@@ -11,6 +15,37 @@ var camera: Camera3D
 var _lock_shoulder := 0.0
 var _impact := Vector2.ZERO
 var _impact_age := 0.0
+var _follow_distance := DEFAULT_FOLLOW_DISTANCE
+var _vehicle_mode := false
+
+func get_follow_distance() -> float:
+	return _follow_distance
+
+func set_follow_distance(value: float) -> void:
+	if not is_finite(value): return
+	_follow_distance = clampf(value,MIN_FOLLOW_DISTANCE,MAX_FOLLOW_DISTANCE)
+	_apply_follow_distance()
+
+func set_vehicle_mode(value: bool) -> void:
+	# Keep the saved on-foot distance while leaving room around the vehicle.
+	_vehicle_mode = value
+	_apply_follow_distance()
+
+func _apply_follow_distance() -> void:
+	if not is_instance_valid(arm): return
+	var distance := _follow_distance*(VEHICLE_DISTANCE_SCALE if _vehicle_mode else 1.0)
+	if _vehicle_mode and is_instance_valid(target):
+		var actions: Node = target.get("world_actions")
+		if is_instance_valid(actions):
+			var vehicle: Node3D = actions.get("vehicle")
+			if is_instance_valid(vehicle):
+				# The vehicle is excluded from spring-arm collision. Keep the
+				# camera outside its footprint even around the long truck cargo
+				# body, whose driver sits well forward of the vehicle center.
+				var size: Vector3 = vehicle.dimensions
+				var radius := Vector2(size.x*0.5,size.z*0.5+absf(vehicle.seat_z)).length()
+				distance = maxf(distance,radius+0.35)
+	arm.spring_length = distance
 
 func impact_impulse(direction: Vector3, strength: float) -> void:
 	var local := global_basis.inverse()*direction
@@ -19,7 +54,7 @@ func impact_impulse(direction: Vector3, strength: float) -> void:
 
 func _ready() -> void:
 	arm = SpringArm3D.new()
-	arm.spring_length = 5.8
+	_apply_follow_distance()
 	arm.margin = 0.2
 	var probe := SphereShape3D.new()
 	probe.radius = 0.22

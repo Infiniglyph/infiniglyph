@@ -266,6 +266,15 @@ the movement input to slow down; exit with **RT / G** once stopped. A moving
 vehicle or blocked exit refuses unsafe dismounts. Entering and leaving keeps
 the camera attached and restores the player's original capsule settings.
 
+Mounted limbs use vehicle-local hand and foot contacts. Motorcycles have a
+forward-leaning sport riding pose with rear-set pegs behind the hips, bent knees
+and hands on the handlebars. Cars and trucks keep both feet in the pedal well.
+Traffic drivers use the same contacts in their existing mesh batches. Bike
+headlight lenses connect to a front fairing instead of floating ahead of the
+frame. None of these pose changes alter driving controls, speed or collision.
+Scribe coat tails fold over the belt and stream behind a bike's saddle, above
+the rear wheel. Enclosed cabins hide the long hems; stepping out restores them.
+
 Driving is **vehicle-relative**: stick up/W always moves toward the vehicle's
 nose, and left/right always steer toward its physical left/right. Camera yaw
 does not enter the driving calculation. Entering starts the camera behind the
@@ -346,6 +355,15 @@ death/blocked-spawn recovery,
 fighter limits, encounter isolation and hub identity reservations. Both accept
 `-- --hz=30` or `-- --hz=120` with a matching engine `--fixed-fps` value. The
 theft test accepts `-- --capture` for native reaction and combat screenshots.
+
+`tests/mounted_pose.gd` passes **93 checks at each of 30/60/120 Hz**, measuring
+real limb endpoints, peg/pedal support, attached headlights, cabin roof and robe
+clearance, safe exits and stable contacts on distant roads. Native checks also
+inspect the traffic drivers' actual mesh batches; seven mounted captures were
+reviewed, including visible sheathed katana views. `tests/camera_distance.gd`
+passes **37 checks at each rate**, covering live controller adjustment, saved and
+legacy settings, lock-on, spring-arm obstruction, vehicle transitions and truck
+clearance at the closest setting. Its native Settings preview was also reviewed.
 
 The steering suite passes **147 checks at each of 30/60/120 Hz**; the theft suite
 passes **27 at each rate**, including native captures at 60 Hz. Charge/sparring,
@@ -718,8 +736,13 @@ Start from the inventory switches between the two live overlays;
 Escape inside inventory retains its existing Back behavior. Sparring adds a
 Yield button, and keyboard G still yields directly.
 
-Settings change mouse/controller look sensitivity, field of view, master volume,
+Settings change mouse/controller look sensitivity, camera distance, field of view, master volume,
 camera impact shake, streetlight shadows, neon glow and 3D resolution immediately.
+Camera distance defaults to a closer **4.2 m**, adjustable from **2.4 to 9.0 m**.
+Vehicle views use 1.45 times that distance, with a minimum that clears the
+vehicle body, and restore the same on-foot preference on exit. The collision-aware
+spring arm, free orbit and lock-on framing still apply; changing distance does
+not change field of view.
 Normal play saves these values in
 `user://settings_v1.cfg` when leaving settings/the menu or quitting. Script tools
 use explicit temporary setting paths so they do not alter normal user settings.

@@ -3,13 +3,14 @@ extends CharacterBody3D
 const Chunk = preload("res://scripts/world_chunk.gd")
 const Neon = preload("res://scripts/neon.gd")
 const PersonVisual = preload("res://scripts/resident_visual.gd")
+const MountedPose = preload("res://scripts/mounted_rider_pose.gd")
 var life: Node3D
 var record: Dictionary
 var kind := "car"
 var player_driver: CharacterBody3D
 var has_driver := false
 var signed_speed := 0.0
-var seat_height := 0.72
+var seat_height := 0.69
 var seat_z := 0.05
 var top_speed := 19.0
 # Full-lock low-speed radius is about 4.5 m; bound yaw at speed so a sharp
@@ -43,7 +44,8 @@ func _ready() -> void:
 	name = kind.capitalize()+"_"+str(record.id)
 	if kind=="motorcycle":
 		dimensions = Vector3(0.85,1.35,2.35)
-		seat_height = 0.83
+		seat_height = 0.98
+		seat_z = -0.10
 		top_speed = 23
 	elif kind=="truck":
 		dimensions = Vector3(2.25,2.5,5.4)
@@ -68,6 +70,20 @@ func _ready() -> void:
 	has_driver = record.traffic and not record.taken
 	driver_visual.visible = has_driver
 
+func rider_anchors() -> Dictionary:
+	# Vehicle-local +Z is forward. Contacts are shared by the player, the
+	# traffic driver, the visible controls and garment fitting.
+	var hip := Vector3(0,seat_height,seat_z)
+	if kind=="motorcycle":
+		return {"hip":hip,"left_hand":Vector3(-0.35,1.16,0.58),"right_hand":Vector3(0.35,1.16,0.58),
+			"left_foot":Vector3(-0.29,0.43,-0.35),"right_foot":Vector3(0.29,0.43,-0.35),
+			"chest_pitch":0.78,"knee_pole":Vector3(0,0,1),"elbow_pole":Vector3(0,-1,-0.1)}
+	var foot_y := 0.65 if kind=="truck" else 0.42
+	var forward := 0.67 if kind=="truck" else 0.65
+	return {"hip":hip,"left_hand":hip+Vector3(-0.22,0.28,0.58),"right_hand":hip+Vector3(0.22,0.28,0.58),
+		"left_foot":Vector3(-0.17,foot_y,seat_z+forward),"right_foot":Vector3(0.17,foot_y,seat_z+forward),
+		"chest_pitch":0.12,"knee_pole":Vector3(0,0,1),"elbow_pole":Vector3(0,-1,-0.1)}
+
 func build_visual() -> void:
 	var batch := Chunk.new()
 	add_child(batch)
@@ -76,6 +92,12 @@ func build_visual() -> void:
 		batch.box(Vector3(0,0.62,0),Vector3(0.32,0.36,1.55),"Frame",color)
 		batch.box(Vector3(0,0.84,-0.12),Vector3(0.42,0.14,0.8),"Saddle",color)
 		batch.box(Vector3(0,1.16,0.58),Vector3(0.83,0.07,0.08),"Handlebars",color)
+		# Rear-set pegs sit behind the rider's hips, outside the narrow frame.
+		batch.box(Vector3(0,0.355,-0.35),Vector3(0.68,0.06,0.12),"RearSetFootPegs",color)
+		# A small nose joins the lenses to the frame, rather than leaving them
+		# suspended in front of the wheel beyond the bike's bodywork.
+		batch.box(Vector3(0,0.91,0.67),Vector3(0.44,0.24,0.25),"HeadlightFairing",color)
+		batch.box(Vector3(0,1.02,0.58),Vector3(0.10,0.25,0.10),"HandlebarStem",color)
 	else:
 		batch.box(Vector3(0,0.62,0),Vector3(dimensions.x,0.72,dimensions.z),"Chassis",color)
 		# Open window apertures show the light-being driver inside the cabin.
@@ -94,6 +116,15 @@ func build_visual() -> void:
 			for side in [-1,1]:
 				batch.line(Vector3(side*0.84,1.45,-0.85),Vector3(side*0.84,1.45,0.85),color)
 				batch.line(Vector3(side*0.85,0.95,0.93),Vector3(side*0.85,0.95,1.95),color)
+		var contacts := rider_anchors()
+		var foot_y: float = contacts.left_foot.y
+		var foot_z: float = contacts.left_foot.z
+		batch.box(Vector3(0,foot_y-0.10,foot_z-0.20),Vector3(0.68,0.06,0.65),"CabinFootwell",color)
+		for side in [-1,1]:
+			batch.box(Vector3(side*0.17,foot_y-0.065,foot_z),Vector3(0.12,0.04,0.13),"Pedal",color)
+		var left_hand: Vector3 = contacts.left_hand
+		var right_hand: Vector3 = contacts.right_hand
+		batch.box((left_hand+right_hand)*0.5,Vector3(0.53,0.055,0.08),"SteeringYoke",color)
 	for axle in [-1,1]:
 		var z: float = axle*dimensions.z*0.31
 		for side in ([0] if kind=="motorcycle" else [-1,1]):
@@ -130,7 +161,7 @@ func build_visual() -> void:
 	batch.body.free()
 	for side in [-1,1]:
 		var lamp := SpotLight3D.new()
-		lamp.position = Vector3(side*dimensions.x*0.3,0.9,dimensions.z*0.5+0.03)
+		lamp.position = Vector3(side*0.13,0.93,0.82) if kind=="motorcycle" else Vector3(side*dimensions.x*0.3,0.9,dimensions.z*0.5+0.03)
 		lamp.rotation.y = PI
 		lamp.light_color = Neon.ORANGE
 		lamp.light_energy = 1.5
@@ -150,10 +181,46 @@ func build_visual() -> void:
 	driver_visual.tint = record.driver.tint
 	driver_visual.body_profile = record.driver.body_profile
 	add_child(driver_visual)
-	driver_visual.position = Vector3(0,seat_height-0.946,seat_z)
-	driver_visual.scale = Vector3.ONE*0.9
 	driver_visual.sitting = true
-	driver_visual.animate(0,0,false)
+	pose_driver()
+
+func pose_driver() -> void:
+	# Traffic uses the same contact anchors as the player. Write the existing
+	# two mesh batches directly, so this adds no driver nodes or draw calls.
+	var contacts := rider_anchors()
+	var hip: Vector3 = contacts.hip
+	var lean := Basis(Vector3.RIGHT,contacts.chest_pitch)
+	var chest := hip+lean*Vector3.UP*0.51
+	var hip_width := 0.18 if driver_visual.body_profile==&"female" else 0.125
+	driver_visual.segment(0,hip,chest,0.037)
+	driver_visual.segment(1,hip+Vector3(-hip_width,0,0),hip+Vector3(hip_width,0,0))
+	driver_visual.segment(2,chest+Vector3(-0.23,0,0),chest+Vector3(0.23,0,0))
+	driver_visual.dot_at(0,chest+lean*Vector3.UP*0.26,0.128)
+	driver_visual.dot_at(1,hip,0.05)
+	for i in range(2):
+		var side := -1.0 if i==0 else 1.0
+		var key := "left" if i==0 else "right"
+		var leg_hip := hip+Vector3(side*hip_width,0,0)
+		var foot: Vector3 = contacts[key+"_foot"]
+		var knee := MountedPose.bend_point(leg_hip,foot,contacts.knee_pole,0.45,0.45)
+		driver_visual.segment(3+i*2,leg_hip,knee)
+		driver_visual.segment(4+i*2,knee,foot)
+		driver_visual.dot_at(2+i*3,leg_hip)
+		driver_visual.dot_at(3+i*3,knee)
+		driver_visual.dot_at(4+i*3,foot,0.04)
+		var shoulder := chest+Vector3(side*0.23,0,0)
+		var hand: Vector3 = contacts[key+"_hand"]
+		var elbow_pole: Vector3 = contacts.elbow_pole
+		elbow_pole.x = side*0.35
+		var elbow := MountedPose.bend_point(shoulder,hand,elbow_pole,0.30,0.29)
+		driver_visual.segment(7+i*2,shoulder,elbow)
+		driver_visual.segment(8+i*2,elbow,hand)
+		driver_visual.dot_at(8+i*2,elbow)
+		driver_visual.dot_at(9+i*2,hand,0.04)
+		if driver_visual.body_profile==&"female":
+			var waist: Vector3 = hip.lerp(chest,0.48)+Vector3(side*0.075,0,0)
+			driver_visual.segment(11+i*2,chest+Vector3(side*0.23,0,0),waist,0.023)
+			driver_visual.segment(12+i*2,waist,leg_hip,0.023)
 
 func wheel_batch(mesh: Mesh, ink: Material) -> MultiMesh:
 	var data := MultiMesh.new()
@@ -236,7 +303,7 @@ func _physics_process(delta: float) -> void:
 	if life.has_method("pose_interval"): interval = life.pose_interval(global_position)
 	if _pose_clock>=interval:
 		if absf(signed_speed)>0.01: update_wheels()
-		if has_driver and interval<INF: driver_visual.animate(_pose_clock,0,false)
+		if has_driver and interval<INF: pose_driver()
 		_pose_clock = 0
 	for lamp: SpotLight3D in lamps: lamp.visible = global_position.distance_squared_to(life.actor.global_position)<6400
 	if is_instance_valid(player_driver): player_driver.world_actions.anchor()
