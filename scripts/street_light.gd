@@ -6,7 +6,7 @@ var light: SpotLight3D
 func _ready() -> void:
 	name = "OrangeStreetLight"
 	add_to_group("street_lights")
-	var orange := Neon.material(Neon.ORANGE)
+	var orange := Neon.shared_material(Neon.ORANGE)
 	Neon.block(self, Vector3(0,0.12,0), Vector3(0.65,0.24,0.65), orange)
 	Neon.block(self, Vector3(0,2.95,0), Vector3(0.16,5.5,0.16), orange)
 	Neon.block(self, Vector3(0,5.68,-1), Vector3(0.16,0.16,2.16), orange)

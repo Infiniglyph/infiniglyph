@@ -49,8 +49,13 @@ func run() -> void:
 			peak_vehicles = maxi(peak_vehicles,life.vehicles.size())
 			for vehicle: CharacterBody3D in life.vehicles.values():
 				observed[vehicle.record.id] = true
+				if not starts.has(vehicle.record.id): starts[vehicle.record.id] = vehicle.global_position
 				if starts.has(vehicle.record.id) and vehicle.global_position.distance_to(starts[vehicle.record.id])>3: moved[vehicle.record.id] = true
 				if not vehicle.global_position.is_finite() or vehicle.global_position.y< -15: bad += 1
+			# Neighborhood construction is deliberately spread over frames. Start
+			# each journey observation when its body actually arrives, not frame 3.
+			for resident: CharacterBody3D in life.people.values():
+				if not walker_starts.has(resident.record.id): walker_starts[resident.record.id] = resident.global_position
 		for resident: CharacterBody3D in life.people.values():
 			if walker_starts.has(resident.record.id) and resident.global_position.distance_to(walker_starts[resident.record.id])>1: walkers_moved += 1
 		check(life.people.size()<=life.resident_budget and life.vehicles.size()<=life.vehicle_budget,"Bounded live neighborhood at "+str(at))

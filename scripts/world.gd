@@ -18,6 +18,8 @@ const WorldRegions = preload("res://scripts/world_regions.gd")
 const WorldActions = preload("res://scripts/world_actions.gd")
 const DistrictLife = preload("res://scripts/district_life.gd")
 const TheftReactions = preload("res://scripts/theft_reactions.gd")
+const GraphicsSettings = preload("res://scripts/graphics_settings.gd")
+var graphics: Node
 var theft_reactions: Node3D
 var world_actions: Node3D
 var district_life: Node3D
@@ -40,6 +42,7 @@ var world_memory: Node3D
 @export var inventory_persistence_enabled := true
 @export var boss_encounters_enabled := true
 @export var wider_world_enabled := true
+@export var static_batching_enabled := true
 @export_range(0,1,0.01) var death_drop_probability := 0.15
 
 func _ready() -> void:
@@ -52,7 +55,9 @@ func _ready() -> void:
 	settings.ambient_light_energy = 0.4
 	environment.environment = settings
 	add_child(environment)
-	add_child(District.new())
+	var district := District.new()
+	district.visual_batching_enabled = static_batching_enabled
+	add_child(district)
 	controls = Controls.new()
 	add_child(controls)
 	player = Player.new()
@@ -110,6 +115,10 @@ func _ready() -> void:
 	var combat_hud := CombatHUD.new()
 	combat_hud.weapons = player.weapon_combat
 	hud.add_child(combat_hud)
+	graphics = GraphicsSettings.new()
+	graphics.world = self
+	graphics.actor = player
+	add_child(graphics)
 	start_menu = StartMenu.new()
 	start_menu.actor = player
 	start_menu.session = inventory_session

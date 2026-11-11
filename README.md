@@ -117,7 +117,7 @@ remains the heaviest view and the larger skyline has a render cost. The game
 camera's far plane is 1,800 m for the expanded landscape. Use the native capture
 helper with `-- --performance` to inspect frame time, physics time and draw calls.
 
-The **2026-11-10 performance audit** adds `tests/performance_audit.gd` for native,
+The **2026-11-10 pre-optimization audit** adds `tests/performance_audit.gd` for native,
 uncapped rendering and civilian-simulation comparisons. The startup warning is
 Godot selecting its ANGLE OpenGL ES-over-Direct3D 11 compatibility path for this
 Intel driver, as described in the [Windows driver settings](https://docs.godotengine.org/en/stable/classes/class_projectsettings.html#class-projectsettings-property-rendering-gl-compatibility-driver-windows).
@@ -165,6 +165,80 @@ Run the audit alone, from this directory, with a native Godot executable:
 godot --path . --script res://tests/performance_audit.gd
 godot --path . --script res://tests/performance_audit.gd -- --simulation-only --views=urban,country --output=res://captures/performance_simulation.json
 ```
+
+## Performance budgets and graphics controls
+
+The four audit recommendations are implemented without changing player movement,
+combat timing or static world collision. The world continues running behind
+every menu.
+
+- Hub residents retire distant movement physics beyond 180 m and return within
+  140 m, with extra lead distance for fast travel. Their existing identities,
+  paths, destination choices, building visits and relationships stay live in
+  quarter-second route updates. Restoration checks real support and free space.
+- Regional residents use the same near/virtual distinction at 65/90 m, with
+  speed-dependent lead distance. Visible far motion interpolates between route
+  records; articulated poses use the existing TED-RAG worker's bounded rates.
+  Regional pedestrians and seated drivers share those pose budgets. Combat
+  proxies remain in the normal full-rate combat pipeline.
+- Traffic reuses its obstacle shape/query and samples at approximately 10 Hz,
+  including extra lookahead travel. Swept vehicle movement and collision remain
+  full-rate. Neighborhood activation constructs at most one vehicle and one
+  resident per tick; cached route validation uses at most twelve probes per tick.
+  Distant regional residents now advance their own route records as traffic does.
+- Immutable hub prop geometry is combined by material/shadow mode in 16 m cells
+  once at startup. Source structural meshes remain hidden inspection references;
+  all original collision shapes remain enabled. No runtime map hide/unload or
+  camera-driven mesh rebuilding is used. Wheels use two instanced batches per
+  vehicle, and immutable materials are shared. Fading effects retain unique inks.
+
+**Start / Escape > Settings > Graphics** now exposes:
+
+| Setting | Default | Choices |
+| --- | --- | --- |
+| Nearby streetlight shadow budget | 4 | 0-16; 16 restores all hub casters |
+| Neon glow | Full | Off, Soft (one filtered sample), Full (two samples) |
+| 3D resolution | 100% | 50-100%; HUD and menus retain native resolution |
+
+Orange lights continue illuminating even with shadows disabled. Shadow selection
+uses a nearby budget with hysteresis, independently of map geometry. Settings
+apply immediately, persist in the existing versioned configuration, and scroll
+with controller focus. Existing settings files load with these graphics defaults.
+
+`tests/performance_budgets.gd` passes **29 checks at 30/60/120 Hz**, covering real
+near/far transitions, identity, smooth virtual travel, occupied-space recovery,
+bounded spawning/sensing, combat handoff, graphics persistence and live menus. Native captures
+review the graphics controls and all three vehicle types. Existing vehicle
+steering, theft combat, world-memory, world traversal and structural-support
+checks also pass. The 180-second population-flow soak retains 98 distinct outdoor
+identities, 58 building entries and 76 exits with no unsupported falls or contacts
+beyond its 2 cm tolerance.
+
+The native audit accepts `--live-only`, `--outdoors=64`, `--shadow-budget=16` and
+`--settle=5` for comparable before/after sampling. Use real frame time (no
+`--fixed-fps`) and run each rendering benchmark alone. Generated reports and
+captures remain under the ignored `captures` directory.
+
+The same-machine comparison against `checkpoint-2026-11-10-performance-audit`
+uses the same updated harness, seed 1893, 64 hub outdoor slots, 1280x720, full glow,
+100% 3D resolution and all 16 hub shadow casters. Each visit settles for at least
+five seconds, then samples two 120-frame windows. Median frame-time ranges were:
+
+| View | Previous checkpoint | Optimized |
+| --- | ---: | ---: |
+| Dense hub | 65.6-67.4 ms | 55.1-64.4 ms |
+| Outer city | 50.5-82.1 ms | 15.5-16.1 ms |
+| Country | 14.0-14.1 ms | 7.1-8.1 ms |
+
+Hub draw calls fell from about 763 to 691-699. The largest gains come from
+retiring distant civilian physics, and the dense hub remains the limiting view.
+The default four-caster budget is available in normal play; it was deliberately
+raised for this comparison. Dynamic journeys change which people/vehicles are
+visible, and other desktop applications were left running. These are debug-build
+observations, not an exported-release FPS guarantee. Raw reports are
+`.godot/perf-audit-baseline/captures/perf-before.json` and
+`captures/perf-after.json`; the baseline game source is unchanged, with only the
+same diagnostic harness copied into its isolated directory.
 
 ## Seating, neighborhood life, vehicles and Health Glyphs
 
@@ -582,8 +656,9 @@ Start from the inventory switches between the two live overlays;
 Escape inside inventory retains its existing Back behavior. Sparring adds a
 Yield button, and keyboard G still yields directly.
 
-Settings change mouse/controller look sensitivity, field of view, master volume
-and camera impact shake immediately. Normal play saves these values in
+Settings change mouse/controller look sensitivity, field of view, master volume,
+camera impact shake, streetlight shadows, neon glow and 3D resolution immediately.
+Normal play saves these values in
 `user://settings_v1.cfg` when leaving settings/the menu or quitting. Script tools
 use explicit temporary setting paths so they do not alter normal user settings.
 Quit Game saves the local inventory/world checkpoint and settings before exit.
@@ -910,7 +985,8 @@ combat input appropriately. A click used to recapture the mouse does not attack.
 
 Orange wireframes identify actual light sources. Sixteen orange streetlights line
 the crossing avenues; their bases, poles, arms, housings and emitting panels are
-solid. Each fixture casts a downward orange spotlight with shadows. Cyan remains
+solid. Each fixture emits a downward orange spotlight; the configurable nearby
+shadow budget selects its shadow casters. Cyan remains
 the ordinary structural edge color. Opaque surfaces now receive lighting while
 retaining a faint dark emission so silhouettes remain readable outside lit areas.
 

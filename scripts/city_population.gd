@@ -37,29 +37,35 @@ var speaker_time := 0.0
 var _clock := 0.0
 var _last_attack := false
 var _capsule := CapsuleShape3D.new()
+@export var simulation_lod_enabled := true
+@export var physical_range := 140.0
+var virtual_count := 0
+var _floor_query := PhysicsRayQueryParameters3D.new()
+var _clear_query := PhysicsShapeQueryParameters3D.new()
 
 func _ready() -> void:
 	name = "CityPopulation"
 	_capsule.radius = 0.34
 	_capsule.height = 1.9
+	_floor_query.collision_mask = 1
+	_floor_query.exclude = [player.get_rid(),duel.partner.get_rid()]
+	_clear_query.shape = _capsule
+	_clear_query.collision_mask = 1
+	_clear_query.exclude = [player.get_rid(),duel.partner.get_rid()]
+	_clear_query.margin = 0.01
 	# Physics must have registered every existing building before validating paths.
 	call_deferred("build")
 
 func floor_at(at: Vector3) -> Dictionary:
-	var ray := PhysicsRayQueryParameters3D.create(at+Vector3.UP*0.55,at-Vector3.UP*0.65,1)
-	ray.exclude = [player.get_rid(),duel.partner.get_rid()]
-	var hit := get_world_3d().direct_space_state.intersect_ray(ray)
+	_floor_query.from = at+Vector3.UP*0.55
+	_floor_query.to = at-Vector3.UP*0.65
+	var hit := get_world_3d().direct_space_state.intersect_ray(_floor_query)
 	if hit.is_empty() or hit.normal.y<0.8 or hit.collider is CharacterBody3D: return {}
 	return {"point":hit.position+Vector3.UP*0.045}
 
 func clear_at(at: Vector3) -> bool:
-	var query := PhysicsShapeQueryParameters3D.new()
-	query.shape = _capsule
-	query.transform = Transform3D(Basis.IDENTITY,at+Vector3.UP*0.96)
-	query.collision_mask = 1
-	query.exclude = [player.get_rid(),duel.partner.get_rid()]
-	query.margin = 0.01
-	return get_world_3d().direct_space_state.intersect_shape(query,1).is_empty()
+	_clear_query.transform = Transform3D(Basis.IDENTITY,at+Vector3.UP*0.96)
+	return get_world_3d().direct_space_state.intersect_shape(_clear_query,1).is_empty()
 
 func segment_clear(a: Vector3, b: Vector3) -> bool:
 	var count := maxi(1,ceili(a.distance_to(b)/0.65))
@@ -209,11 +215,13 @@ func build() -> void:
 func rebuild_neighbours() -> void:
 	var buckets: Dictionary = {}
 	for resident: CharacterBody3D in active_residents:
+		if resident.virtualized: continue
 		var cell := Vector2i(floori(resident.position.x/4),floori(resident.position.z/4))
 		if not buckets.has(cell): buckets[cell] = []
 		buckets[cell].append(resident)
 	for resident: CharacterBody3D in active_residents:
 		resident.neighbours.clear()
+		if resident.virtualized: continue
 		var cell := Vector2i(floori(resident.position.x/4),floori(resident.position.z/4))
 		for x in range(-1,2):
 			for z in range(-1,2):
@@ -258,7 +266,7 @@ func hidden_from_player(at: Vector3) -> bool:
 
 func finish_indoor(resident: CharacterBody3D) -> bool:
 	var door: Node3D = resident.travel_door
-	if not hidden_from_player(resident.global_position): return false
+	if not resident.virtualized and not hidden_from_player(resident.global_position): return false
 	door.entries += 1
 	indoor_entries += 1
 	resident.home_building = door.entrance_id
@@ -272,7 +280,7 @@ func spawn_space_free(resident: CharacterBody3D, at: Vector3) -> bool:
 	var query := PhysicsShapeQueryParameters3D.new()
 	query.shape = _capsule
 	query.transform = Transform3D(Basis.IDENTITY,at+Vector3.UP*0.96)
-	query.collision_mask = 5
+	query.collision_mask = 13
 	query.exclude = [resident.get_rid()]
 	return get_world_3d().direct_space_state.intersect_shape(query,1).is_empty()
 
@@ -301,6 +309,9 @@ func service_indoors(delta: float) -> void:
 		resident.wait = 0
 		resident.outdoor_stops = 0
 		resident.stops_before_indoor = rng.randi_range(1,3)
+		var distance_from_player := resident.global_position-player.global_position
+		if simulation_lod_enabled and Vector2(distance_from_player.x,distance_from_player.z).length()>physical_range+160:
+			resident.set_virtualized(true)
 		_indoor_cursor = (index+1)%residents.size()
 
 func place_name(id: StringName) -> String:
@@ -316,8 +327,9 @@ func nearest_id(at: Vector3) -> StringName:
 			id = key
 	return id
 
-func route(at: Vector3, destination: StringName) -> PackedVector3Array:
+func route(at: Vector3, destination: StringName, virtual: bool = false) -> PackedVector3Array:
 	if not points.has(destination): return PackedVector3Array()
+	if virtual: return graph.get_point_path(point_ids[nearest_id(at)],point_ids[destination])
 	var candidates: Array = points.keys()
 	candidates.sort_custom(func(a: StringName,b: StringName): return points[a].distance_squared_to(at)<points[b].distance_squared_to(at))
 	for i in range(mini(6,candidates.size())):
@@ -381,6 +393,7 @@ func nearest_talker() -> CharacterBody3D:
 	var result: CharacterBody3D
 	var distance := 2.8
 	for resident: CharacterBody3D in active_residents:
+		if resident.virtualized: continue
 		if resident.transit!=&"outdoor": continue
 		var next := resident.global_position.distance_to(player.global_position)
 		if next<distance and visible_between(player.global_position,resident.global_position):
@@ -421,6 +434,7 @@ func _physics_process(delta: float) -> void:
 	_last_attack = attacking
 	if _clock>0 and not fresh_attack: return
 	_clock = 0.25
+	advance_simulation_lod(_service_time)
 	service_indoors(_service_time)
 	_service_time = 0
 	# Read visible world actions, never player input requests or hidden decisions.
@@ -441,3 +455,19 @@ func _physics_process(delta: float) -> void:
 			if a.global_position.distance_to(b.global_position)<2.6 and visible_between(a.global_position,b.global_position):
 				converse(a,b)
 				return # Stagger ambient exchanges rather than a chorus each tick.
+
+func advance_simulation_lod(delta: float) -> void:
+	virtual_count = 0
+	# Activation leads fast travel; vertical Sky Jump height cannot retire the
+	# people directly beneath the player. Hysteresis avoids boundary churn.
+	var range_now := physical_range+minf(120,Vector2(player.velocity.x,player.velocity.z).length()*0.75)
+	for resident: CharacterBody3D in active_residents.duplicate():
+		var offset := resident.global_position-player.global_position
+		var distance := Vector2(offset.x,offset.z).length()
+		var protected: bool = resident.state=="talking" or resident.reaction_time>0 or resident.is_in_group("combat_targets")
+		if not simulation_lod_enabled or protected or distance<range_now:
+			resident.set_virtualized(false)
+		elif distance>range_now+40: resident.set_virtualized(true)
+		if resident.virtualized:
+			virtual_count += 1
+			resident.advance_virtual(delta)

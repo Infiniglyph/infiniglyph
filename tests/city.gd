@@ -86,6 +86,10 @@ func run() -> void:
 	check(corner_hits == 136,"All four corners of all 34 hub roofs provide solid support")
 	check(landings == 34,"The real player lands and stays grounded on every city and skyline roof")
 	var fixtures := get_nodes_in_group("street_lights")
+	# Inspect every fixture's full-quality shadow capability; normal play budgets
+	# the nearest casters without removing any orange light or physical post.
+	world.graphics.shadow_budget = 16
+	world.graphics.apply_quality()
 	var valid_lights := 0
 	var lamp_landings := 0
 	for fixture in fixtures:

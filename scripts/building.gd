@@ -26,4 +26,4 @@ func build(size: Vector3, front: Vector3 = Vector3.ZERO, id: StringName = &"") -
 		for side in [-1,1]:
 			var bottom := 0.0 if front.is_zero_approx() else minf(2.8,size.y-0.2)
 			points.append_array([Vector3(seam,bottom,side*h.z),Vector3(seam,size.y,side*h.z),Vector3(side*h.x,bottom,seam),Vector3(side*h.x,size.y,seam)])
-	if not points.is_empty(): add_child(Neon.lines(points,Neon.material(Color(0.02,0.65,0.78))))
+	if not points.is_empty(): add_child(Neon.lines(points,Neon.shared_material(Color(0.02,0.65,0.78))))

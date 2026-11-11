@@ -38,7 +38,7 @@ func _ready() -> void:
 		joint_mesh.height = 2
 		joint_mesh.radial_segments = 8
 		joint_mesh.rings = 4
-	var ink := Neon.material(tint)
+	var ink := Neon.shared_material(tint)
 	rods = batch(rod_mesh,15 if body_profile==&"female" else 11,ink)
 	joints = batch(joint_mesh,12,ink)
 	scale = Vector3.ONE*stature

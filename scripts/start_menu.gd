@@ -24,6 +24,9 @@ var _stick_speed: HSlider
 var _fov: HSlider
 var _volume: HSlider
 var _shake: CheckBox
+var _shadows: HSlider
+var _glow: HSlider
+var _resolution: HSlider
 
 func _ready() -> void:
 	name = "StartMenu"
@@ -133,6 +136,22 @@ func _build() -> void:
 	_settings = _panel("SETTINGS")
 	box = _settings.get_child(0) as VBoxContainer
 	box.add_theme_constant_override("separation",9)
+	_settings.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_settings.anchor_left = 0.25
+	_settings.anchor_right = 0.75
+	_settings.anchor_top = 0.04
+	_settings.anchor_bottom = 0.96
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.follow_focus = true
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	box.add_child(scroll)
+	var settings_box := VBoxContainer.new()
+	settings_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	settings_box.add_theme_constant_override("separation",9)
+	scroll.add_child(settings_box)
+	var outer_box := box
+	box = settings_box
 	_mouse = _slider(box,"Mouse look sensitivity",0.0005,0.006,0.0001,actor.camera_rig.mouse_sensitivity,func(value: float): actor.camera_rig.mouse_sensitivity = value)
 	_stick_speed = _slider(box,"Controller look sensitivity",0.5,5,0.1,actor.camera_rig.stick_sensitivity,func(value: float): actor.camera_rig.stick_sensitivity = value)
 	_fov = _slider(box,"Field of view",60,95,1,actor.camera_rig.camera.fov,func(value: float): actor.camera_rig.camera.fov = value)
@@ -146,6 +165,23 @@ func _build() -> void:
 	_shake.toggled.connect(func(value: bool): actor.weapon_combat.rules.camera_shake_enabled = value)
 	box.add_child(_shake)
 	_settings_controls.append(_shake)
+	var graphics: Node = get_parent().graphics
+	box.add_child(_label("GRAPHICS",20))
+	_shadows = _slider(box,"Maximum nearby streetlight shadows",0,16,1,graphics.shadow_budget,func(value: float):
+		graphics.shadow_budget = int(value)
+		graphics.apply_quality())
+	_glow = _slider(box,"Neon glow",0,2,1,graphics.glow_quality,func(value: float):
+		graphics.glow_quality = int(value)
+		graphics.apply_quality())
+	var glow_label: Label = box.get_child(box.get_child_count()-2)
+	var glow_text := func(value: float): glow_label.text = "Neon glow  "+["Off","Soft","Full"][int(value)]
+	_glow.value_changed.connect(glow_text)
+	glow_text.call(_glow.value)
+	_resolution = _slider(box,"3D resolution (%)",50,100,5,graphics.resolution_percent,func(value: float):
+		graphics.resolution_percent = int(value)
+		graphics.apply_quality())
+	box.add_child(_label("Lower 3D resolution improves speed; UI stays sharp.",13))
+	box = outer_box
 	_settings_controls.append(_button(box,"Back",show_home))
 	box.add_child(_label("LEFT / RIGHT: adjust   B / ESC: back",13))
 	_settings.hide()
@@ -287,13 +323,16 @@ func save_settings(path: String = "") -> bool:
 	config.set_value("camera","fov",_fov.value)
 	config.set_value("camera","shake",_shake.button_pressed)
 	config.set_value("audio","volume",_volume.value)
+	config.set_value("graphics","shadows",_shadows.value)
+	config.set_value("graphics","glow",_glow.value)
+	config.set_value("graphics","resolution",_resolution.value)
 	return config.save(path if not path.is_empty() else settings_path)==OK
 
 func load_settings(path: String = "") -> bool:
 	var config := ConfigFile.new()
 	if config.load(path if not path.is_empty() else settings_path)!=OK: return false
 	if config.get_value("meta","version",1)!=1: return false
-	for entry: Array in [[_mouse,"camera","mouse"],[_stick_speed,"camera","stick"],[_fov,"camera","fov"],[_volume,"audio","volume"]]:
+	for entry: Array in [[_mouse,"camera","mouse"],[_stick_speed,"camera","stick"],[_fov,"camera","fov"],[_volume,"audio","volume"],[_shadows,"graphics","shadows"],[_glow,"graphics","glow"],[_resolution,"graphics","resolution"]]:
 		var value: Variant = config.get_value(entry[1],entry[2],entry[0].value)
 		if (value is float or value is int) and is_finite(float(value)): entry[0].value = clampf(value,entry[0].min_value,entry[0].max_value)
 	var shake: Variant = config.get_value("camera","shake",true)

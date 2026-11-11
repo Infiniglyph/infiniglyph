@@ -12,10 +12,17 @@ var state := "walking the neighborhood"
 var wait := 0.0
 var _pose_clock := 0.0
 var _stalled := 0.0
+var virtualized := false
+var _render_offset := Vector3.ZERO
+var _render_clock := 0.0
+var _render_duration := 0.2
+var _virtual_speed := 0.0
+var _virtual_yaw := 0.0
 
 func _ready() -> void:
 	global_position = record.point
 	profile = record.profile
+	wait = float(record.get("wait",0))
 	name = profile.name
 	collision_layer = 4
 	collision_mask = 13
@@ -47,6 +54,59 @@ func _ready() -> void:
 	caption.pixel_size = 0.004
 	caption.outline_size = 7
 	add_child(caption)
+	set_process(false)
+
+func set_virtualized(value: bool) -> bool:
+	if virtualized==value or record.get("combat",false): return true
+	if not value:
+		var at := global_position
+		at.y = life.regions.surface_at(at.x,at.z)+0.04
+		var excluded: Array[RID] = [get_rid()]
+		if not life.pedestrian_clear(at,false,excluded): return false
+		global_position = at
+		record.point = at
+	virtualized = value
+	collision_layer = 0 if value else 4
+	collision_mask = 0 if value else 13
+	velocity = Vector3.ZERO
+	set_physics_process(not value)
+	set_process(value)
+	visual.position = Vector3.ZERO
+	_render_offset = Vector3.ZERO
+	_virtual_yaw = visual.rotation.y
+	return true
+
+func advance_virtual(delta: float) -> void:
+	if not virtualized or record.get("combat",false): return
+	record.wait = wait
+	var before := global_position
+	var shown_at := visual.global_position
+	life.advance_journey(record,delta)
+	wait = record.wait
+	global_position = record.point
+	_render_offset = to_local(shown_at)
+	visual.position = _render_offset
+	_render_clock = 0
+	_render_duration = delta
+	var direction := global_position-before
+	_virtual_speed = direction.length()/delta
+	if direction.length_squared()>0.00001:
+		_virtual_yaw = atan2(direction.x,direction.z)
+		state = "walking the neighborhood"
+
+func _process(delta: float) -> void:
+	if not virtualized: return
+	_render_clock += delta
+	_pose_clock += delta
+	var interval: float = life.pose_interval(global_position)
+	if interval==INF: return
+	# Cheap interpolation keeps distant route-record movement smooth, while
+	# articulated poses still obey the shared 8-20 Hz attention policy.
+	visual.position = _render_offset*(1-clampf(_render_clock/maxf(_render_duration,0.001),0,1))
+	visual.rotation.y = lerp_angle(visual.rotation.y,_virtual_yaw,1-exp(-10*delta))
+	if _pose_clock>=interval:
+		visual.animate(_pose_clock,_virtual_speed,false)
+		_pose_clock = 0
 
 func talk() -> void:
 	record.meetings += 1
@@ -80,10 +140,11 @@ func _physics_process(delta: float) -> void:
 		wait = 1
 		_stalled = 0
 	record.point = global_position
+	record.wait = wait
 	_pose_clock += delta
 	var distance := global_position.distance_to(life.actor.global_position)
 	if is_instance_valid(light): light.visible = distance<24
-	if _pose_clock> (0.033 if distance<28 else 0.15):
+	if _pose_clock>=life.pose_interval(global_position):
 		visual.animate(_pose_clock,Vector2(velocity.x,velocity.z).length(),wait>0 and record.meetings>0)
 		_pose_clock = 0
 	caption.visible = wait>0 and record.meetings>0 and distance<8

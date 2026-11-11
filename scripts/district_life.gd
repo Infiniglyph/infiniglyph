@@ -21,11 +21,26 @@ var _built := false
 var _profiles: Array[Dictionary] = []
 var _capsule := CapsuleShape3D.new()
 var driveways: Dictionary = {}
+@export var simulation_lod_enabled := true
+var _vehicle_queue: Array[Dictionary] = []
+var _people_queue: Array[Dictionary] = []
+var _lod_clock := 0.0
+var _pose_policy := {"near_range":28.0,"mid_hz":20.0,"far_hz":10.0}
+var _view_camera: Camera3D
+var _vehicle_query := PhysicsShapeQueryParameters3D.new()
+var _vehicle_box := BoxShape3D.new()
+var _pedestrian_query := PhysicsShapeQueryParameters3D.new()
+var validation_probes := 0
+var spawned_this_tick := 0
 
 func _ready() -> void:
 	name = "DistrictLife"
 	_capsule.height = 1.85
 	_capsule.radius = 0.29
+	_vehicle_query.shape = _vehicle_box
+	_vehicle_query.collision_mask = 13
+	_pedestrian_query.shape = _capsule
+	_pedestrian_query.margin = 0.005
 	_profiles = Profiles.all(100)
 	call_deferred("build")
 
@@ -93,39 +108,40 @@ func add_traffic(route: PackedVector3Array) -> void:
 	vehicle_records.append({"id":id,"kind":["car","motorcycle","truck"][id%3],"point":route[start],"yaw":atan2(forward.x,forward.z),"traffic":true,"taken":false,"route":route,"cursor":(start+1)%4,"color":Profiles.PALETTE.values()[id%11],"driver":profile_for(id,true)})
 
 func clear_vehicle(at: Vector3, size: Vector3, excluded: Array[RID]) -> bool:
-	var query := PhysicsShapeQueryParameters3D.new()
-	var shape := BoxShape3D.new()
-	shape.size = size
-	query.shape = shape
-	query.transform = Transform3D(Basis.IDENTITY,at+Vector3.UP*(size.y*0.5+0.08))
-	query.collision_mask = 13
-	query.exclude = excluded
-	return get_world_3d().direct_space_state.intersect_shape(query,1).is_empty()
+	_vehicle_box.size = size
+	_vehicle_query.transform = Transform3D(Basis.IDENTITY,at+Vector3.UP*(size.y*0.5+0.08))
+	_vehicle_query.exclude = excluded
+	return get_world_3d().direct_space_state.intersect_shape(_vehicle_query,1).is_empty()
 
-func pedestrian_clear(at: Vector3, static_only: bool = true) -> bool:
-	var query := PhysicsShapeQueryParameters3D.new()
-	query.shape = _capsule
-	query.transform = Transform3D(Basis.IDENTITY,at+Vector3.UP*0.95)
-	query.collision_mask = 1 if static_only else 13
-	if static_only: query.exclude = [actor.get_rid()]
-	query.margin = 0.005
-	return get_world_3d().direct_space_state.intersect_shape(query,1).is_empty()
+func pedestrian_clear(at: Vector3, static_only: bool = true, excluded: Array[RID] = []) -> bool:
+	_pedestrian_query.transform = Transform3D(Basis.IDENTITY,at+Vector3.UP*0.95)
+	_pedestrian_query.collision_mask = 1 if static_only else 13
+	_pedestrian_query.exclude = [actor.get_rid()] if static_only else excluded
+	return get_world_3d().direct_space_state.intersect_shape(_pedestrian_query,1).is_empty()
 
 func validate_walk(record: Dictionary) -> bool:
 	if record.checked: return record.valid
-	record.checked = true
 	var route: PackedVector3Array = record.route
-	for n in range(route.size()):
+	# At most twelve ground/clearance samples per frame, shared by the queue.
+	while int(record.get("check_segment",0))<route.size() and validation_probes<12:
+		var n := int(record.get("check_segment",0))
+		var step := int(record.get("check_step",0))
 		var a: Vector3 = route[n]
 		var b: Vector3 = route[(n+1)%route.size()]
-		for step in range(ceili(a.distance_to(b)/2)+1):
-			var p := a.lerp(b,clampf(step*2/maxf(a.distance_to(b),0.01),0,1))
-			p.y = Regions.surface_at(p.x,p.z)+0.04
-			if not pedestrian_clear(p):
-				if "--diagnose-life" in OS.get_cmdline_user_args(): print("BLOCKED WALK: ",record.id," at ",p," route=",record.route)
-				record.valid = false
-				return false
-	return true
+		var p := a.lerp(b,clampf(step*2/maxf(a.distance_to(b),0.01),0,1))
+		p.y = Regions.surface_at(p.x,p.z)+0.04
+		validation_probes += 1
+		if not pedestrian_clear(p):
+			record.valid = false
+			record.checked = true
+			return false
+		step += 1
+		if step>ceili(a.distance_to(b)/2):
+			record.check_segment = n+1
+			record.check_step = 0
+		else: record.check_step = step
+	if int(record.get("check_segment",0))>=route.size(): record.checked = true
+	return record.checked and record.valid
 
 func refresh_active() -> void:
 	var origin := actor.global_position
@@ -147,8 +163,20 @@ func refresh_active() -> void:
 	for record: Dictionary in vehicle_records:
 		if not vehicles.has(record.id) and record.point.distance_squared_to(origin)<240*240: nearby.append(record)
 	nearby.sort_custom(func(a: Dictionary,b: Dictionary): return a.point.distance_squared_to(origin)<b.point.distance_squared_to(origin))
-	for record: Dictionary in nearby:
-		if vehicles.size()>=vehicle_budget: break
+	_vehicle_queue.assign(nearby)
+	nearby.clear()
+	for record: Dictionary in resident_records:
+		if not people.has(record.id) and not record.get("combat",false) and record.point.distance_squared_to(origin)<125*125 and record.valid: nearby.append(record)
+	nearby.sort_custom(func(a: Dictionary,b: Dictionary): return a.point.distance_squared_to(origin)<b.point.distance_squared_to(origin))
+	_people_queue.assign(nearby)
+
+func service_spawns() -> void:
+	spawned_this_tick = 0
+	var attempts := 0
+	while not _vehicle_queue.is_empty() and vehicles.size()<vehicle_budget and attempts<2:
+		var record: Dictionary = _vehicle_queue.pop_front()
+		attempts += 1
+		if vehicles.has(record.id) or record.point.distance_squared_to(actor.global_position)>240*240: continue
 		var size := Vector3(2.3,2.5,5.4) if record.kind=="truck" else (Vector3(0.9,1.4,2.4) if record.kind=="motorcycle" else Vector3(1.9,1.85,4.2))
 		# Use the yawed envelope for traffic spawn checks (long trucks at corners).
 		if absf(sin(record.yaw))>0.7: size = Vector3(size.z,size.y,size.x)
@@ -161,14 +189,26 @@ func refresh_active() -> void:
 		vehicle.rotation.y = record.get("yaw",0.0)
 		add_child(vehicle)
 		vehicles[record.id] = vehicle
-	nearby.clear()
-	for record: Dictionary in resident_records:
-		if not people.has(record.id) and not record.get("combat",false) and record.point.distance_squared_to(origin)<125*125 and record.valid: nearby.append(record)
-	nearby.sort_custom(func(a: Dictionary,b: Dictionary): return a.point.distance_squared_to(origin)<b.point.distance_squared_to(origin))
-	for record: Dictionary in nearby:
-		if people.size()>=resident_budget: break
-		if not validate_walk(record) or not pedestrian_clear(record.point,false): continue
-		spawn_person(record)
+		spawned_this_tick += 1
+		break # Construct at most one vehicle per frame.
+	if _people_queue.is_empty() or people.size()>=resident_budget: return
+	var record: Dictionary = _people_queue[0]
+	if people.has(record.id) or record.get("combat",false) or record.point.distance_squared_to(actor.global_position)>125*125:
+		_people_queue.pop_front()
+		return
+	if validate_walk(record):
+		_people_queue.pop_front()
+		if pedestrian_clear(record.point,false):
+			spawn_person(record)
+			spawned_this_tick += 1
+	elif record.checked: _people_queue.pop_front()
+
+func pose_interval(at: Vector3) -> float:
+	var distance := at.distance_squared_to(actor.global_position)
+	if distance<64: return 0
+	if is_instance_valid(_view_camera) and not _view_camera.is_position_in_frustum(at+Vector3.UP): return INF
+	if distance<float(_pose_policy.near_range)*float(_pose_policy.near_range): return 0.033
+	return 1.0/float(_pose_policy.mid_hz if distance<3025 else _pose_policy.far_hz)
 
 func spawn_person(record: Dictionary) -> CharacterBody3D:
 	var resident := Resident.new()
@@ -216,7 +256,7 @@ func nearest_talker() -> CharacterBody3D:
 	var result: CharacterBody3D
 	var best := 2.8
 	for resident: CharacterBody3D in people.values():
-		if not resident.is_visible_in_tree() or resident.record.get("combat",false): continue
+		if not resident.is_visible_in_tree() or resident.virtualized or resident.record.get("combat",false): continue
 		var distance := resident.global_position.distance_to(actor.global_position)
 		if distance<best:
 			best = distance
@@ -225,6 +265,22 @@ func nearest_talker() -> CharacterBody3D:
 
 func _physics_process(delta: float) -> void:
 	if not _built: return
+	validation_probes = 0
+	service_spawns()
+	_lod_clock += delta
+	if _lod_clock>=0.2:
+		_view_camera = get_viewport().get_camera_3d()
+		_pose_policy = actor.visual.retrieval.world_policy()
+		for resident: CharacterBody3D in people.values():
+			if resident.record.get("combat",false): continue
+			var offset := resident.global_position-actor.global_position
+			var distance := Vector2(offset.x,offset.z).length()
+			var range_now := 65.0+minf(100,Vector2(actor.velocity.x,actor.velocity.z).length()*0.75)
+			if not simulation_lod_enabled or distance<range_now or resident.wait>0 and resident.record.meetings>0:
+				resident.set_virtualized(false)
+			elif distance>range_now+25: resident.set_virtualized(true)
+			if resident.virtualized: resident.advance_virtual(_lod_clock)
+		_lod_clock = 0
 	_clock += delta
 	if _clock<0.5: return
 	var elapsed := _clock
@@ -241,4 +297,23 @@ func _physics_process(delta: float) -> void:
 			record.point += offset.normalized()*7*elapsed
 			record.point.y = Regions.surface_at(record.point.x,record.point.z)+0.04
 			record.yaw = atan2(offset.x,offset.z)
+	for record: Dictionary in resident_records:
+		if people.has(record.id) or record.get("combat",false) or not record.valid: continue
+		advance_journey(record,elapsed)
 	refresh_active()
+
+func advance_journey(record: Dictionary, delta: float) -> void:
+	var wait := maxf(0,float(record.get("wait",0))-delta)
+	record.wait = wait
+	if wait>0: return
+	var route: PackedVector3Array = record.route
+	var speed := 1.25+float(record.id%4)*0.12
+	var distance: float = record.point.distance_to(route[record.cursor])
+	if distance<=speed*delta:
+		record.point = route[record.cursor]
+		record.cursor = (record.cursor+1)%route.size()
+		record.wait = 1.0+float(record.id%5)
+	else:
+		record.point = record.point.move_toward(route[record.cursor],speed*delta)
+		if maxf(absf(record.point.x),absf(record.point.z))>704:
+			record.point.y = Regions.surface_at(record.point.x,record.point.z)+0.04

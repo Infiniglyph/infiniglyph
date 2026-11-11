@@ -3,6 +3,9 @@ const Neon = preload("res://scripts/neon.gd")
 const Building = preload("res://scripts/building.gd")
 const StreetLight = preload("res://scripts/street_light.gd")
 const Metropolis = preload("res://scripts/metropolis.gd")
+const Batcher = preload("res://scripts/static_visual_batcher.gd")
+var visual_batching_enabled := true
+var visual_batches: Node3D
 const HALF_EXTENT := 112
 
 func _ready() -> void:
@@ -79,6 +82,10 @@ func _ready() -> void:
 			var height: float = 30.0 + abs(n)*8
 			Neon.block(self,Vector3(n*24,height*0.5,s*94),Vector3(14,height,14))
 	add_child(Metropolis.new())
+	if visual_batching_enabled:
+		visual_batches = Batcher.new()
+		add_child(visual_batches)
+		visual_batches.build(self)
 
 func add_street_light(at: Vector3, yaw: float) -> void:
 	var fixture := StreetLight.new()

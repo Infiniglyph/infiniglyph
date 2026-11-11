@@ -12,6 +12,10 @@ var glow: CanvasLayer
 var baseline_size := Vector2i(1280,720)
 var simulation_only := false
 var selected_views := PackedStringArray(["hub","urban","suburbs","country"])
+var live_only := false
+var shadow_override := -1
+var outdoors_override := 0
+var settle_seconds := 0.0
 
 func _initialize() -> void:
 	if "--headless" in OS.get_cmdline_args() or "--fixed-fps" in OS.get_cmdline_args():
@@ -23,6 +27,10 @@ func _initialize() -> void:
 		if arg.begins_with("--output="): output = arg.trim_prefix("--output=")
 		if arg.begins_with("--views="): selected_views = arg.trim_prefix("--views=").split(",")
 		if arg=="--simulation-only": simulation_only = true
+		if arg=="--live-only": live_only = true
+		if arg.begins_with("--shadow-budget="): shadow_override = int(arg.trim_prefix("--shadow-budget="))
+		if arg.begins_with("--outdoors="): outdoors_override = int(arg.trim_prefix("--outdoors="))
+		if arg.begins_with("--settle="): settle_seconds = maxf(0,float(arg.trim_prefix("--settle=")))
 	call_deferred("run")
 
 func frames(count: int) -> void:
@@ -119,6 +127,12 @@ func run() -> void:
 	world.inventory_persistence_enabled = false
 	root.add_child(world)
 	world.population.population_seed = 1893
+	if outdoors_override>0:
+		world.population.initial_outdoors = outdoors_override
+		world.population.max_outdoors = outdoors_override
+	if shadow_override>=0 and is_instance_valid(world.get("graphics")):
+		world.graphics.shadow_budget = shadow_override
+		world.graphics.apply_quality()
 	world.player.visual.retrieval.enabled = false
 	world.sparring_partner.visual.retrieval.enabled = false
 	world.player.set_physics_process(false)
@@ -145,8 +159,13 @@ func run() -> void:
 		camera.look_at(view[2])
 		world.player.position = view[3]
 		world.district_life.refresh_active()
+		var settle_start := Time.get_ticks_usec()
 		await frames(90)
+		while Time.get_ticks_usec()-settle_start<settle_seconds*1000000: await process_frame
 		await sample(view[0],"live")
+		if live_only:
+			await sample(view[0],"live_repeat")
+			continue
 		if simulation_only:
 			await simulation_samples(view[0])
 			continue

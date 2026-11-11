@@ -1,5 +1,12 @@
 # Recovering the first public checkpoint
 
+Civilian simulation levels, bounded traffic/spawn work, static prop/wheel
+batching and live graphics controls are preserved by
+`checkpoint-2026-11-10-performance-budgets` on `perf/civilian-render-budgets`.
+Its complete-history offline bundle is
+`infiniglyph-performance-budgets-2026-11-10.bundle` in the parent workspace's
+`backups` directory. All preceding tags and bundles remain unchanged.
+
 The native performance harness and measured audit are preserved by
 `checkpoint-2026-11-10-performance-audit` on `analysis/rendering-performance`,
 with `infiniglyph-performance-audit-2026-11-10.bundle` in the parent workspace's

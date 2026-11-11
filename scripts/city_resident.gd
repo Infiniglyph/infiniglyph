@@ -47,6 +47,7 @@ var light: OmniLight3D
 var exits := 0
 var entries := 0
 var _curb_hold := 0.0
+var virtualized := false
 
 func _ready() -> void:
 	name = profile.name
@@ -91,6 +92,7 @@ func _ready() -> void:
 	deactivate()
 
 func activate(at: Vector3) -> void:
+	virtualized = false
 	active = true
 	transit = &"outdoor"
 	global_position = at
@@ -113,6 +115,7 @@ func activate(at: Vector3) -> void:
 	if not self in population.active_residents: population.active_residents.append(self)
 
 func deactivate() -> void:
+	virtualized = false
 	active = false
 	transit = &"indoor"
 	state = "indoors"
@@ -149,8 +152,8 @@ func go_to(destination: StringName) -> void:
 	transit = &"outdoor"
 	pending_door = population.entrances.get(destination)
 	goal = destination
-	path = population.route(global_position,destination)
-	if pending_door==null and not path.is_empty():
+	path = population.route(global_position,destination,virtualized)
+	if not virtualized and pending_door==null and not path.is_empty():
 		var last := path[path.size()-1]
 		var angle := float(profile.serial%8)*TAU/8
 		var floor: Dictionary = population.floor_at(last+Vector3(cos(angle),0,sin(angle))*0.85)
@@ -239,6 +242,53 @@ func react_to_fight(source: Vector3) -> void:
 	var escape: StringName = population.escape_stop(global_position,source)
 	go_to(escape)
 	state = "making room"
+
+func set_virtualized(value: bool) -> bool:
+	if not active or virtualized==value: return true
+	if not value:
+		var floor: Dictionary = population.floor_at(global_position)
+		if floor.is_empty() or not population.spawn_space_free(self,floor.point): return false
+		global_position = floor.point
+	virtualized = value
+	collision_layer = 0 if value else 4
+	collision_mask = 0 if value else 13
+	body_shape.disabled = value
+	velocity = Vector3.ZERO
+	_previous = global_position
+	probe_clock = 0
+	_curb_hold = 0
+	set_physics_process(not value)
+	visible = not value
+	return true
+
+func advance_virtual(delta: float) -> void:
+	if not active or not virtualized: return
+	wait = maxf(0,wait-delta)
+	social_cooldown = maxf(0,social_cooldown-delta)
+	reaction_cooldown = maxf(0,reaction_cooldown-delta)
+	reaction_time = maxf(0,reaction_time-delta)
+	speech_time = maxf(0,speech_time-delta)
+	reply_time = maxf(0,reply_time-delta)
+	if wait>0: return
+	if path.is_empty():
+		if transit==&"waiting_hidden" or is_instance_valid(pending_door): arrived()
+		else: next_stop()
+	if not active: return
+	var remaining := speed*delta
+	# All segments belong to the validated pedestrian graph/door passages.
+	# Preserve journeys and building visits without movement/ground probes.
+	while cursor<path.size() and remaining>0:
+		var distance := global_position.distance_to(path[cursor])
+		if distance<=remaining:
+			global_position = path[cursor]
+			remaining -= distance
+			cursor += 1
+			if cursor==path.size():
+				arrived()
+				break
+		else:
+			global_position = global_position.move_toward(path[cursor],remaining)
+			remaining = 0
 
 func _physics_process(delta: float) -> void:
 	if not active: return

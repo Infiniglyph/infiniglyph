@@ -100,6 +100,9 @@ func begin_fighter(key: String) -> bool:
 	var source: CharacterBody3D = entry.source.get_ref()
 	if entry.dead or not is_instance_valid(source) or not source.is_visible_in_tree() or entry.anger<enrage_threshold: return false
 	if source.global_position.distance_to(actor.global_position)>24: return false
+	# A fast approach may precede the neighborhood's next scheduling tick.
+	# Materialize safely before replacing a civilian with a combat body.
+	if source.get("virtualized")==true and not source.set_virtualized(false): return false
 	var at := source.global_position
 	var yaw: float = source.visual.rotation.y
 	if entry.regional:
@@ -183,6 +186,9 @@ func restore_source(entry: Dictionary, at_spawn: bool) -> bool:
 		source.record.point = at
 		source.global_position = at
 		source.velocity = Vector3.ZERO
+		if not source.set_virtualized(false):
+			source.record.combat = true
+			return false
 		source.wait = 2
 		source.collision_layer = 4
 		source.collision_mask = 13

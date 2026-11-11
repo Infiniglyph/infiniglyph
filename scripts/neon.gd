@@ -7,6 +7,13 @@ static var dark: StandardMaterial3D
 static var edge: StandardMaterial3D
 static var body: StandardMaterial3D
 static var boxes: Dictionary = {}
+static var inks: Dictionary = {}
+
+## Only for immutable world/vehicle inks. Effects keep material() so fading
+## one impact or phase trace can never mutate another object's material.
+static func shared_material(color: Color) -> StandardMaterial3D:
+	if not inks.has(color): inks[color] = material(color)
+	return inks[color]
 
 static func material(color: Color) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
@@ -42,6 +49,7 @@ static func block(parent: Node3D, center: Vector3, size: Vector3, edge_material:
 	prepare()
 	var root := Node3D.new()
 	root.name = "SolidBlock"
+	root.set_meta("structural_block",true)
 	parent.add_child(root)
 	root.position = center
 	var solid := MeshInstance3D.new()
