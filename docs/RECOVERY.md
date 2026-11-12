@@ -1,5 +1,12 @@
 # Recovering the first public checkpoint
 
+The multicolor window palette is preserved by
+`checkpoint-2026-11-11-multicolor-windows` on `tweak/multicolor-window-lights`.
+Its verified complete-history bundle is
+`infiniglyph-multicolor-windows-2026-11-11.bundle` in the parent workspace's
+`backups` directory. Window placement, brightness variation, batching and the
+static starfield are retained; earlier checkpoints stay fixed.
+
 Scattered warm window glow and the subtle static starfield are preserved by
 `checkpoint-2026-11-11-window-lights-stars` on `feat/window-lights-starfield`.
 Its verified complete-history bundle is

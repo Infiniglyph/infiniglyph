@@ -2,7 +2,13 @@ extends Node3D
 ## Glowing interior panes, baked once into opaque spatial batches. The existing
 ## building remains the solid wall; these inlays add no bodies or realtime lights.
 const CELL_SIZE := 128.0
-const WARM := Color(1.0,0.40,0.075)
+const PALETTE := [
+	Color(0.06,0.90,1.0), Color(0.18,0.48,1.0), # Cyan, blue.
+	Color(0.53,0.22,1.0), Color(0.78,0.12,1.0), # Violet, purple.
+	Color(1.0,0.25,0.68), Color(1.0,0.11,0.15), # Pink, red.
+	Color(1.0,0.40,0.075), Color(1.0,0.76,0.18), # Orange, gold.
+	Color(0.12,1.0,0.36), Color(0.30,1.0,0.76), # Green, mint.
+	Color(0.88,0.94,1.0)] # Soft white.
 var cells: Dictionary = {}
 var pane_count := 0
 var building_count := 0
@@ -50,7 +56,8 @@ func home_windows(at: Vector3, size: Vector3) -> void:
 		pane(at+Vector3(side*3.5,2.45,size.z*0.5+0.024),Vector3.RIGHT,Vector2(1.58,1.28),shade(choice))
 
 func shade(choice: int) -> Color:
-	return WARM*lerpf(0.38,0.78,float(choice%7)/6.0)
+	# Use different hash bits from occupancy so every hue reaches lit panes.
+	return PALETTE[(choice >> 8)%PALETTE.size()]*lerpf(0.38,0.78,float(choice%7)/6.0)
 
 func pane(center: Vector3, tangent: Vector3, size: Vector2, color: Color) -> void:
 	var key := Vector3i((center/CELL_SIZE).floor())

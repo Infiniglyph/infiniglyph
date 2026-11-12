@@ -96,12 +96,19 @@ func render_review(windows: Node3D) -> void:
 	windows.hide()
 	var dark := await shot("hub_windows_off",at,target)
 	windows.show()
-	var warm_pixels := 0
+	var colored_pixels := 0
+	var red_pixels := 0
+	var blue_pixels := 0
+	var green_pixels := 0
 	for y in range(lit.get_height()):
 		for x in range(lit.get_width()):
 			var gain := lit.get_pixel(x,y)-dark.get_pixel(x,y)
-			if gain.r>0.10 and gain.r>gain.g*1.4: warm_pixels += 1
-	check(warm_pixels>150,"Native render shows visible warm window light (%d pixels)" % warm_pixels)
+			if maxf(gain.r,maxf(gain.g,gain.b))>0.10:
+				colored_pixels += 1
+				if gain.r>gain.g*1.4 and gain.r>gain.b*1.2: red_pixels += 1
+				if gain.b>gain.r*1.4 and gain.b>gain.g*1.2: blue_pixels += 1
+				if gain.g>gain.r*1.4 and gain.g>gain.b*1.2: green_pixels += 1
+	check(colored_pixels>150 and mini(red_pixels,mini(blue_pixels,green_pixels))>30,"Native render shows varied window hues (%d lit pixels; red %d, blue %d, green %d)" % [colored_pixels,red_pixels,blue_pixels,green_pixels])
 	await shot("urban",Vector3(0,4,-210),Vector3(0,18,-360))
 	for home: Dictionary in world.wider_world.buildings:
 		if home.region=="home" and home.point.z< -500 and absf(home.point.x)<200:

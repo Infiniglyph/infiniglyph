@@ -56,8 +56,10 @@ Start, Settings and inventory continue to run the world without pausing.
 
 ## Window glow and stars
 
-Selected windows glow warm orange throughout the hub, outer city, homes and
-farms. Their fixed occupancy and varied brightness keep most facades dark.
+Selected windows glow cyan, blue, violet, purple, pink, red, orange, gold,
+green, mint and soft white throughout the hub, outer city, homes and farms.
+Their fixed occupancy and varied brightness keep most facades dark; each
+window's color stays stable as you travel.
 The panes sit against the existing solid walls, above working lobby entrances;
 home panes fit the existing front-window frames. They share one material and
 163 opaque spatial batches for the full region, with no added realtime lights,
@@ -70,7 +72,7 @@ is retained and sky reflections are disabled.
 
 `tests/window_lights.gd` audits batching, physical facade support, deterministic
 occupancy and lighting configuration. Run it with `-- --capture` on a native
-display to review `captures/night_*.png` and verify visible warm panes, sparse
+display to review `captures/night_*.png` and verify varied window hues, sparse
 stars and zero sky parallax. Existing world traversal, graphics-budget and
 inventory-startup regressions also pass at 60 Hz.
 
