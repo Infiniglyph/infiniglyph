@@ -25,7 +25,8 @@ var last_meeting := "the central plaza"
 var state := "taking a break"
 var speed := 1.4
 var _stuck := 0.0
-var _previous := Vector3.ZERO
+var _progress_cursor := -1
+var _closest_target := INF
 var _view_clock := 0.0
 var _animate_clock := 0.0
 var render_relevant := true
@@ -87,7 +88,6 @@ func _ready() -> void:
 	wait = 1.0+float(index%4)*0.7
 	social_cooldown = 0.8+float(index)*0.05
 	goal = profile.home
-	_previous = position
 	stops_before_indoor = 2+index%3
 	deactivate()
 
@@ -97,7 +97,9 @@ func activate(at: Vector3) -> void:
 	transit = &"outdoor"
 	global_position = at
 	velocity = Vector3.ZERO
-	_previous = at
+	_progress_cursor = -1
+	_closest_target = INF
+	_stuck = 0
 	path.clear()
 	cursor = 0
 	probe_clock = 0
@@ -157,11 +159,17 @@ func go_to(destination: StringName) -> void:
 		var last := path[path.size()-1]
 		var angle := float(profile.serial%8)*TAU/8
 		var floor: Dictionary = population.floor_at(last+Vector3(cos(angle),0,sin(angle))*0.85)
-		if not floor.is_empty() and population.segment_clear(last,floor.point): path.append(floor.point)
+		# Approach the personal stopping spot directly instead of first forcing
+		# every visitor through the same exact public marker.
+		var approach := path[path.size()-2] if path.size()>1 else global_position
+		if not floor.is_empty() and population.segment_clear(approach,floor.point): path[path.size()-1] = floor.point
 	cursor = 0
 	state = "walking"
 	wait = 0
 	_stuck = 0
+	_progress_cursor = -1
+	_closest_target = INF
+	probe_clock = 0
 	if path.is_empty(): wait = 3.0
 
 func next_stop() -> void:
@@ -254,7 +262,9 @@ func set_virtualized(value: bool) -> bool:
 	collision_mask = 0 if value else 13
 	body_shape.disabled = value
 	velocity = Vector3.ZERO
-	_previous = global_position
+	_progress_cursor = -1
+	_closest_target = INF
+	_stuck = 0
 	probe_clock = 0
 	_curb_hold = 0
 	set_physics_process(not value)
@@ -341,19 +351,14 @@ func _physics_process(delta: float) -> void:
 					# Let the leading foot clear the curb before floor snap can pull
 					# the capsule down to the lower paving behind the rounded heel.
 					_curb_hold = 0.3
-	floor_snap_length = 0.0 if _curb_hold>0 else 0.3
+	# A rounded heel still touching a curb is already supported. Snapping it
+	# down to the lower paving can pull the capsule through the curb's corner.
+	var curb_edge := is_on_floor() and get_floor_normal().y<0.99
+	floor_snap_length = 0.0 if _curb_hold>0 or curb_edge else 0.3
 	move_and_slide()
 	var planar := Vector2(velocity.x,velocity.z).length()
 	if planar>0.1: face(global_position+Vector3(velocity.x,0,velocity.z),1-exp(-8*delta))
-	if desired.length()>0.5 and position.distance_to(_previous)<0.003: _stuck += delta
-	else: _stuck = maxf(0,_stuck-delta*0.5)
-	# Retry from actual footing; never teleport through a building or rail.
-	if _stuck>2.5 and transit==&"outdoor":
-		path = population.route(global_position,goal)
-		cursor = 0
-		wait = 0.8
-		_stuck = 0
-	_previous = position
+	_track_route_progress(delta)
 	_animate_clock += delta
 	var distance := global_position.distance_to(population.player.global_position)
 	var interval := 1.0/15.0 if distance>55 else (1.0/30.0 if distance>25 else 0.0)
@@ -367,3 +372,32 @@ func _physics_process(delta: float) -> void:
 		nameplate.visible = distance<8
 		caption.visible = speech_time>0 and distance<18 and (population.speaker_time<=0 or population.speaker==self)
 		if light!=null: light.visible = distance<16
+
+func _track_route_progress(delta: float) -> void:
+	if wait>0 or transit!=&"outdoor" or cursor>=path.size():
+		_stuck = 0
+		_progress_cursor = -1
+		return
+	var offset := path[cursor]-global_position
+	offset.y = 0
+	var distance := offset.length()
+	if cursor!=_progress_cursor or distance<_closest_target-0.10:
+		_progress_cursor = cursor
+		_closest_target = distance
+		_stuck = 0
+	else: _stuck += delta
+	if _stuck<=2.5: return
+	# Walking in circles and a cancelled-out avoidance vector both count as no
+	# progress. Only bypass an intermediate point over fully supported geometry.
+	_stuck = 0
+	_progress_cursor = -1
+	probe_clock = 0
+	if cursor+1<path.size() and population.segment_clear(global_position,path[cursor+1]):
+		cursor += 1
+	elif cursor==path.size()-1 and pending_door==null and distance<1.35 and population.segment_clear(global_position,path[cursor]):
+		# Public errands can finish on nearby clear footing when the exact marker
+		# is occupied. Lobby thresholds still require their complete doorway path.
+		arrived()
+	else:
+		go_to(goal)
+		wait = 0.8

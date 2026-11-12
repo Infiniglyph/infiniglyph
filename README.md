@@ -271,6 +271,8 @@ stand. Hub benches, quarter benches and outer neighborhood park seats all use
 claimed seat anchors and checked standing positions, following the Infinite
 Library's seating pattern. Weapons stow while seated. Standing restores the
 original movement/collision state. Start > Unstick can also use a safe exit.
+Seated hips now sit 8 cm higher and 12 cm farther forward to improve clearance
+from the seat and backrest. Vehicle contacts use their existing anchors.
 
 The expanded world has **780 additional residents** (390 of each body profile,
 eleven colors), neighborhood walking/break routines, repeat greetings and
@@ -393,10 +395,10 @@ clearance at the closest setting. Its native Settings preview was also reviewed.
 The steering suite passes **147 checks at each of 30/60/120 Hz**; the theft suite
 passes **27 at each rate**, including native captures at 60 Hz. Charge/sparring,
 Greefer, lock/momentum, vehicle interactions, traffic and live-menu regressions
-also pass. The older civilian routine soak still detects a 5 cm curb overlap
-near `(40.78,-62.16)`. The identical contact reproduces with the previous
-`checkpoint-2026-11-10-city-life` game and the same test fixture; it remains a
-known civilian pathing issue.
+also pass. The earlier civilian curb-overlap issue is addressed by suppressing
+floor snap while a rounded heel is still supported by the curb edge. Both the
+160-second interaction soak and 300-second population-flow soak now pass their
+physical contact checks at 60 Hz.
 
 ## Canonical narrative reference
 
@@ -599,6 +601,28 @@ layer, separate from architecture queries and combat hurtboxes. The current
 populace is civilian ambient simulation; combat targets remain the sentries and
 Ember. Roles do not yet introduce a trading economy or quest system. Conversation
 memory and routines currently last for the running session.
+
+Occupied waypoints no longer leave pedestrians walking endless circles. The
+recovery check measures decreasing distance to the current waypoint, including
+cases where avoidance cancels movement entirely. After 2.5 seconds without
+progress, a pedestrian can bypass an intermediate point only over physically
+validated ground, finish a public errand on nearby clear footing, or retry the
+route. Doorway passages still require their complete entry path. Personal
+stopping offsets replace the shared final marker, and passing bias is bounded
+once per pedestrian instead of accumulating for every neighbour. Walking speed,
+physical collision, identities and the existing simulation budgets are retained.
+
+Rounded curb contacts also suppress downward floor snap until the heel clears
+the edge, preventing premature snapping into the side of the raised paving.
+
+`tests/resident_progress.gd` passes ten checks at 30/60/120 Hz and in a native
+Compatibility window: occupied intermediate points, an eight-person crowded
+stop, subsequent dispersal, curb descent, solid-wall clearance, walking speed,
+seated hip placement and safe standing. Native bench views are saved as
+`captures/routing_bench_side.png` and `captures/routing_bench_front.png`.
+The 300-second flow run circulated all 100 identities, with 124 entries and 141
+exits across all 22 buildings, no unsupported falls or contact-tolerance failures,
+and at most six pedestrians in a six-metre cell (seed 1893, 60 Hz).
 
 Body colors are randomized from violet, cyan, blue, purple, gold, orange, red,
 green, mint, pink and white, with small brightness variations. Every color family

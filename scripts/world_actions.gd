@@ -2,6 +2,8 @@ extends Node3D
 ## Shared contextual actions. Seats use the Library's claim/anchor/exit pattern.
 const Neon = preload("res://scripts/neon.gd")
 const MountedPose = preload("res://scripts/mounted_rider_pose.gd")
+const SEATED_HIP_LIFT := 0.08
+const SEATED_FORWARD_OFFSET := 0.12
 var actor: CharacterBody3D
 var session: Node
 var life: Node3D
@@ -66,7 +68,7 @@ func add_seat(volume: Dictionary) -> void:
 		forward = Vector3(-signf(at.x-center_x),0,0)
 	if forward.is_zero_approx(): forward = Vector3.RIGHT
 	forward = volume.get("forward",forward)
-	seats.append({"point":at+Vector3.UP*(shape.size.y*0.5+0.045),"forward":forward,"occupant":null})
+	seats.append({"point":at+Vector3.UP*(shape.size.y*0.5+0.045+SEATED_HIP_LIFT)+forward*SEATED_FORWARD_OFFSET,"forward":forward,"occupant":null})
 
 func attached() -> bool:
 	return not seat.is_empty() or is_instance_valid(vehicle)

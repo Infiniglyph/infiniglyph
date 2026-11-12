@@ -1,5 +1,14 @@
 # Recovering the first public checkpoint
 
+Occupied-waypoint recovery, curb-safe floor snapping and adjusted bench seating
+are preserved by
+`checkpoint-2026-11-12-resident-routes-seating` on
+`fix/resident-route-progress-seat-clearance`. Its verified complete-history
+bundle is `infiniglyph-resident-routes-seating-2026-11-12.bundle` in the parent
+workspace's `backups` directory. The checkpoint preserves resident identities,
+collision, simulation budgets, vehicle contacts and existing saves. Earlier
+recovery tags remain fixed.
+
 Falling upper-body Scribe inscriptions are preserved by
 `checkpoint-2026-11-11-upper-robe-glyphs` on `feat/upper-robe-inscriptions`.
 Its verified complete-history bundle is

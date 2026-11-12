@@ -353,6 +353,7 @@ func escape_stop(at: Vector3, source: Vector3) -> StringName:
 
 func steer(resident: CharacterBody3D, requested: Vector3) -> Vector3:
 	var result := requested
+	var passing := false
 	# Yield before physical contact; civilians never become immovable roadblocks.
 	for other: CharacterBody3D in resident.neighbours:
 		if not other.active: continue
@@ -363,12 +364,16 @@ func steer(resident: CharacterBody3D, requested: Vector3) -> Vector3:
 		if distance>0.001 and distance<1.15:
 			result += away/distance*(1.15-distance)*2.8
 			if requested.length()>0.1 and requested.normalized().dot(-away/distance)>0.2:
-				result += Vector3(requested.z,0,-requested.x).normalized()*0.85
+				passing = true
 	var away := resident.global_position-player.global_position
 	away.y = 0
 	if absf(resident.global_position.y-player.global_position.y)<1.8 and away.length()<1.7:
 		if away.length()<0.05: away = Vector3.RIGHT
 		result += away.normalized()*(1.7-away.length())*2.5
+		if requested.length()>0.1 and requested.normalized().dot(-away.normalized())>0.2: passing = true
+	# One passing bias, regardless of crowd size. Summing it per neighbour
+	# creates a persistent tangential force around occupied waypoints.
+	if passing: result += Vector3(requested.z,0,-requested.x).normalized()*0.85
 	result = result.limit_length(resident.speed*(1.5 if resident.reaction_time>0 else 1.0))
 	if result.length()<0.03: return Vector3.ZERO
 	if resident.probe_clock>0 and result.normalized().dot(resident.probe_requested)>0.85:
