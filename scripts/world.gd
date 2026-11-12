@@ -19,6 +19,8 @@ const WorldActions = preload("res://scripts/world_actions.gd")
 const DistrictLife = preload("res://scripts/district_life.gd")
 const TheftReactions = preload("res://scripts/theft_reactions.gd")
 const GraphicsSettings = preload("res://scripts/graphics_settings.gd")
+const Starfield = preload("res://scripts/starfield.gd")
+const WindowLights = preload("res://scripts/window_lights.gd")
 var graphics: Node
 var theft_reactions: Node3D
 var world_actions: Node3D
@@ -48,8 +50,9 @@ var world_memory: Node3D
 func _ready() -> void:
 	var environment := WorldEnvironment.new()
 	var settings := Environment.new()
-	settings.background_mode = Environment.BG_COLOR
-	settings.background_color = Color(0.001,0.003,0.008)
+	settings.background_mode = Environment.BG_SKY
+	settings.sky = Starfield.create()
+	settings.reflected_light_source = Environment.REFLECTION_SOURCE_DISABLED
 	settings.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	settings.ambient_light_color = Color(0.12,0.25,0.3)
 	settings.ambient_light_energy = 0.4
@@ -145,6 +148,9 @@ func _ready() -> void:
 		wider_world.encounter = boss_encounter
 		add_child(wider_world)
 		camera_rig.camera.far = 1800 # Keep the larger skyline/hills visible from Sky Jump height.
+	var windows := WindowLights.new()
+	add_child(windows)
+	windows.build(district,wider_world)
 	world_actions = WorldActions.new()
 	world_actions.actor = player
 	world_actions.session = inventory_session

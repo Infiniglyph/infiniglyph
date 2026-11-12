@@ -6,6 +6,7 @@ const Metropolis = preload("res://scripts/metropolis.gd")
 const Batcher = preload("res://scripts/static_visual_batcher.gd")
 var visual_batching_enabled := true
 var visual_batches: Node3D
+var facades: Array[Dictionary] = []
 const HALF_EXTENT := 112
 
 func _ready() -> void:
@@ -49,6 +50,7 @@ func _ready() -> void:
 		b.position = Vector3(spec.x,0.12,spec.y)
 		var front := Vector3(-signf(spec.x),0,0) if absf(spec.x)<32 else Vector3(0,0,-signf(spec.y) if absf(spec.y)<35 else signf(spec.y))
 		b.build(Vector3(spec.z,spec.w,spec.z),front,StringName("building_%02d" % (index+1)))
+		facades.append({"base":b.position,"size":Vector3(spec.z,spec.w,spec.z)})
 	# A broad stair route leads to the low north-east roof and a second terrace.
 	for step in range(12):
 		var height := (step+1)*0.25
@@ -81,6 +83,7 @@ func _ready() -> void:
 			if n == 0: continue # Continue the north/south avenues beyond the hub.
 			var height: float = 30.0 + abs(n)*8
 			Neon.block(self,Vector3(n*24,height*0.5,s*94),Vector3(14,height,14))
+			facades.append({"base":Vector3(n*24,0,s*94),"size":Vector3(14,height,14)})
 	add_child(Metropolis.new())
 	if visual_batching_enabled:
 		visual_batches = Batcher.new()

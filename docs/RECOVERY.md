@@ -1,5 +1,12 @@
 # Recovering the first public checkpoint
 
+Scattered warm window glow and the subtle static starfield are preserved by
+`checkpoint-2026-11-11-window-lights-stars` on `feat/window-lights-starfield`.
+Its verified complete-history bundle is
+`infiniglyph-window-lights-stars-2026-11-11.bundle` in the parent workspace's
+`backups` directory. These additions share static render batches and retain
+existing world collision and inventory saves. Earlier recovery tags stay fixed.
+
 Complete pose restoration after dismounting and deferred initial inventory
 loading are preserved by `checkpoint-2026-11-11-dismount-save-startup` on
 `fix/dismount-arms-inventory-startup`. Its verified complete-history bundle is

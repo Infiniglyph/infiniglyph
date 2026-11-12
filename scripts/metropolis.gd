@@ -18,6 +18,7 @@ var light_sources: Array[OmniLight3D] = []
 var tree_count := 0
 var banner_count := 0
 var skyline_count := 0
+var facades: Array[Dictionary] = []
 var render_batches := 0
 var walk_surfaces: Array[Dictionary] = []
 var guard_spans: Array[Dictionary] = []
@@ -419,6 +420,7 @@ func build_skyline() -> void:
 			var height := 48.0+float((i*19+(11 if side>0 else 0))%45)
 			var width := 10.0+float(i%3)*2
 			block(at+Vector3.UP*height*0.5,Vector3(width,height,width),"SkylineTower")
+			facades.append({"base":at,"size":Vector3(width,height,width)})
 			skyline_count += 1
 			block(at+Vector3.UP*(height+2),Vector3(width*0.65,4,width*0.65),"SkylineCrown")
 			beam(at+Vector3.UP*(height+4),at+Vector3.UP*(height+11),0.15,"SkylineAntenna")

@@ -54,6 +54,26 @@ only in their relevant context. Lost gear produces a short notice rather than
 persistent world coordinates; its physical pickup and ownership markers remain.
 Start, Settings and inventory continue to run the world without pausing.
 
+## Window glow and stars
+
+Selected windows glow warm orange throughout the hub, outer city, homes and
+farms. Their fixed occupancy and varied brightness keep most facades dark.
+The panes sit against the existing solid walls, above working lobby entrances;
+home panes fit the existing front-window frames. They share one material and
+163 opaque spatial batches for the full region, with no added realtime lights,
+shadows, collision bodies or per-frame animation work.
+
+The black sky contains 1,100 subtle blue-white specks in a single 2048 x 1024
+panorama, generated once at startup using a private random generator. Stars
+stay at infinity through camera travel and rotation. Existing ambient lighting
+is retained and sky reflections are disabled.
+
+`tests/window_lights.gd` audits batching, physical facade support, deterministic
+occupancy and lighting configuration. Run it with `-- --capture` on a native
+display to review `captures/night_*.png` and verify visible warm panes, sparse
+stars and zero sky parallax. Existing world traversal, graphics-budget and
+inventory-startup regressions also pass at 60 Hz.
+
 ## NPC visual attention
 
 TED-RAG-guided attention budgets NPC pose updates. Offscreen NPC poses skip
