@@ -1,5 +1,13 @@
 # Recovering the first public checkpoint
 
+Complete pose restoration after dismounting and deferred initial inventory
+loading are preserved by `checkpoint-2026-11-11-dismount-save-startup` on
+`fix/dismount-arms-inventory-startup`. Its verified complete-history bundle is
+`infiniglyph-dismount-save-startup-2026-11-11.bundle` in the parent workspace's
+`backups` directory. Valid existing inventories and outer-world drops keep the
+same save format and identities; startup now waits for their supporting world
+geometry. Earlier recovery tags and bundles remain fixed.
+
 Mounted contact poses, vehicle-safe robe fitting and the saved camera-distance
 slider are preserved by `checkpoint-2026-11-11-mounted-poses-camera` on
 `fix/mounted-poses-camera-distance`. Its verified complete-history bundle is

@@ -11,6 +11,7 @@ var vehicle: CharacterBody3D
 var glyph_count: Label
 var _layer := 1
 var _mask := 5
+var _attachment_pose: Dictionary = {}
 
 func _ready() -> void:
 	name = "WorldActions"
@@ -123,6 +124,15 @@ func begin_attachment() -> void:
 	actor.boost_active = false
 	actor.visual.clear_combat_pose()
 	actor.visual.rebase_after_phase()
+	# Vehicle IK writes all three rotation axes. Keep the complete local pose
+	# so locomotion cannot inherit elbow/shoulder twist after dismounting.
+	_attachment_pose.clear()
+	for node: Node3D in [actor.visual.pelvis,actor.visual.chest]:
+		_attachment_pose[node] = node.transform
+	for joint: Node3D in actor.visual.joints.values():
+		_attachment_pose[joint] = joint.transform
+		var hinge: Node3D = joint.get_node("Hinge")
+		_attachment_pose[hinge] = hinge.transform
 	actor.fall_damage.reset()
 
 func board(candidate: CharacterBody3D) -> bool:
@@ -194,6 +204,9 @@ func detach() -> void:
 	actor.collision_mask = _mask
 	actor.velocity = Vector3.ZERO
 	actor.visual.clear_combat_pose()
+	for node: Node3D in _attachment_pose:
+		if is_instance_valid(node): node.transform = _attachment_pose[node]
+	_attachment_pose.clear()
 	actor.visual.position = Vector3.ZERO
 	actor.visual.rotation.x = 0
 	actor.visual.rebase_after_phase()

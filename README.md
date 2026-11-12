@@ -272,6 +272,9 @@ and hands on the handlebars. Cars and trucks keep both feet in the pedal well.
 Traffic drivers use the same contacts in their existing mesh batches. Bike
 headlight lenses connect to a front fairing instead of floating ahead of the
 frame. None of these pose changes alter driving controls, speed or collision.
+Leaving a seat restores the complete local limb pose, including shoulder and
+elbow twist axes, before locomotion resumes. Mounted IK cannot leave the arms
+folded backward after dismounting.
 Scribe coat tails fold over the belt and stream behind a bike's saddle, above
 the rear wheel. Enclosed cabins hide the long hems; stepping out restores them.
 
@@ -356,7 +359,7 @@ fighter limits, encounter isolation and hub identity reservations. Both accept
 `-- --hz=30` or `-- --hz=120` with a matching engine `--fixed-fps` value. The
 theft test accepts `-- --capture` for native reaction and combat screenshots.
 
-`tests/mounted_pose.gd` passes **93 checks at each of 30/60/120 Hz**, measuring
+`tests/mounted_pose.gd` passes **102 checks at each of 30/60/120 Hz**, measuring
 real limb endpoints, peg/pedal support, attached headlights, cabin roof and robe
 clearance, safe exits and stable contacts on distant roads. Native checks also
 inspect the traffic drivers' actual mesh batches; seven mounted captures were
@@ -747,6 +750,15 @@ Normal play saves these values in
 `user://settings_v1.cfg` when leaving settings/the menu or quitting. Script tools
 use explicit temporary setting paths so they do not alter normal user settings.
 Quit Game saves the local inventory/world checkpoint and settings before exit.
+
+An existing inventory checkpoint loads after the outer world has been built and
+its collision data has synchronized. Startup briefly gates local actions and
+saving while this transaction is pending; world time continues. A dropped item
+in the outer city consequently cannot make valid owned inventory fail to load
+merely because its supporting terrain was not built yet. Item identities,
+ownership, world-drop clearance and corrupt-file checks remain strict.
+`tests/inventory_startup.gd` verifies valid distant drops, owned clothing/glyphs,
+resumed autosave and unchanged corrupt sources with **20 checks at 30/60/120 Hz**.
 
 Unstick checks the actual full-height capsule and several supporting floor rays.
 It searches nearby clear ground, rejects narrow rail/post tops and low headroom,

@@ -177,6 +177,17 @@ func visible_tails() -> bool:
 		if not tail.is_visible_in_tree() or fabric_triangles(tail,p.visual).is_empty(): return false
 	return true
 
+func relaxed_arms() -> bool:
+	for side: String in ["Left","Right"]:
+		var arm: Node3D = p.visual.joints[side+"Arm"]
+		var hinge: Node3D = arm.get_node("Hinge")
+		var wrist: Vector3 = hinge.to_global(Vector3.DOWN*0.29)
+		var drop: float = (arm.global_position-wrist).dot(p.visual.global_basis.y)
+		if absf(arm.rotation.y)>0.02 or absf(hinge.rotation.y)>0.02 or absf(hinge.rotation.z)>0.02 or drop<0.45:
+			print("DISMOUNT ARMS: ",side," shoulder=",arm.rotation," elbow=",hinge.rotation," wrist drop=",drop)
+			return false
+	return true
+
 func shot(label: String, vehicle: Node3D, offset: Vector3, show_weapons: bool = false) -> void:
 	if not "--capture" in OS.get_cmdline_user_args(): return
 	if "--weapons-only" in OS.get_cmdline_user_args() and not show_weapons: return
@@ -318,6 +329,10 @@ func run() -> void:
 			check(actions.leave(),"Stationary "+kind+" still provides a collision-safe exit")
 			await frames(maxi(6,hz/3))
 			check(not actions.attached() and p.collision_layer==original_layer and p.collision_mask==original_mask and visible_tails(),"Exiting restores physical collision and all four on-foot tails")
+			check(relaxed_arms(),"Leaving "+kind+" restores relaxed shoulders and elbows without inherited IK twist")
+			if kind=="motorcycle" and is_zero_approx(heading):
+				await shot("bike_dismounted_front",p,Vector3(0.8,1.2,4.5),true)
+				await shot("bike_dismounted_side",p,Vector3(4.5,1.2,0.5),true)
 		# Clothing toggles use the same ownership/equipment route while mounted.
 		p.position = vehicle.to_global(Vector3(0,0,-2.0))
 		p.velocity = Vector3.ZERO

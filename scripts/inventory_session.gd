@@ -24,6 +24,8 @@ var _hint_clock := 0.0
 var _notice_time := 0.0
 var _exiting := false
 var _checkpoint_usable := true
+var _checkpoint_pending := false
+var _resume_gameplay := false
 var hint: Label
 var notice: Label
 var _loss_count := 0
@@ -83,21 +85,48 @@ func _ready() -> void:
 	layer.add_child(resident_dialogue)
 	resident_dialogue.hide()
 	if persistence_enabled and (FileAccess.file_exists(save_path) or FileAccess.file_exists(save_path+".bak")):
-		if not load_checkpoint():
-			_checkpoint_usable = false
-			# A corrupt checkpoint must not silently remint lost starter gear.
-			actor.inventory.restore({"version":1,"owner_id":actor.inventory.owner_id,"items":[],"equipment":{}})
-			persistence_enabled = false
-			show_notice("Inventory save could not be loaded; autosave stopped.",12)
+		_begin_initial_checkpoint_load()
 	elif not networked():
 		seed_demo_loot()
 	actor.inventory.changed.connect(_dirty)
-	if not networked() and _checkpoint_usable: actor.inventory.introduce_health_glyphs()
+	if not networked() and not _checkpoint_pending and _checkpoint_usable: actor.inventory.introduce_health_glyphs()
 	loot.changed.connect(_dirty)
 	loot.picked_up.connect(_picked_up)
 	loot.markers.changed.connect(_refresh_losses)
 	_refresh_losses()
 	_dirty()
+
+func _begin_initial_checkpoint_load() -> void:
+	if _checkpoint_pending or networked(): return
+	_checkpoint_pending = true
+	_loading = true
+	_resume_gameplay = controls.gameplay_enabled
+	controls.set_gameplay_enabled(false)
+	call_deferred("_load_initial_checkpoint")
+
+func _load_initial_checkpoint() -> void:
+	# This session enters the tree before the outer city is built. A valid save
+	# can contain a drop there, so wait for construction and a physics sync before
+	# validating its real support/clearance. Keep saves and local actions gated.
+	await get_tree().physics_frame
+	await get_tree().process_frame
+	if not is_inside_tree(): return
+	var loaded := load_checkpoint()
+	if not loaded:
+		_checkpoint_usable = false
+		# Corrupt/foreign data still fails closed without rewriting the source.
+		actor.inventory.restore({"version":1,"owner_id":actor.inventory.owner_id,"items":[],"equipment":{}})
+		persistence_enabled = false
+		show_notice("Inventory save could not be loaded; autosave stopped.",12)
+	_checkpoint_pending = false
+	_loading = false
+	var menu: Node = actor.get_parent().get("start_menu")
+	var menu_open: bool = is_instance_valid(menu) and menu.is_open
+	if _resume_gameplay and not menu_open and not ui.is_open and not shop.is_open:
+		controls.set_gameplay_enabled(true)
+	if loaded:
+		actor.inventory.introduce_health_glyphs()
+		_dirty()
 
 func _label(layer: CanvasLayer, at: Vector2, color: Color) -> Label:
 	var label := Label.new()
@@ -114,6 +143,7 @@ func _label(layer: CanvasLayer, at: Vector2, color: Color) -> Label:
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("inventory_toggle") and not event.is_echo():
 		get_viewport().set_input_as_handled()
+		if _checkpoint_pending: return
 		if is_instance_valid(actor.get_parent().get("start_menu")) and actor.get_parent().start_menu.is_open: return
 		if is_instance_valid(duel) and duel.dialogue_open: return
 		if is_instance_valid(boss_encounter) and boss_encounter.dialogue_open: return
@@ -134,6 +164,7 @@ func _closed() -> void:
 	_dirty()
 
 func can_talk() -> bool:
+	if _checkpoint_pending: return false
 	if ui.is_open or not controls.gameplay_enabled or duel.dialogue_open or duel.active: return false
 	if is_instance_valid(world_actions) and world_actions.attached(): return true
 	if is_instance_valid(boss_encounter):
@@ -176,7 +207,7 @@ func interact() -> void:
 			_resident_time = 5.5
 
 func _process(delta: float) -> void:
-	if not is_instance_valid(ui): return
+	if not is_instance_valid(ui) or _checkpoint_pending: return
 	if controls.consume_heal():
 		if controls.gameplay_enabled and not ui.is_open:
 			if loot.request_health_glyph(actor.inventory): show_notice("Health Glyph restored your light.")
@@ -226,7 +257,7 @@ func _refresh_losses() -> void:
 	_loss_count = entries.size()
 
 func _dirty() -> void:
-	if _exiting or not is_inside_tree() or _loading or not persistence_enabled or networked() or _save_queued: return
+	if _exiting or not is_inside_tree() or _loading or _checkpoint_pending or not persistence_enabled or networked() or _save_queued: return
 	_save_queued = true
 	call_deferred("_autosave")
 
@@ -235,7 +266,7 @@ func _autosave() -> void:
 	if is_inside_tree() and not _exiting and persistence_enabled and not networked(): save_checkpoint("",true)
 
 func save_checkpoint(path: String = "", silent: bool = false) -> bool:
-	if _exiting or not is_inside_tree(): return false
+	if _exiting or _loading or _checkpoint_pending or not is_inside_tree(): return false
 	if loot.transaction_active(): return false
 	if networked():
 		show_notice("Session ownership is saved by the host.")
