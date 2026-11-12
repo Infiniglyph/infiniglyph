@@ -2,6 +2,7 @@ extends SceneTree
 const Catalog = preload("res://scripts/item_catalog.gd")
 const Inventory = preload("res://scripts/inventory.gd")
 const Vehicle = preload("res://scripts/traffic_vehicle.gd")
+const Regions = preload("res://scripts/world_regions.gd")
 class Intent:
 	extends "res://scripts/player_input.gd"
 	func sample() -> void:
@@ -35,6 +36,7 @@ func button(code: int, pressed: bool = true) -> void:
 
 func shot(label: String, from: Vector3, to: Vector3) -> void:
 	if not "--capture" in OS.get_cmdline_user_args(): return
+	if "--parking-only" in OS.get_cmdline_user_args() and not label.begins_with("parking_"): return
 	var camera := Camera3D.new()
 	world.add_child(camera)
 	camera.global_position = from
@@ -177,7 +179,7 @@ func run() -> void:
 	check(women*2==life.resident_records.size() and colors.size()==11,"Additional population preserves 50/50 silhouettes and all eleven colors")
 	var parked: Dictionary = {}
 	for record: Dictionary in life.vehicle_records:
-		if not record.traffic:
+		if not record.traffic and maxf(absf(record.point.x),absf(record.point.z))<Regions.SUBURB_EDGE:
 			parked = record
 			break
 	check(not parked.is_empty(),"Parked vehicles occupy checked physical driveways")
@@ -232,6 +234,30 @@ func run() -> void:
 		await frames(hz*2)
 		await shot(kind,vehicle.global_position+Vector3(5,2.7,5),vehicle.global_position+Vector3.UP)
 		check(actions.leave() and actor.collision_mask==13 and actor.unstuck.clear_at(actor.global_position),"Stop and exit "+kind+" onto clear ground")
+		# Enter a real generated driveway from the street, across its 5 cm lip.
+		# The same body, driver and attachment are retained after the road test.
+		var parking: Vector3 = parked.point-Vector3.UP*0.12
+		vehicle.global_position = parking+Vector3(0,0.12,9)
+		vehicle.rotation.y = PI
+		vehicle.velocity = Vector3.ZERO
+		vehicle.signed_speed = 0
+		actor.global_position = vehicle.global_position+Vector3(2,0,0)
+		actor.velocity = Vector3.ZERO
+		await frames(ceili(hz*0.25))
+		check(actions.board(vehicle),"Board "+kind+" at an actual suburban driveway")
+		controls.move = Vector2(0,-0.25)
+		controls.look = Vector2(0.5,0)
+		for index in range(hz*5):
+			await frames(1)
+			if vehicle.global_position.z<parking.z+0.6: break
+		controls.move = Vector2.ZERO
+		controls.look = Vector2.ZERO
+		await frames(hz)
+		var parked_on_slab: Vector3 = vehicle.global_position-parking
+		check(absf(parked_on_slab.x)<0.1 and absf(parked_on_slab.z)<1.4 and parked_on_slab.y> -0.02 and parked_on_slab.y<0.02,"Park "+kind+" on the raised physical driveway with free camera orbit")
+		print("PARKING: ",kind," at=",vehicle.global_position," slab=",parking," offset=",parked_on_slab)
+		await shot("parking_"+kind,vehicle.global_position+Vector3(5,2.7,5),vehicle.global_position+Vector3.UP)
+		check(actions.leave() and actor.unstuck.clear_at(actor.global_position),"Leave parked "+kind+" onto checked clear footing")
 		vehicle.queue_free()
 		life.vehicles.erase(record.id)
 		await frames(3)

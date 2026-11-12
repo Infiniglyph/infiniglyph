@@ -17,6 +17,8 @@ var top_speed := 19.0
 # parking/intersection turn does not become a twitchy high-speed spin.
 @export_range(0.01,0.5,0.01) var steering_turn_per_meter := 0.22
 @export_range(0.1,4.0,0.1) var steering_max_yaw_rate := 2.1
+# Small ledges are traversable; taller obstacles still use the full body sweep.
+@export_range(0.0,0.6,0.01) var max_step_height := 0.35
 var dimensions := Vector3(1.85,1.8,4.1)
 var driver_visual: Node3D
 var wheel_nodes: Array[Node3D] = []
@@ -33,6 +35,9 @@ var _pose_clock := 0.0
 var _wheel_solids: MultiMesh
 var _wheel_wires: MultiMesh
 var _wheel_sides: Array[float] = []
+var _step_obstacle := KinematicCollision3D.new()
+var _step_landing := KinematicCollision3D.new()
+var _step_ceiling := KinematicCollision3D.new()
 static var wheel_mesh: CylinderMesh
 static var rim_meshes: Dictionary = {}
 
@@ -241,6 +246,39 @@ func update_wheels() -> void:
 		_wheel_solids.set_instance_transform(i,wheel.transform*Transform3D(Basis(Vector3.FORWARD,PI*0.5),Vector3.ZERO))
 		_wheel_wires.set_instance_transform(i,wheel.transform*Transform3D(Basis.from_scale(Vector3(_wheel_sides[i],1,1)),Vector3.ZERO))
 
+func _static_ground(contact: KinematicCollision3D, index: int = 0) -> bool:
+	var collider := contact.get_collider(index)
+	return collider is StaticBody3D and (collider.collision_layer & 1)!=0
+
+func _climb_curb(motion: Vector3) -> bool:
+	# Never turn an airborne wall contact into an extra jump. Ordinary ramps
+	# already slide along their floor normal and do not need a curb correction.
+	if max_step_height<=0 or not is_on_floor() or velocity.y>0 or motion.length_squared()<0.000001: return false
+	if not test_move(global_transform,motion,_step_obstacle): return false
+	var ledge := false
+	for index in range(_step_obstacle.get_collision_count()):
+		if _step_obstacle.get_normal(index).y>=cos(floor_max_angle): continue
+		if not _static_ground(_step_obstacle,index): return false
+		ledge = true
+	if not ledge: return false
+	# Check the whole body, including the roof, throughout the lift and travel.
+	# A low ceiling can reduce the available lift while still admitting a curb.
+	var clearance := max_step_height
+	if test_move(global_transform,Vector3.UP*clearance,_step_ceiling):
+		clearance = minf(clearance,_step_ceiling.get_travel().y-safe_margin*2)
+	if clearance<=safe_margin: return false
+	var raised := global_transform.translated(Vector3.UP*clearance)
+	if test_move(raised,motion): return false
+	raised.origin += motion
+	if not test_move(raised,Vector3.DOWN*(clearance+0.02),_step_landing): return false
+	if not _static_ground(_step_landing) or _step_landing.get_normal().y<cos(floor_max_angle): return false
+	var rise := clearance+_step_landing.get_travel().y+safe_margin*2
+	if rise<=safe_margin or rise>max_step_height or rise>clearance: return false
+	# Only lift by the measured curb height; normal movement supplies all
+	# forward travel. This neither grants speed nor launches the vehicle.
+	move_and_collide(Vector3.UP*rise)
+	return true
+
 func _physics_process(delta: float) -> void:
 	var throttle := 0.0
 	var steering := 0.0
@@ -278,7 +316,9 @@ func _physics_process(delta: float) -> void:
 			# Include travel until the next sensor refresh. Swept body collision
 			# remains full-rate and authoritative even if an obstacle appears late.
 			_probe_box.size = Vector3(dimensions.x+0.25,1.25,2.0+absf(signed_speed)*0.45)
-			_probe.transform = Transform3D(global_basis,global_position+Vector3.UP*0.9+global_basis.z*(dimensions.z*0.5+_probe_box.size.z*0.5+0.3))
+			# Traffic should not brake for a low slab its grounded body can climb.
+			var probe_y := maxf(0.9,max_step_height+0.06+_probe_box.size.y*0.5)
+			_probe.transform = Transform3D(global_basis,global_position+Vector3.UP*probe_y+global_basis.z*(dimensions.z*0.5+_probe_box.size.z*0.5+0.3))
 			_blocked = not get_world_3d().direct_space_state.intersect_shape(_probe,1).is_empty()
 			sensor_checks += 1
 		if _blocked: desired = 0
@@ -287,7 +327,15 @@ func _physics_process(delta: float) -> void:
 	velocity.x = global_basis.z.x*signed_speed
 	velocity.z = global_basis.z.z*signed_speed
 	velocity.y = -0.4 if is_on_floor() else maxf(-30,velocity.y-22*delta)
+	var stepped := _climb_curb(Vector3(velocity.x,0,velocity.z)*delta)
+	var snap := floor_snap_length
+	if stepped:
+		# Let the leading edge move onto the tread before applying downward
+		# contact pressure; otherwise floor snap can undo a slow curb ascent.
+		velocity.y = 0
+		floor_snap_length = 0
 	move_and_slide()
+	floor_snap_length = snap
 	if is_on_wall():
 		# A sideways brush still permits forward sliding; only lost forward
 		# motion slows the vehicle. This avoids sticking beside a pedestrian.

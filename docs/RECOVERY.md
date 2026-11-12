@@ -1,5 +1,13 @@
 # Recovering the first public checkpoint
 
+Curb and raised-parking traversal for cars, bikes and trucks is preserved by
+`checkpoint-2026-11-12-vehicle-curbs-hills` on `fix/vehicle-curbs-hills`.
+Its verified complete-history bundle is
+`infiniglyph-vehicle-curbs-hills-2026-11-12.bundle` in the parent workspace's
+`backups` directory. The checkpoint retains vehicle-relative steering, existing
+slopes/gravity, rider contacts, saves and static world collision. Earlier tags
+and bundles stay fixed.
+
 Occupied-waypoint recovery, curb-safe floor snapping and adjusted bench seating
 are preserved by
 `checkpoint-2026-11-12-resident-routes-seating` on

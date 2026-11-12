@@ -314,6 +314,17 @@ Low/medium-speed steering now allows much tighter intersection turns: about a
 and partial stick steering remains proportional. `traffic_vehicle.gd` exposes
 `steering_turn_per_meter` (0.22) and `steering_max_yaw_rate` (2.1 rad/s) for tuning.
 
+Cars, motorcycles and trucks can climb small curbs and raised driveway slabs.
+`traffic_vehicle.gd` exposes `max_step_height` (0.35 m). Grounded movement checks
+the complete body's upward/forward clearance and a supported landing before
+lifting by the measured step height. Low ceilings limit the available lift;
+floor pressure/snap are suppressed for the ascent frame so a slow approach is
+not pulled back down. Taller walls, residents and other vehicles remain solid
+obstacles. Autonomous traffic's lookahead clears these low slabs too. Existing
+38-degree slope handling, acceleration, steering, speed limits and rider contacts
+are retained. Unsupported edges still use gravity; this is not a stunt/suspension
+or ramp-launch physics system.
+
 Stealing an occupied vehicle provokes its displaced driver. Up to six nearby,
 visible residents can also witness theft (including original hub residents).
 They use varied anti-human remarks and individual temperament-based **anger**;
@@ -372,6 +383,18 @@ bounded activation, real autonomous travel, support and a solid obstacle sweep.
 Native captures are available through `city_life.gd -- --capture`; add
 `--performance` for live frame-time/draw-call samples in urban/suburban/country
 views. Generated captures and personal saves are excluded from source backups.
+
+`tests/vehicle_terrain.gd` passes **63 checks at each of 30/60/120 Hz** using real
+car, motorcycle and truck bodies: 5/20/32 cm parking lips, reverse, diagonal and
+full-speed approaches, autonomous curb crossings, both fitting and obstructed low
+roofs, over-height walls, resident/vehicle obstacles, airborne side contacts,
+30-degree hill ascent/descent and unsupported drops. `tests/city_life.gd` also
+drives all three vehicles from the street into a real generated suburban
+driveway while orbiting the camera, then checks safe dismounts. Add
+`--capture --parking-only` to capture just its three parking views.
+The rendered city-life run passes **57 checks at 30 Hz**; all three parking
+captures were reviewed. Traffic flow passes **10 checks**, and the performance
+budget suite passes **29**, at 60 Hz.
 
 `tests/vehicle_controls.gd` checks vehicle-relative directions at four headings,
 camera orbit, analog throttle, reverse and live menus for all three vehicle
