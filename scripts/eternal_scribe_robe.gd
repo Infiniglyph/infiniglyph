@@ -16,6 +16,7 @@ const VIOLET := Color("d97bff")
 const GOLD := Color("ffc95c")
 const FABRIC := Color("080b13")
 const FABRIC_HIGHLIGHT := Color("111827")
+const JACKET_LEVELS := [Vector3(0.165, -0.49, 0.105), Vector3(0.18, -0.31, 0.125), Vector3(0.22, -0.15, 0.14), Vector3(0.245, 0.03, 0.145)]
 
 var _traveler: CharacterBody3D
 var _figure: Node3D
@@ -33,6 +34,8 @@ var _glyph_base_scales: Array[float] = []
 var _glyph_phases: Array[float] = []
 var _glyph_colors: Array[Color] = []
 var _glyph_cycles: Array[int] = []
+var _glyph_surfaces: Array[Dictionary] = []
+var _upper_inscription_count := 0
 var _inscription_generation_count := 0
 var _front_inscription_count := 0
 var _trail_instance: MultiMeshInstance3D
@@ -131,6 +134,10 @@ func get_front_inscription_count() -> int:
 	return _front_inscription_count
 
 
+func get_upper_inscription_count() -> int:
+	return _upper_inscription_count
+
+
 func has_back_sigil() -> bool:
 	return find_child("InfiniglyphBackSigil", true, false) != null
 
@@ -179,7 +186,7 @@ func _build_body_layers() -> void:
 	add_child(_back_cloak)
 	# Open elliptical shell: a narrow waist, shaped chest and real side depth.
 	# The front slit exposes the light being rather than covering it with a slab.
-	var levels := [Vector3(0.165, -0.49, 0.105), Vector3(0.18, -0.31, 0.125), Vector3(0.22, -0.15, 0.14), Vector3(0.245, 0.03, 0.145)]
+	var levels := JACKET_LEVELS
 	var vertices := PackedVector3Array()
 	for row in range(levels.size() - 1):
 		for segment in range(12):
@@ -440,6 +447,7 @@ func _build_inscriptions() -> void:
 				colors[index], index, 0.43 + float(row) * 0.025, float(index) * 1.047
 			)
 	_build_front_inscriptions()
+	_build_upper_inscriptions()
 
 
 func _build_front_inscriptions() -> void:
@@ -467,6 +475,34 @@ func _build_front_inscriptions() -> void:
 			_front_inscription_count += 1
 
 
+func _build_upper_inscriptions() -> void:
+	var colors := [CYAN, VIOLET, SILVER_BLUE, GOLD, SILVER, CYAN]
+	# Flow around the fitted shell, leaving the front opening and central back
+	# sigil clear. Each stream stays on the curved cloth as it falls.
+	for lane in range(6):
+		var angle: float = [-2.48,2.48,-1.50,1.50,-1.15,1.15][lane]
+		for row in range(2):
+			var index := lane*2+row
+			_register_living_inscription(
+				_back_cloak,"UpperTorsoInscription%02d" % (index+1),
+				Vector3(0,-0.09-row*0.19,0),colors[lane],index+3,
+				0.34,float(index)*0.77,{"kind":"jacket","angle":angle}
+			)
+	# Both faces of each articulated sleeve carry a smaller falling stream.
+	# Their paths stop short of the shoulder caps, cuffs and exposed hands.
+	for index in range(_sleeves.size()):
+		var sleeve: Dictionary = _sleeves[index]
+		for face in [-1,1]:
+			_register_living_inscription(
+				sleeve.node,"SleeveInscription%s" % ("Front" if face<0 else "Back"),
+				Vector3.ZERO,colors[(index+2)%colors.size()],index+face+5,
+				0.28,float(index)*1.1+face*0.8,
+				{"kind":"sleeve","angle":face*PI*0.5,"length":sleeve.length,
+				"top":-0.10 if sleeve.length>0.29 else -0.05,
+				"bottom":-0.24 if sleeve.length>0.29 else -0.17}
+			)
+
+
 func _register_living_inscription(
 	parent: Node3D,
 	label: String,
@@ -474,7 +510,8 @@ func _register_living_inscription(
 	color: Color,
 	symbol_index: int,
 	base_scale: float,
-	phase: float
+	phase: float,
+	surface: Dictionary = {}
 ) -> void:
 	var glyph := _make_living_glyph(symbol_index, color)
 	glyph.name = label
@@ -487,6 +524,8 @@ func _register_living_inscription(
 	_glyph_phases.append(phase)
 	_glyph_colors.append(color)
 	_glyph_cycles.append(-1)
+	_glyph_surfaces.append(surface)
+	if not surface.is_empty(): _upper_inscription_count += 1
 
 
 func _build_back_sigil() -> void:
@@ -700,10 +739,39 @@ func _update_living_inscriptions() -> void:
 			0.0
 		)
 		glyph.rotation.z = sin(_elapsed * 0.27 + phase) * 0.08
+		if not _glyph_surfaces[index].is_empty():
+			_fit_inscription_surface(glyph,_glyph_surfaces[index],base,descent,phase)
 		var pulse := 0.88 + (0.5 + 0.5 * sin(_elapsed * 1.15 + phase)) * 0.18
 		glyph.scale = Vector3.ONE * (
 			_glyph_base_scales[index] * pulse * maxf(0.04, edge_visibility)
 		)
+
+
+func _fit_inscription_surface(glyph: Node3D, surface: Dictionary, base: Vector3, descent: float, phase: float) -> void:
+	var angle: float = surface.angle+sin(_elapsed*0.43+phase)*0.035
+	var point: Vector3
+	var normal: Vector3
+	if surface.kind=="jacket":
+		var height := base.y+lerpf(0.04,-0.09,descent)
+		var profile: Vector3 = JACKET_LEVELS[0]
+		for row in range(JACKET_LEVELS.size()-1):
+			var low: Vector3 = JACKET_LEVELS[row]
+			var high: Vector3 = JACKET_LEVELS[row+1]
+			if height>high.y: continue
+			profile = low.lerp(high,clampf((height-low.y)/(high.y-low.y),0.0,1.0))
+			break
+		point = _jacket_point(profile,angle)
+		normal = Vector3(sin(angle)/profile.x,0,cos(angle)/profile.z).normalized()
+	else:
+		var height := lerpf(surface.top,surface.bottom,descent)
+		var radius := lerpf(0.069,0.056,clampf((0.018-height)/(0.018+surface.length),0.0,1.0))
+		normal = Vector3(cos(angle),0,sin(angle))
+		point = normal*radius+Vector3.UP*height
+	# The plane's +Z points away from the cloth. A small offset keeps thin lines
+	# clear of the faceted fabric without turning inscriptions into floating props.
+	glyph.position = point+normal*0.008
+	var tangent := Vector3(normal.z,0,-normal.x)
+	glyph.basis = Basis(tangent,Vector3.UP,normal)*Basis(Vector3.BACK,sin(_elapsed*0.27+phase)*0.08)
 
 
 func _update_trail(motion_velocity: Vector3) -> void:

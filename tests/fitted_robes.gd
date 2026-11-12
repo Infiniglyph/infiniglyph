@@ -79,7 +79,7 @@ func tail_tips() -> PackedVector3Array:
 		result.append(p.visual.pelvis.to_local(tail.to_global(Vector3(shell.get_center().x,shell.position.y,shell.get_center().z))))
 	return result
 
-func shot(label: String, local_offset: Vector3) -> void:
+func shot(label: String, local_offset: Vector3, target_height: float = 1.02) -> void:
 	if not "--capture" in OS.get_cmdline_user_args(): return
 	var was_physics: bool = p.is_physics_processing()
 	var was_combat: bool = p.weapon_combat.is_physics_processing()
@@ -101,7 +101,7 @@ func shot(label: String, local_offset: Vector3) -> void:
 	world.add_child(camera)
 	camera.fov = 38
 	camera.global_position = p.visual.global_position+p.visual.global_basis*local_offset
-	camera.look_at(p.visual.global_position+Vector3.UP*1.02)
+	camera.look_at(p.visual.global_position+Vector3.UP*target_height)
 	camera.current = true
 	await frames(3)
 	await RenderingServer.frame_post_draw
@@ -170,7 +170,7 @@ func run() -> void:
 		tails_fitted = tails_fitted and absf(hip_point.y)<0.10 and absf(hip_point.x)<0.4
 	check(tails_fitted,"Each separate tail hangs from the hips with a narrow, leg-length hem")
 	check(attachments_safe() and finite_pose(),"Fitted sleeves articulate at both arm links and leave wrists and weapon grips anchored")
-	check(robe._glyph_nodes.size()==12 and robe.has_back_sigil() and robe.get_front_inscription_count()==6,"Twelve living inscriptions and the geometric back sigil survive the adaptation")
+	check(robe._glyph_nodes.size()==32 and robe.get_upper_inscription_count()==20 and robe.has_back_sigil() and robe.get_front_inscription_count()==6,"Twenty upper-body inscriptions join the twelve original tail glyphs and back sigil")
 	check(robe.get_trail_speck_count()==12 and robe.get_trail_symbol_count()==9,"Movement effects retain fixed speck and symbol pools")
 	var meshes: Array[MeshInstance3D] = garment_meshes()
 	var face_vertices := 0
@@ -185,6 +185,8 @@ func run() -> void:
 	await shot("front",Vector3(0.8,1.2,4.5))
 	await shot("back",Vector3(-0.9,1.2,-4.5))
 	await shot("side",Vector3(4.5,1.15,0.6))
+	await shot("upper_front",Vector3(0.35,1.4,2.3),1.35)
+	await shot("upper_back",Vector3(-0.35,1.4,-2.3),1.35)
 	var idle_tips := tail_tips()
 	controls.move = Vector2(0,-1)
 	controls.boost = true

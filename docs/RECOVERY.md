@@ -1,5 +1,13 @@
 # Recovering the first public checkpoint
 
+Falling upper-body Scribe inscriptions are preserved by
+`checkpoint-2026-11-11-upper-robe-glyphs` on `feat/upper-robe-inscriptions`.
+Its verified complete-history bundle is
+`infiniglyph-upper-robe-glyphs-2026-11-11.bundle` in the parent workspace's
+`backups` directory. Torso and sleeve streams reuse the existing inscription
+animation and stable mesh pool; clothing ownership and saves remain compatible.
+Earlier checkpoints stay fixed.
+
 The multicolor window palette is preserved by
 `checkpoint-2026-11-11-multicolor-windows` on `tweak/multicolor-window-lights`.
 Its verified complete-history bundle is

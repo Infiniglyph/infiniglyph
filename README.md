@@ -633,11 +633,15 @@ Library project into a fitted open jacket: a wrapped torso, narrow scholar's hoo
 and collar, articulated sleeves, a belt and a small hip tome. Four separate,
 angular coat tails follow the hips and legs through running, Sky Jump, sitting
 and mounted poses. Silver edges, the geometric back sigil, six front and six back
-living inscriptions, twelve pooled specks and nine trailing symbols retain the
+tail inscriptions, twenty falling inscriptions across the torso and articulated
+sleeves, twelve pooled specks and nine trailing symbols retain the
 Scribe's identity. Their +Z-facing fit follows this game's existing character
 rig. Motion drives visual flow only; there is no cloth physics, armor bonus,
 movement cost or additional collision. Symbol meshes are cached, and stable
-mesh instances preserve phase fades.
+mesh instances preserve phase fades. The upper inscriptions follow the wrapped
+jacket and sleeve surfaces, using the lower panels' mathematical/geometric
+symbol pool, colors, descent, pulse and regeneration cycle. Their paths leave
+the open front, central back sigil, shoulder caps, cuffs and hands clear.
 Unequipped clothing hides every sleeve and stops its process callback. Geometry
 is built only after the first equip, and the game has no runtime dependency on
 Infinite Library files, commands or saves.
@@ -653,10 +657,11 @@ window at 60 Hz. Another 411 inventory, store, combat-motion, grip and menu
 regression checks pass. Front/back clothing and both UI previews were reviewed.
 
 The fitted adaptation adds **21 checks at each of 30/60/120 Hz**, plus a native
-Compatibility run and seven reviewed front/back/side, running, Sky Jump, seated
-and motorcycle captures (`tests/fitted_robes.gd -- --capture`). It measures the
+Compatibility run and nine reviewed front/back/side, upper-body close-ups,
+running, Sky Jump, seated and motorcycle captures
+(`tests/fitted_robes.gd -- --capture`). It measures the
 actual wrapped fabric and limb attachments, independent tail motion and fixed
-mesh pools. The outfit uses 97 mesh instances and 942 fabric vertices; it adds
+mesh pools. The outfit uses 117 mesh instances and 942 fabric vertices; it adds
 no colliders and keeps the existing owned Body item.
 
 Press **View / Back / Select** (Godot `JOY_BUTTON_BACK`, button 4) or keyboard
