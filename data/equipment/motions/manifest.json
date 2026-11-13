@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "sets": {
+    "knife": {
+      "clips": 14,
+      "frames": 770
+    },
+    "edge": {
+      "clips": 18,
+      "frames": 959
+    },
+    "rapier": {
+      "clips": 24,
+      "frames": 1229
+    },
+    "cleaver": {
+      "clips": 14,
+      "frames": 724
+    },
+    "greatblade": {
+      "clips": 62,
+      "frames": 3185
+    },
+    "maul": {
+      "clips": 29,
+      "frames": 1389
+    },
+    "longcurve": {
+      "clips": 66,
+      "frames": 2846
+    },
+    "lance": {
+      "clips": 16,
+      "frames": 707
+    },
+    "crescent": {
+      "clips": 56,
+      "frames": 2807
+    },
+    "glaive": {
+      "clips": 92,
+      "frames": 4814
+    },
+    "reaper": {
+      "clips": 54,
+      "frames": 2668
+    },
+    "paired": {
+      "clips": 47,
+      "frames": 2585
+    },
+    "knuckles": {
+      "clips": 16,
+      "frames": 848
+    },
+    "filament": {
+      "clips": 56,
+      "frames": 2807
+    },
+    "conduit": {
+      "clips": 4,
+      "frames": 104
+    }
+  },
+  "named_weapons": 1716
+}

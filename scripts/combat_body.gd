@@ -166,6 +166,7 @@ func apply(delta: float, move: Dictionary, time: float, guarding: bool, kind: St
 			if not authored.is_empty():
 				rotation = authored.hip
 				chest = authored.chest
+				if authored.has("hip_offset"): offset += authored.hip_offset*envelope
 	elif guarding:
 		envelope = smoothstep(0,0.18,t)
 		offset = Vector3(0,-0.10,0.025)*envelope
@@ -209,6 +210,15 @@ func apply(delta: float, move: Dictionary, time: float, guarding: bool, kind: St
 			if plant_weight>0.001 and _sources.has(id):
 				var contact := foot_target(id,foot_side,side,width,stagger,t,windup,first,spin,rotary)
 				if not contact.is_empty():
+					if active and move.get("retargeted",false):
+						var authored := Motion.sample(move,t)
+						var key := "left_foot" if id=="LeftLeg" else "right_foot"
+						if authored.has(key):
+							var local: Vector3 = authored[key]
+							var floor := floor_contact(_stance_origin+_stance_basis*Vector3(local.x,0,local.z))
+							if not floor.is_empty():
+								contact.point = floor.point+Vector3.UP*maxf(0,local.y-.05)
+								contact.planted = local.y<.085
 					target = target.lerp(contact.point,plant_weight)
 					support_feet[id] = contact
 			var pole := visual.global_basis.z.rotated(Vector3.UP,hip_angles.y)

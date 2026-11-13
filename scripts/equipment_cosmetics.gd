@@ -2,6 +2,7 @@ extends Node3D
 ## Joint-mounted cosmetic shells. No collision, stat modifiers or process loop.
 const Database = preload("res://scripts/equipment_database.gd")
 const Geometry = preload("res://scripts/equipment_geometry.gd")
+const Garment = preload("res://scripts/equipment_garment.gd")
 var visual: Node3D
 var worn: Dictionary = {}
 var pieces: Dictionary = {}
@@ -19,6 +20,12 @@ func sync(inventory: Node) -> void:
 		var item := Database.get_item(id)
 		if item.is_empty(): continue
 		var g: Dictionary = item.geometry
+		if g.has("tailoring"):
+			var garment := Garment.new()
+			add_child(garment)
+			garment.configure(visual,item)
+			pieces[slot].append(garment)
+			continue
 		match String(slot):
 			"head": attach(slot,visual.chest,g,Vector3(0,.65,0))
 			"body":

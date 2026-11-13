@@ -43,6 +43,7 @@ static func _prepare() -> void:
 		var properties := {"equipment_id":entry.id,"family":entry.family,"rarity":entry.rarity,"glyph_coin_value":entry.value,"acquisition":entry.acquisition,"effects":entry.effects}
 		if entry.category=="weapons": properties.weapon_slot = entry.slot
 		else: properties.cosmetic_slot = entry.slot
+		if entry.has("legacy_slot"): properties.legacy_cosmetic_slot = entry.legacy_slot
 		_add(StringName(entry.id),entry.name,entry.description,StringName(entry.category),1,true,true,true,properties)
 
 static func get_definition(id: StringName) -> Resource:

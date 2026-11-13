@@ -92,7 +92,7 @@ func run() -> void:
 	check(inventory.eligible_equipped().has(iid),"Equipped clothing follows the existing transferable-gear death/drop rules")
 	ui.select_tab(1)
 	ui._select_row(4)
-	check(ui.equipment_buttons.size()==5 and ui.selected_iid==iid and ui._meta_label.text.contains("COSMETICS"),"The Equipment tab exposes the Body slot with the worn robe")
+	check(ui.equipment_buttons.size()==11 and ui.selected_iid==iid and ui._meta_label.text.contains("COSMETICS"),"The Equipment tab exposes the Body slot with the worn robe")
 	await shot("inventory",Vector3(3,2,5))
 	ui.close_menu()
 	p.position = Vector3(0,0.15,6)

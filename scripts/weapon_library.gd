@@ -1,5 +1,6 @@
 extends RefCounted
 const Equipment = preload("res://scripts/equipment_database.gd")
+const NamedMoves = preload("res://scripts/equipment_moves.gd")
 ## Authored prototype moves: timing and damage are tuning data, not animation assets.
 const LOADOUTS := {
 	&"down":{"id":&"sword_shield","name":"Longsword + Shield","short":"Sword + Shield","color":Color(0.45,0.85,1),"guard":0.85},
@@ -17,6 +18,7 @@ static func loadout(slot: StringName) -> Dictionary:
 static func move(slot: StringName, action: StringName, combo: int = 0, aerial: bool = false) -> Dictionary:
 	var item := Equipment.get_item(slot)
 	if item.get("category")=="weapons":
+		if item.has("motion_set"): return NamedMoves.move(item,action,combo,aerial)
 		if item.has("moves"):
 			var key := String(action)+("_air" if aerial else "")
 			var sequence: Array = item.moves.get(key,[])
@@ -90,7 +92,7 @@ static func charged_move(slot: StringName, action: StringName, strength: float, 
 	var result := move(slot,action,combo,aerial).duplicate(true)
 	if result.is_empty() or strength<=0 or not String(action).begins_with("special_"): return result
 	var power := clampf(strength,0,1)
-	if result.has("motion"): result.motion_contact = float(result.hits[0])/float(result.duration)
+	if result.has("motion"): result.motion_contact = result.get("motion_contact",float(result.hits[0])/float(result.duration))
 	result.name = "Extended "+String(result.name)
 	result.damage = float(result.damage)*(1+0.65*power)
 	result.reach = float(result.reach)*(1+0.3*power)

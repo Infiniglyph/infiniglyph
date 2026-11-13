@@ -98,6 +98,7 @@ func run() -> void:
 	var inventory: Node = actor.inventory
 	var original_equipment: Dictionary = inventory.equipment.duplicate()
 	var start_count: int = inventory.count_type(&"sword_shield")
+	await tap_key(KEY_ENTER) # Weapons department
 	await tap_key(KEY_ENTER)
 	check(inventory.count_type(&"sword_shield")==start_count+1,"One keyboard selection grants exactly one sword and shield")
 	var spear_count: int = inventory.count_type(&"spear")
@@ -146,6 +147,8 @@ func run() -> void:
 	time_node.start()
 	await frames(hz/4)
 	check(elapsed[0] and not paused and not actor.dodge.active and actor.combat.charge_action==&"","World timers keep running and UI selections do not trigger combat")
+	await tap_pad(JOY_BUTTON_B)
+	check(shop.is_open and not shop.browser.visible,"B returns from a department to the exchange lobby")
 	await tap_pad(JOY_BUTTON_B)
 	check(not shop.is_open and world.controls.gameplay_enabled and not actor.dodge.active,"B leaves the shop without dodging")
 	world.controls.set_right_trigger(0)

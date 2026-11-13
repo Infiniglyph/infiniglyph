@@ -159,6 +159,7 @@ func restore(data: Variant) -> bool:
 		restored[item.instance_id] = item
 	var assignments: Dictionary = {}
 	var assigned: Dictionary = {}
+	var corrected_slots: Dictionary = {}
 	for key: Variant in data.equipment:
 		if not Instance.valid_text(key): return false
 		var slot := StringName(key)
@@ -166,9 +167,20 @@ func restore(data: Variant) -> bool:
 		if not slot in EQUIPMENT_SLOTS or not Instance.valid_text(iid) or not restored.has(String(iid)) or assigned.has(String(iid)): return false
 		var item: Resource = restored[String(iid)]
 		var definition: Resource = Catalog.get_definition(item.item_type_id)
-		if not fits_slot(definition,slot): return false
+		if not fits_slot(definition,slot):
+			# Six portrait labels were previously classified as Body. Preserve
+			# their ownership when loading that checkpoint and move the worn piece
+			# into its corrected slot if free. All other invalid slots still fail.
+			if definition.custom_properties.get("legacy_cosmetic_slot","")!=String(slot): return false
+			var corrected := StringName(definition.custom_properties.get("cosmetic_slot",""))
+			if not fits_slot(definition,corrected): return false
+			corrected_slots[corrected] = String(iid)
+			assigned[String(iid)] = true
+			continue
 		assignments[slot] = String(iid)
 		assigned[String(iid)] = true
+	for slot: StringName in corrected_slots:
+		if not assignments.has(slot): assignments[slot] = corrected_slots[slot]
 	owner_id = String(data.owner_id)
 	items = restored
 	equipment = assignments

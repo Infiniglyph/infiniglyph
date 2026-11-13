@@ -3,6 +3,7 @@ extends Node3D
 ## geometry and pooled inscriptions; no Library commands, services or saves.
 
 const LineGeometryScript = preload("res://scripts/robe_lines.gd")
+const GarmentSurface = preload("res://scripts/garment_surface.gd")
 
 const ROBE_ID := "eternal_scribe"
 const TRAIL_SPECK_COUNT := 12
@@ -853,21 +854,4 @@ func _make_fabric_surface(
 	vertices: PackedVector3Array,
 	color: Color
 ) -> MeshInstance3D:
-	var arrays := []
-	arrays.resize(Mesh.ARRAY_MAX)
-	arrays[Mesh.ARRAY_VERTEX] = vertices
-	var mesh := ArrayMesh.new()
-	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-	var material := StandardMaterial3D.new()
-	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	material.cull_mode = BaseMaterial3D.CULL_DISABLED
-	material.albedo_color = color
-	material.emission_enabled = true
-	material.emission = color.lightened(0.025)
-	material.emission_energy_multiplier = 0.55
-	mesh.surface_set_material(0, material)
-	var surface := MeshInstance3D.new()
-	surface.name = label
-	surface.mesh = mesh
-	surface.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	return surface
+	return GarmentSurface.surface(label,vertices,color)

@@ -100,9 +100,9 @@ func _build() -> void:
 	scroll.add_child(box)
 	box.add_child(_label("TOWER EXCHANGE",26))
 	box.add_child(_label("Central tower  /  All items currently free",16))
-	for id: StringName in ITEMS:
-		_add_button(box,"",func(): buy(id))
-	_add_button(box,"Browse equipment archive",open_browser)
+	_add_button(box,"WEAPONS  /  Named weapons and combat styles",func(): open_browser("weapons"))
+	_add_button(box,"ITEMS  /  Health Glyphs and keepsakes",func(): open_browser("items"))
+	_add_button(box,"ARMOUR  /  Clothing, plate and shields",func(): open_browser("armour"))
 	_status = _label("",16)
 	_status.custom_minimum_size.y = 52
 	_status.modulate = Color(1,0.66,0.28)
@@ -113,16 +113,17 @@ func _build() -> void:
 	browser.shop = self
 	_screen.add_child(browser)
 
-func open_browser() -> void:
+func open_browser(category: String = "weapons") -> void:
 	_main_panel.hide()
 	browser.show()
+	browser.set_category(category)
 	browser.refresh()
 	if not browser.buttons.is_empty(): browser.buttons[0].grab_focus()
 
 func close_browser() -> void:
 	browser.hide()
 	_main_panel.show()
-	_buttons[ITEMS.size()].grab_focus()
+	_buttons[["weapons","items","armour"].find(browser.category)].grab_focus()
 
 func _add_button(box: VBoxContainer, text: String, action: Callable) -> void:
 	var button := Button.new()
@@ -142,14 +143,7 @@ func _add_button(box: VBoxContainer, text: String, action: Callable) -> void:
 	_buttons.append(button)
 
 func refresh() -> void:
-	for i in range(ITEMS.size()):
-		var id: StringName = ITEMS[i]
-		var definition: Resource = Catalog.get_definition(id)
-		var entry := offer(id)
-		var price_text := "Unavailable"
-		if not entry.is_empty(): price_text = "FREE" if entry.price==0 else str(entry.price)+"  (coming later)"
-		_buttons[i].text = "%s  ·  %s  ·  Owned %d" % [definition.display_name,price_text,session.actor.inventory.count_type(id)]
-		_buttons[i].disabled = entry.is_empty() or entry.price!=0
+	if is_instance_valid(browser) and browser.visible: browser.refresh()
 
 func open_menu() -> void:
 	if is_open or not session.controls.gameplay_enabled or session.ui.is_open or not can_use(session.actor): return
@@ -181,7 +175,6 @@ func buy(id: StringName) -> bool:
 	if accepted:
 		_status.text = "Acquired %s. Added to inventory." % Catalog.get_definition(id).display_name
 		refresh()
-		if browser.visible: browser.refresh()
 	else: _status.text = "Item unavailable. Check your inventory space and distance to the tower."
 	return accepted
 

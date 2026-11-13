@@ -1,5 +1,13 @@
 # Recovering the first public checkpoint
 
+The named-weapon motion, fitted-armor and separate store departments are preserved
+by `checkpoint-2026-11-12-equipment-motion-tailoring` on
+`feat/equipment-motion-tailoring`. Its verified complete-history bundle is
+`infiniglyph-equipment-motion-tailoring-2026-11-12.bundle` in the parent workspace's
+`backups` directory. Generated motion banks and original runtime definitions are
+included. Private reference archives, decoder source, provenance and personal
+saves stay outside Git. Earlier tags remain immutable.
+
 The equipment catalog, named procedural moves and live Tower archive are
 preserved by `checkpoint-2026-11-12-equipment-library` on
 `feat/equipment-counterparts`. Its verified complete-history bundle is

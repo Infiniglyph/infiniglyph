@@ -425,16 +425,43 @@ physical contact checks at 60 Hz.
 
 ## Equipment library
 
-The [equipment library](docs/EQUIPMENT.md) adds 2,906 original reference
-counterparts and three named weapons: **The Fractured Moon**, **Event Horizon**
-and **The Last Argument**. At the central bipyramid, open **Tower Exchange →
-Browse equipment archive** to search, preview and acquire items for free.
-Equip owned weapons to the same four directions. Head, Body, Hands, Legs and
-Shield are cosmetic slots; two ring slots have no active effects. Named weapons
-have separate grounded/aerial combos and authored whole-body curves. Existing
-momentum damage, defenses, traversal, live menus and version-one saves remain.
-The linked guide records architecture, reference coverage, validation, measured
-content-load costs, limitations and how to add the next weapon through data.
+The [equipment library](docs/EQUIPMENT.md) contains 2,909 new definitions, including
+**1,716 named weapons**, 1,064 cosmetics and 129 rings. The original four starter
+weapons remain available. At the central bipyramid, Tower Exchange now opens
+separate **Weapons**, **Items** and **Armour** departments. Search, filter, preview
+and acquire items for free. Armour previews wear the actual garment on our rig.
+Health Glyphs are in Items; all menus keep the world running.
+
+Named weapons use sampled DAR-derived motion adapted to our existing skeleton:
+383 distinct reference clips supply 15 vocabularies, with individual combo/art
+orders, support grips, leverage, stance, tempo and loading. Related variants
+share motifs; these are not thousands of independently hand-keyed animations.
+Grounded, aerial and charged sequences preserve existing momentum damage,
+defenses, cancellations and free traversal. The Fractured Moon, Event Horizon
+and The Last Argument also receive the motion upgrade.
+
+All 371 wearable pieces now use fitted, articulated Scribe-derived construction:
+shaped torsos, layered plate, shoulders, sleeves, collars, headpieces, boots,
+split hems and capes. Reference silhouettes and fabric colors guide the cuts.
+Cloth trails behind a bike and tucks inside cars. Armor remains cosmetic.
+Six corrected head/hand/leg classifications migrate old equipment assignments
+without losing owned items. IDs and version-one saves remain compatible.
+
+| Equipment motion/tailoring verification | Result |
+| --- | --- |
+| Complete catalog, geometry and checkpoint | 14 checks passed |
+| Every named signature, all wearables, pulse timing and six save migrations | 15 checks passed |
+| All 15 motion cuts on the actual player rig | 31 checks at each of 30/60/120 Hz |
+| Combat, acquisition, saves and separate shop departments | 53 checks at each of 30/60/120 Hz, plus native 60 Hz |
+| Existing weapons / body motion / charged sparring / lock and momentum | 123 / 146 / 146 / 110 checks passed |
+| Defender exhaustion / responsive dodge / mounted poses | 36 / 68 / 102 checks passed |
+| Inventory model / UI / integration / Tower shop | 55 / 42 / 36 / 36 checks passed |
+| Scribe robe / fitted robe / performance budgets | 31 / 21 / 29 checks passed |
+
+The guide records architecture, reference coverage, source-rig assumptions,
+bounded caches, regeneration and remaining visual limits. Native captures also
+review eight garment cuts and all three shop departments. Existing source
+checkpoints remain available alongside this milestone.
 
 ## Canonical narrative reference
 

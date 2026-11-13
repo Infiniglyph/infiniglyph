@@ -23,6 +23,12 @@ static func valid(item: Dictionary) -> bool:
 	if not item.get("geometry") is Dictionary or not item.get("effects") is Array: return false
 	if not item.get("value") is float and not item.get("value") is int: return false
 	if item.kind=="named":
+		if item.has("motion_set"):
+			var recipe: Dictionary = item.motion_set
+			for key: String in ["leverage","tempo","stance","grip","weight"]:
+				if not recipe.get(key) is float and not recipe.get(key) is int: return false
+				if not is_finite(float(recipe[key])): return false
+			return item.category=="weapons" and item.id.length()<=128 and recipe.get("basic") is Array and recipe.basic.size()==6 and recipe.get("arts") is Array and recipe.arts.size()==4 and recipe.get("cut") in ["knife","edge","rapier","cleaver","greatblade","maul","longcurve","lance","crescent","glaive","reaper","paired","knuckles","filament","conduit"] and item.get("attachment") is Dictionary
 		if not item.get("moves") is Dictionary: return false
 		for action: String in ["attack_left","attack_right","special_x","special_y","special_rt_x","special_rt_y"]:
 			for suffix: String in ["","_air"]:

@@ -624,7 +624,8 @@ func apply_pose(delta: float) -> void:
 	var idle: bool = actor.is_on_floor() and Vector2(actor.velocity.x,actor.velocity.z).length()<0.1
 	var kind: StringName = loadout(actor.combat.selected_slot).id
 	var katana: bool = kind == &"katana" and not actor.combat.sheathed
-	if not katana: _katana_gripping = false
+	var shared_grip: bool = katana or (attacking and active_move.get("grip_mode")=="support")
+	if not shared_grip: _katana_gripping = false
 	var desired_weight := 1.0 if attacking or guarding or katana or recoil>0 else (0.45 if idle and not actor.combat.sheathed else 0.0)
 	_pose_weight = lerpf(_pose_weight,desired_weight,1-exp(-18*delta))
 	if attacking or guarding:
@@ -709,7 +710,7 @@ func apply_pose(delta: float) -> void:
 	if _kneel_remaining>0: apply_exhausted_body()
 	if _pose_weight>0.001:
 		var right_world := hand_world(right)
-		if katana:
+		if shared_grip:
 			var hand_local := Vector3(right.x,right.y-actor.visual.REST_HIP_HEIGHT,right.z)
 			if not _katana_gripping:
 				_katana_anchor = actor.visual.chest.to_local(rig.right_hand.global_position)
@@ -725,11 +726,11 @@ func apply_pose(delta: float) -> void:
 				right_world = r_shoulder+(right_world-r_shoulder).limit_length(0.575)
 				var support := right_world+hilt_offset
 				right_world += l_shoulder+(support-l_shoulder).limit_length(0.575)-support
-		solve_arm("RightArm",actor.visual.to_local(right_world),1.0 if katana else _pose_weight)
-		if not katana: solve_arm("LeftArm",actor.visual.to_local(hand_world(left)),_pose_weight)
+		solve_arm("RightArm",actor.visual.to_local(right_world),1.0 if shared_grip else _pose_weight)
+		if not shared_grip: solve_arm("LeftArm",actor.visual.to_local(hand_world(left)),_pose_weight)
 	rig.orient(_right_rotation,_left_rotation)
-	if katana:
-		if not attacking and not guarding and actor.is_on_floor(): clear_katana_tip()
+	if shared_grip:
+		if katana and not attacking and not guarding and actor.is_on_floor(): clear_katana_tip()
 		solve_arm("LeftArm",actor.visual.to_local(rig.right_hand.to_global(Vector3(0,-0.17,0))),1.0)
 
 func apply_recoil_body(amount: float) -> void:

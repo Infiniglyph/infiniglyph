@@ -20,13 +20,14 @@
     "bow": 12,
     "crossbow": 8,
     "shield": 693,
-    "head": 98,
-    "body": 102,
-    "hands": 82,
-    "legs": 89,
+    "head": 100,
+    "body": 96,
+    "hands": 85,
+    "legs": 90,
     "ring": 129
   },
   "named_demonstrations": 3,
   "source_rows": 2887,
-  "portrait_only": 19
+  "portrait_only": 19,
+  "named_weapons": 1716
 }

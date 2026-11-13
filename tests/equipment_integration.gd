@@ -157,7 +157,7 @@ func run() -> void:
 	await frames(hz/2)
 	shop.open_menu()
 	shop.open_browser()
-	check(shop.is_open and shop.browser.ids.size()==Database.all().size() and shop.browser.buttons.size()<=9 and not paused,"The live shop browses the complete catalog with a bounded row count")
+	check(shop.is_open and shop.browser.ids.size()==1720 and shop.browser.buttons.size()<=9 and not paused,"The Weapons department includes all named weapons and the four starters, with bounded rows")
 	await frames(3)
 	check(root.get_visible_rect().encloses(shop.browser.buttons[-1].get_global_rect()),"A complete browser page fits the viewport")
 	shop.browser.query.text = "The Fractured Moon"
@@ -180,6 +180,28 @@ func run() -> void:
 	shop.browser.query.text = ""
 	shop.browser.refresh()
 	await shot("shop")
+	var visited: Dictionary = {}
+	for category: String in ["weapons","items","armour"]:
+		var previous_model: Node3D = shop.browser.model
+		shop.open_browser(category)
+		var expected: Dictionary = {"weapons":1720,"items":130,"armour":1065}
+		var isolated: bool = shop.browser.ids.size()==expected[category]
+		for id: StringName in shop.browser.ids:
+			isolated = isolated and not visited.has(id)
+			visited[id] = true
+		check(isolated,"The "+category+" department contains its complete, separate selection")
+		if category=="items":
+			check(shop.browser.model!=previous_model and shop.browser.model.get_child_count()==3,"Changing departments rebuilds the Health Glyph preview instead of retaining a weapon")
+			var glyphs: int = p.inventory.count_type(&"health_glyph")
+			shop.browser.buttons[0].grab_focus()
+			shop._accept()
+			check(p.inventory.count_type(&"health_glyph")==glyphs+1,"Items department acquires exactly one Health Glyph per confirm")
+		if category=="armour":
+			shop.browser.show_item(&"eq_a_1121eea8")
+			await frames(4)
+			check(shop.browser.model is CharacterBody3D and shop.browser.model.get_child_count()==1,"Armour preview wears the real garment on our existing skeleton")
+		await shot("shop_"+category)
+	check(visited.size()==Database.all().size()+shop.ITEMS.size(),"Separate departments expose every offer without duplicates")
 	shop.close_menu()
 	var ui: CanvasLayer = world.inventory_session.ui
 	ui.open_menu()

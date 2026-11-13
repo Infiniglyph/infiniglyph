@@ -7,7 +7,18 @@ static func sample(move: Dictionary, elapsed: float) -> Dictionary:
 	var frames: Array = move.get("motion",[])
 	if frames.size()<2: return {}
 	var t := clampf(elapsed/maxf(0.01,float(move.duration)),0,1)
-	if move.has("motion_contact"):
+	if move.get("retargeted",false) and move.hits.size()>1:
+		# Repeat the source drive for each existing legitimate pulse, including
+		# the charged release's extra strike. Do not invent additional damage.
+		var contact := float(move.get("motion_contact",float(move.hits[0])/float(move.duration)))
+		for index in range(move.hits.size()):
+			var hit := float(move.hits[index])
+			var start := (float(move.hits[index-1])+hit)*.5 if index>0 else 0.0
+			var finish := (hit+float(move.hits[index+1]))*.5 if index<move.hits.size()-1 else float(move.duration)
+			if elapsed<=finish:
+				t = contact*clampf((elapsed-start)/maxf(.001,hit-start),0,1) if elapsed<=hit else contact+(1-contact)*clampf((elapsed-hit)/maxf(.001,finish-hit),0,1)
+				break
+	elif move.has("motion_contact"):
 		var first := float(move.hits[0])
 		var contact := float(move.motion_contact)
 		t = elapsed/maxf(.01,first)*contact if elapsed<=first else contact+(1-contact)*clampf((elapsed-first)/maxf(.01,float(move.duration)-first),0,1)
@@ -18,8 +29,13 @@ static func sample(move: Dictionary, elapsed: float) -> Dictionary:
 			a = frames[index-1]
 			b = frames[index]
 			break
-	var weight := smoothstep(float(a.t),float(b.t),t)
+	var weight := clampf((t-float(a.t))/maxf(.00001,float(b.t)-float(a.t)),0,1) if move.get("retargeted",false) else smoothstep(float(a.t),float(b.t),t)
 	var result: Dictionary = {}
 	for key: String in ["right","left","right_rotation","left_rotation","hip","chest"]:
 		result[key] = vector(a[key]).lerp(vector(b[key]),weight)
+	for key: String in ["hip_offset","left_foot","right_foot"]:
+		if a.has(key) and b.has(key): result[key] = vector(a[key]).lerp(vector(b[key]),weight)
+	if move.get("retargeted",false) and move.hits.size()>1 and t>.88:
+		for key: String in result:
+			if frames[0].has(key): result[key] = result[key].lerp(vector(frames[0][key]),smoothstep(.88,1,t))
 	return result
