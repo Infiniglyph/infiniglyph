@@ -224,7 +224,17 @@ func run() -> void:
 		if vehicle.signed_speed<3:
 			for index in range(vehicle.get_slide_collision_count()): print("DRIVE CONTACT: ",vehicle.get_slide_collision(index).get_collider()," normal=",vehicle.get_slide_collision(index).get_normal())
 		check(vehicle.global_position.distance_to(before)>5 and vehicle.signed_speed>3 and actor.global_position.distance_to(vehicle.to_global(Vector3(0,vehicle.seat_height-0.946,vehicle.seat_z)))<0.05,"Drive "+kind+" with continuous camera-following attachment")
-		check(not actions.leave(),"Moving "+kind+" prevents unsafe exit")
+		var carried: Vector3 = vehicle.velocity
+		check(actions.leave() and actor.velocity.is_equal_approx(carried) and vehicle.signed_speed>3,"Moving "+kind+" permits a clear exit with carried momentum")
+		# Reboard at rest to keep the existing steering and parked-exit checks
+		# independent of the new moving-exit behavior.
+		vehicle.signed_speed = 0
+		vehicle.velocity = Vector3.ZERO
+		controls.move = Vector2.ZERO
+		actor.global_position = vehicle.global_position+vehicle.global_basis.x*2
+		actor.velocity = Vector3.ZERO
+		await frames(3)
+		check(actions.board(vehicle),"Reboard "+kind+" after its moving exit")
 		if kind=="car":
 			controls.move = Vector2(0.5,-0.5)
 			var yaw: float = vehicle.rotation.y

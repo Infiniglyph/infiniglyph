@@ -1,5 +1,14 @@
 # Recovering the first public checkpoint
 
+Natural weapon-arm windups and moving vehicle exits are preserved by
+`checkpoint-2026-11-13-natural-arms-moving-exits` on
+`fix/natural-arm-windups-moving-exits`. Its verified complete-history bundle is
+`infiniglyph-natural-arms-moving-exits-2026-11-13.bundle` in the parent workspace's
+`backups` directory. Source hand/grip conventions and elbow bending are adapted
+in the visual layer, with a short interruptible return to ready. Vehicle exits
+retain actual velocity and swept collision checks. Saves, movement tuning and
+combat hit schedules remain compatible; earlier tags and bundles stay fixed.
+
 Forward-facing sampled swings, upright scythe stow, leg-following directional
 cloth flow and inventory equipment-type labels are preserved by
 `checkpoint-2026-11-13-forward-swings-cloth-flow` on

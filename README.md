@@ -286,9 +286,18 @@ system, household interiors or extra combat mechanics are implied.
 Tap **RT / G** beside a slow/stopped vehicle to drive it. Use **W/S or left-stick
 forward/back** to accelerate, brake and reverse, and **A/D or left-stick
 left/right** to steer. The right stick/mouse still controls the camera. Release
-the movement input to slow down; exit with **RT / G** once stopped. A moving
-vehicle or blocked exit refuses unsafe dismounts. Entering and leaving keeps
-the camera attached and restores the player's original capsule settings.
+the movement input to slow down. Exit with **RT / G** at any speed, including
+while airborne. You retain the vehicle's current velocity, and the abandoned
+vehicle coasts under its existing braking. Exits use clear capsule space and a
+swept route beside the vehicle; a solid wall can still block a dismount.
+Entering and leaving keeps the camera attached and restores the player's
+original capsule settings.
+
+`tests/moving_vehicle_exit.gd` passes 92 checks at each of 30/60/120 Hz for all
+three vehicle types, reverse/top speeds, coasting, airborne exits, blocked-door
+alternatives, collision-enclosed exits and attachment restoration. The updated
+city-life fixture passes 60 checks at 60 Hz; mounted poses, vehicle handling
+and the live Start/Unstick menu retain their existing regression coverage.
 
 Mounted limbs use vehicle-local hand and foot contacts. Motorcycles have a
 forward-leaning sport riding pose with rear-set pegs behind the hips, bent knees
@@ -442,8 +451,13 @@ and The Last Argument also receive the motion upgrade.
 
 Sampled swings now hinge forward through the actual smoothed torso pose,
 including turns, then blend back into locomotion during recovery. Movement,
-hit schedules and damage remain unchanged. Sheathed scythes carry head-up in
-the same back mount as spears; sword and katana mounts retain their angles.
+hit schedules and damage remain unchanged. Sampled hands and wrists use the
+figure's forward axis; extreme windups ease into a small rear shoulder load
+instead of reaching behind the back, while elbows bend relative to the moving
+chest. A short visual return to ready blends hand endpoints and elbow bends
+together, with immediate attack, guard and dodge interruption. Sheathed scythes
+carry head-up in the same back mount as spears; sword and katana mounts retain
+their angles.
 
 All 371 wearable pieces now use fitted, articulated Scribe-derived construction:
 shaped torsos, layered plate, shoulders, sleeves, collars, headpieces, boots,
@@ -466,6 +480,7 @@ assignment and menu controls remain visible at 720p.
 | Complete catalog, geometry and checkpoint | 14 checks passed |
 | Every named signature, all wearables, pulse timing and six save migrations | 15 checks passed |
 | All 15 motion cuts on the actual player rig, including forward contact lean | 46 checks at each of 30/60/120 Hz |
+| Natural arm workspace, continuous release, shared grips and immediate interruptions | 190 checks at each of 30/60/120 Hz |
 | Forward contact audit, moving headings and smooth release | 12 checks at each of 30/60/120 Hz; 568 reference contacts |
 | Scythe/pole stow, sword/katana/twin preservation and repeated equips | 78 checks passed |
 | Leg-follow, directional cloth flow, firm plate and mounted clearance | 17 checks at each of 30/60/120 Hz, plus 20 native checks |

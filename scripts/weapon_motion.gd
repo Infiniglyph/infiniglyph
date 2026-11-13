@@ -3,6 +3,14 @@ extends RefCounted
 static func vector(value: Array) -> Vector3:
 	return Vector3(value[0],value[1],value[2])
 
+static func rig_hand(point: Vector3) -> Vector3:
+	# The archived reference hand curves use -Z forward; our figure uses +Z.
+	# Keep the lateral/vertical gesture, with a small rear shoulder load rather
+	# than an arm-length reach behind the back on extreme source windups.
+	var hand := Vector3(point.x,point.y,-point.z)
+	if hand.z<-.04: hand.z = -.04-.04*(1-exp((hand.z+.04)/.04))
+	return hand
+
 static func sample(move: Dictionary, elapsed: float) -> Dictionary:
 	var frames: Array = move.get("motion",[])
 	if frames.size()<2: return {}
@@ -38,4 +46,11 @@ static func sample(move: Dictionary, elapsed: float) -> Dictionary:
 	if move.get("retargeted",false) and move.hits.size()>1 and t>.88:
 		for key: String in result:
 			if frames[0].has(key): result[key] = result[key].lerp(vector(frames[0][key]),smoothstep(.88,1,t))
+	if move.get("retargeted",false):
+		for hand: String in ["right","left"]:
+			result[hand] = rig_hand(result[hand])
+			# Reflect the grip frame as well as its path. Conjugating by the Z
+			# reflection preserves a proper rotation and the blade's cutting side.
+			var grip: Vector3 = result[hand+"_rotation"]
+			result[hand+"_rotation"] = Vector3(-grip.x,-grip.y,grip.z)
 	return result

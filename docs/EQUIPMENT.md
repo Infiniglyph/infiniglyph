@@ -50,6 +50,22 @@ belongs to the visual pose; movement vectors, facing, authored turns, hand paths
 and collision authority retain their existing roles. Starter animation handling
 is unchanged.
 
+Sampled hand paths and wrist frames are converted from the motion bank's -Z
+forward convention into the figure's +Z front at playback. Extreme windups ease
+into a small rear shoulder workspace instead of reaching an arm's length behind
+the back. Retargeted elbows use an outward, slightly forward bend relative to
+the animated chest, with a stable fallback for a degenerate pole direction.
+Existing contact schedules, charged/multi-hit retiming and recovery blending
+continue to control the sequence; this adjustment changes the presented pose.
+The return to ready blends shoulder-relative hand endpoints over 0.16 seconds.
+Named-arm IK blends the bend direction and reachable endpoints together, avoiding
+independent joint-rotation flips during airborne recovery. Low pose influence
+returns to the existing animated arm endpoints. A fresh attack, guard, dodge,
+reaction, weapon change or sheathe can take over immediately; this adds no
+combat recovery time or action lock.
+Raised shared grips follow a small forward arc during that return, avoiding
+the shoulder's near-zero reach while preserving the exact resting stance.
+
 Each named entry specifies its own basic and art clip order, leverage, support
 grip, tempo, stance width and loading weight. Three-stage basics work from either
 attack button, with separate compact airborne curves. Four arts use their own
@@ -206,6 +222,15 @@ torso lean while standing, advancing, backpedaling and facing different headings
 `weapon_stow.gd` checks registered scythes and representative long poles against
 the actual back mount, plus sword/katana/paired carry, unchanged drawn transforms
 and repeated equip/draw cycles.
+
+`natural_weapon_arms.gd` follows actual shoulder, elbow and wrist chains over
+all fifteen handling cuts, grounded and airborne combos, modified and charged
+arts, and multiple headings. It checks hand workspace, shared grips, anatomical
+lengths, unchanged move data and physics, and the half-second return to rest.
+Continuity is measured relative to the chest so a coherent torso turn is not
+mistaken for an independent elbow flip; world speeds remain diagnostic. Fresh
+attacks, timed guards, dodge and sheathing also interrupt that visual return.
+Close native captures inspect windup, contact, recovery and ready poses.
 
 `equipment_cloth_flow.gd` checks thigh support, pinned seams, flexible versus
 firm pieces, acceleration/turn response, stopping settlement, vehicle transitions,

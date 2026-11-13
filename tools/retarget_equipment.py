@@ -25,7 +25,9 @@ GROUPS = {'knife':['10001','11002'], 'edge':['10002','10048'],
           'paired':['11001','11004','11008','10027','70030','70031','70032','70033'],
           'knuckles':['11011','11012','11013'], 'filament':['11020'],
           'conduit':['10000','10034','10024']}
-C = np.array([[1,0,0],[0,0,1],[0,-1,0]],dtype=float) # source Z-up -> rig Y-up,+Z front
+# The existing bank convention is Y-up/-Z forward. Runtime weapon_motion
+# converts sampled hands/grips to the figure's +Z anatomical front once.
+C = np.array([[1,0,0],[0,0,1],[0,-1,0]],dtype=float)
 
 def rotation(q):
     x,y,z,w=np.asarray(q)/max(1e-8,np.linalg.norm(q))

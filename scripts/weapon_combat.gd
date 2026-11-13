@@ -14,6 +14,8 @@ const PARRY_WINDOW := 0.18
 const PARRY_FEEDBACK_TIME := 0.60
 const BASE_HEALTH := 1000.0
 const RECOIL_RECOVERY := 0.12
+const ARM_RELEASE_TIME := 0.16
+const ARM_BEND_SPEED := 18.0
 ## 50% extra damage at the established 10.2 m/s sprint. No aerial speed cap.
 @export var momentum_damage_gain := 0.5/10.2
 @export var rules: Resource = Rules.new()
@@ -71,6 +73,14 @@ var _full_charge_shown := false
 var _combo_cursor := 0
 var _combo_remaining := 0.0
 var _combo_item: StringName = &""
+var _arm_release_remaining := 0.0
+var _arm_release_key: StringName = &""
+var _arm_release_right := Vector3.ZERO
+var _arm_release_left := Vector3.ZERO
+var _natural_pole_weight := 0.0
+var _arm_bends: Dictionary = {}
+var _arm_reaches: Dictionary = {}
+var _arm_pose_delta := 0.0
 
 func _ready() -> void:
 	name = "WeaponCombat"
@@ -124,6 +134,10 @@ func charged_move(slot: StringName, action: StringName, strength: float) -> Dict
 
 func sync_rig() -> void:
 	var key := equipment_key(actor.combat.selected_slot)
+	if actor.combat.sheathed or key!=_arm_release_key:
+		_arm_release_remaining = 0
+		_arm_bends.clear()
+		_arm_reaches.clear()
 	if Equipment.is_weapon(key): rig.equip_item(key,actor.combat.sheathed)
 	else: rig.equip(actor.combat.resolve_slot(actor.combat.selected_slot),actor.combat.sheathed)
 
@@ -282,6 +296,11 @@ func cancel() -> void:
 	active_move = {}
 	_queued.clear()
 	actor.visual.clear_combat_pose()
+	if actor.dodge.active:
+		_arm_release_remaining = 0
+		_natural_pole_weight = 0
+		_arm_bends.clear()
+		_arm_reaches.clear()
 	body.release(actor.dodge.active)
 	if actor.dodge.active and parry_remaining>0:
 		parry_remaining = 0
@@ -599,10 +618,41 @@ func solve_arm(id: String, target_local: Vector3, weight: float) -> void:
 	var offset := target-arm.global_position
 	var distance := clampf(offset.length(),0.05,0.586)
 	var direction := offset.normalized()
+	if direction.is_zero_approx(): direction = actor.visual.chest.global_basis.z.normalized()
 	target = arm.global_position+direction*distance
 	var side := -1.0 if id == "LeftArm" else 1.0
-	var pole: Vector3 = actor.visual.global_basis*Vector3(side,-0.3,-0.1)
-	pole = (pole-direction*pole.dot(direction)).normalized()
+	var named: bool = Equipment.is_weapon(rig.selected)
+	var pole_frame: Basis = actor.visual.chest.global_basis if named else actor.visual.global_basis
+	var pole: Vector3 = pole_frame*Vector3(side,-0.3,0.25 if named else -0.1)
+	pole -= direction*pole.dot(direction)
+	if pole.length_squared()<.000001:
+		pole = pole_frame.z-direction*pole_frame.z.dot(direction)
+		if pole.length_squared()<.000001: pole = pole_frame.y-direction*pole_frame.y.dot(direction)
+	pole = pole.normalized()
+	if named:
+		# Blend the bend direction geometrically. Partial quaternion blends of
+		# the two IK links can flip their cancelling twists halfway to rest.
+		var base := hinge.global_position-arm.global_position
+		base -= direction*base.dot(direction)
+		if base.length_squared()>.000001:
+			var blended := base.normalized().slerp(pole,_natural_pole_weight)
+			if blended.length_squared()>.000001: pole = blended.normalized()
+		# Keep the presented elbow on a continuous bend plane. Fresh base/IK
+		# poles can become antipodal during an aerial return; never let their
+		# shortest-arc choice turn into a one-frame elbow flip.
+		if _arm_bends.has(id):
+			var previous: Vector3 = actor.visual.chest.global_basis*_arm_bends[id]
+			# Parallel transport preserves the bend's side as the hand passes
+			# across its old pole; direct projection can reverse its hemisphere.
+			var reach: Vector3 = actor.visual.chest.global_basis*_arm_reaches[id]
+			previous = Quaternion(reach.normalized(),direction)*previous
+			previous -= direction*previous.dot(direction)
+			if previous.length_squared()>.000001:
+				previous = previous.normalized()
+				var angle := atan2(direction.dot(previous.cross(pole)),clampf(previous.dot(pole),-1,1))
+				pole = previous.rotated(direction,clampf(angle,-ARM_BEND_SPEED*_arm_pose_delta,ARM_BEND_SPEED*_arm_pose_delta)).normalized()
+		_arm_bends[id] = actor.visual.chest.global_basis.inverse()*pole
+		_arm_reaches[id] = actor.visual.chest.global_basis.inverse()*direction
 	var along := (0.30*0.30-0.29*0.29+distance*distance)/(2*distance)
 	var upper := direction*along+pole*sqrt(maxf(0,0.30*0.30-along*along))
 	var up := -upper.normalized()
@@ -618,9 +668,14 @@ func solve_arm(id: String, target_local: Vector3, weight: float) -> void:
 
 func apply_pose(delta: float) -> void:
 	if visual_frozen(): return
+	_arm_pose_delta = maxf(0,delta)
 	var attacking := not active_move.is_empty()
 	var guarding: bool = actor.combat.blocking and not is_staggered()
 	var recoil := recoil_amount()
+	var natural: bool = attacking and active_move.get("retargeted",false)
+	var named: bool = Equipment.is_weapon(rig.selected)
+	var releasing: bool = not attacking and not guarding and recoil<=0 and not actor.combat.sheathed and not actor.dodge.active and rig.selected==_arm_release_key and _arm_release_remaining>0
+	var release_weight := smoothstep(0,ARM_RELEASE_TIME,_arm_release_remaining) if releasing else 0.0
 	var idle: bool = actor.is_on_floor() and Vector2(actor.velocity.x,actor.velocity.z).length()<0.1
 	var kind: StringName = loadout(actor.combat.selected_slot).id
 	var katana: bool = kind == &"katana" and not actor.combat.sheathed
@@ -628,6 +683,7 @@ func apply_pose(delta: float) -> void:
 	if not shared_grip: _katana_gripping = false
 	var desired_weight := 1.0 if attacking or guarding or katana or recoil>0 else (0.45 if idle and not actor.combat.sheathed else 0.0)
 	_pose_weight = lerpf(_pose_weight,desired_weight,1-exp(-18*delta))
+	_natural_pole_weight = maxf(_pose_weight,release_weight) if named else 0.0
 	if attacking or guarding:
 		var aim := aim_direction() if guarding else _facing
 		actor.visual.rotation.y = lerp_angle(actor.visual.rotation.y,atan2(aim.x,aim.z),1-exp(-22*delta))
@@ -710,6 +766,13 @@ func apply_pose(delta: float) -> void:
 	if _kneel_remaining>0: apply_exhausted_body()
 	if _pose_weight>0.001:
 		var right_world := hand_world(right)
+		var left_world := hand_world(left)
+		if named and not shared_grip:
+			# Match the existing pose influence using reachable endpoints, rather
+			# than independently blending upper/lower joint quaternions. In air,
+			# zero influence returns to the animated kick/cradle arm endpoints.
+			right_world = rig.right_hand.global_position.lerp(right_world,_pose_weight)
+			left_world = rig.left_hand.global_position.lerp(left_world,_pose_weight)
 		if shared_grip:
 			var hand_local := Vector3(right.x,right.y-actor.visual.REST_HIP_HEIGHT,right.z)
 			if not _katana_gripping:
@@ -717,6 +780,16 @@ func apply_pose(delta: float) -> void:
 				_katana_gripping = true
 			_katana_anchor = _katana_anchor.lerp(hand_local,1-exp(-30*delta))
 			right_world = actor.visual.chest.to_global(_katana_anchor)
+		if releasing:
+			# Only the visual handoff to ready is blended. Fresh attacks, guard,
+			# dodge and reactions take over immediately, without an action lock.
+			right_world = right_world.lerp(actor.visual.chest.to_global(_arm_release_right),release_weight)
+			left_world = left_world.lerp(actor.visual.chest.to_global(_arm_release_left),release_weight)
+			if shared_grip:
+				# Lower a raised two-hand grip around the shoulder, not straight
+				# through its IK singularity. Both ends retain their exact stance.
+				right_world += actor.visual.chest.global_basis.z*(.40*release_weight*(1-release_weight))
+		if shared_grip:
 			# Both wrists share one physical hilt. Clamp the shared grip into the
 			# overlap of both arm reaches before solving either chain.
 			var hilt_offset: Vector3 = actor.visual.chest.global_basis*Basis.from_euler(_right_rotation)*Vector3(0,-0.17,0)
@@ -726,12 +799,24 @@ func apply_pose(delta: float) -> void:
 				right_world = r_shoulder+(right_world-r_shoulder).limit_length(0.575)
 				var support := right_world+hilt_offset
 				right_world += l_shoulder+(support-l_shoulder).limit_length(0.575)-support
-		solve_arm("RightArm",actor.visual.to_local(right_world),1.0 if shared_grip else _pose_weight)
-		if not shared_grip: solve_arm("LeftArm",actor.visual.to_local(hand_world(left)),_pose_weight)
+		var arm_weight := 1.0 if named else _pose_weight
+		solve_arm("RightArm",actor.visual.to_local(right_world),1.0 if shared_grip else arm_weight)
+		if not shared_grip: solve_arm("LeftArm",actor.visual.to_local(left_world),arm_weight)
 	rig.orient(_right_rotation,_left_rotation)
 	if shared_grip:
 		if katana and not attacking and not guarding and actor.is_on_floor(): clear_katana_tip()
 		solve_arm("LeftArm",actor.visual.to_local(rig.right_hand.to_global(Vector3(0,-0.17,0))),1.0)
+	if natural:
+		# Shoulder-relative endpoints follow the recovering torso rather than
+		# being left behind it as the source yaw settles back into locomotion.
+		_arm_release_right = actor.visual.chest.to_local(rig.right_hand.global_position)
+		_arm_release_left = actor.visual.chest.to_local(rig.left_hand.global_position)
+		_arm_release_key = rig.selected
+		_arm_release_remaining = ARM_RELEASE_TIME
+	elif releasing:
+		_arm_release_remaining = maxf(0,_arm_release_remaining-delta)
+	else:
+		_arm_release_remaining = 0
 
 func apply_recoil_body(amount: float) -> void:
 	var visual: Node3D = actor.visual

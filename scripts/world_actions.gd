@@ -175,36 +175,65 @@ func exit_point(origin: Vector3, right: Vector3, excluded: RID = RID()) -> Dicti
 		if get_world_3d().direct_space_state.intersect_shape(query,1).is_empty() and actor.unstuck.broad_support(point): return {"point":point}
 	return {}
 
+func vehicle_exit_point(car: CharacterBody3D) -> Dictionary:
+	# Keep the capsule outside the whole vehicle, and sweep its route through
+	# nearby scenery. A far-side point must not let an exit cross a solid wall.
+	var origin: Vector3 = car.to_global(Vector3(0,0.12,car.seat_z))
+	var right: Vector3 = car.global_basis.x
+	var forward: Vector3 = car.global_basis.z
+	var end_clearance: float = car.dimensions.z*0.5+0.8
+	var offsets: Array[Vector3] = [right*1.9,-right*1.9,right*3.1,-right*3.1,forward*(end_clearance-car.seat_z),-forward*(end_clearance+car.seat_z)]
+	var space := get_world_3d().direct_space_state
+	var excluded: Array[RID] = [actor.get_rid(),car.get_rid()]
+	for offset: Vector3 in offsets:
+		var point := origin+offset
+		if car.is_on_floor():
+			var ray := PhysicsRayQueryParameters3D.create(point+Vector3.UP*2,point-Vector3.UP*3,1,excluded)
+			var hit := space.intersect_ray(ray)
+			if not hit.is_empty() and hit.normal.y>=0.7 and not hit.collider is CharacterBody3D:
+				var grounded: Vector3 = hit.position+Vector3.UP*0.04
+				if actor.unstuck.broad_support(grounded): point = grounded
+		# Airborne vehicles and a door beside an edge may have no floor. Exit
+		# at the current height instead of snapping to distant ground below.
+		var query: PhysicsShapeQueryParameters3D = actor.unstuck.query_at(point)
+		query.collision_mask = 13
+		query.exclude = [actor.get_rid()]
+		if not space.intersect_shape(query,1).is_empty(): continue
+		query.transform = actor.unstuck.query_at(origin).transform
+		query.exclude = excluded
+		query.motion = point-origin
+		var sweep := space.cast_motion(query)
+		if sweep[0]>=0.99999: return {"point":point}
+	return {}
+
 func leave() -> bool:
 	if not attached(): return false
-	if is_instance_valid(vehicle) and absf(vehicle.signed_speed)>2:
-		session.show_notice("Slow down to step out safely.")
-		return false
-	var origin: Vector3 = vehicle.global_position if is_instance_valid(vehicle) else seat.point
-	var right: Vector3 = vehicle.global_basis.x if is_instance_valid(vehicle) else seat.forward
-	var excluded: RID = vehicle.get_rid() if is_instance_valid(vehicle) else RID()
-	var result := exit_point(origin,right,excluded)
+	var leaving_vehicle := is_instance_valid(vehicle)
+	var result := vehicle_exit_point(vehicle) if leaving_vehicle else exit_point(seat.point,seat.forward)
 	if result.is_empty():
 		session.show_notice("Exit blocked. Move the vehicle or clear the space.")
 		return false
-	detach()
+	detach(leaving_vehicle)
 	actor.global_position = result.point
+	actor.fall_damage.reset()
 	actor.camera_rig.reset_follow()
 	return true
 
-func detach() -> void:
+func detach(carry_momentum: bool = false) -> void:
+	var inherited := Vector3.ZERO
 	if not seat.is_empty(): seat.occupant = null
 	seat = {}
 	if is_instance_valid(vehicle):
+		if carry_momentum: inherited = vehicle.velocity
 		vehicle.player_driver = null
-		vehicle.signed_speed = 0
+		if not carry_momentum: vehicle.signed_speed = 0
 		vehicle.record.taken = true
 		actor.camera_rig.arm.remove_excluded_object(vehicle.get_rid())
 	vehicle = null
 	actor.camera_rig.set_vehicle_mode(false)
 	actor.collision_layer = _layer
 	actor.collision_mask = _mask
-	actor.velocity = Vector3.ZERO
+	actor.velocity = inherited
 	actor.visual.clear_combat_pose()
 	for node: Node3D in _attachment_pose:
 		if is_instance_valid(node): node.transform = _attachment_pose[node]
