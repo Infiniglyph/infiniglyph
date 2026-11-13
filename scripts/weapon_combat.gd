@@ -8,6 +8,8 @@ const Trail = preload("res://scripts/blade_trail.gd")
 const Body = preload("res://scripts/combat_body.gd")
 const Rules = preload("res://scripts/combat_rules.gd")
 const Feedback = preload("res://scripts/impact_feedback.gd")
+const Equipment = preload("res://scripts/equipment_database.gd")
+const Motion = preload("res://scripts/weapon_motion.gd")
 const PARRY_WINDOW := 0.18
 const PARRY_FEEDBACK_TIME := 0.60
 const BASE_HEALTH := 1000.0
@@ -66,6 +68,9 @@ var _hud_time := 0.0
 var _katana_anchor := Vector3.ZERO
 var _katana_gripping := false
 var _full_charge_shown := false
+var _combo_cursor := 0
+var _combo_remaining := 0.0
+var _combo_item: StringName = &""
 
 func _ready() -> void:
 	name = "WeaponCombat"
@@ -95,18 +100,32 @@ func _build_presentation() -> void:
 func loadout(slot: StringName) -> Dictionary:
 	var resolved: StringName = actor.combat.resolve_slot(slot)
 	if resolved == &"": return {"id":&"unarmed","name":"Empty","short":"Empty","color":Color(0.35,0.55,0.6),"guard":0.0}
-	return Library.loadout(resolved)
+	return Library.loadout(equipment_key(slot))
+
+func equipment_key(slot: StringName) -> StringName:
+	var inventory: Node = actor.get("inventory")
+	if is_instance_valid(inventory):
+		var item: Resource = inventory.equipped_item(slot)
+		if item!=null and item.owner_id==inventory.owner_id and Equipment.is_weapon(item.item_type_id): return item.item_type_id
+	return actor.combat.resolve_slot(slot)
+
+func combo_for(key: StringName,action: StringName) -> int:
+	return _combo_cursor if action in [&"attack_left",&"attack_right"] and key==_combo_item and _combo_remaining>0 else 0
 
 func move_for(slot: StringName, action: StringName) -> Dictionary:
 	var resolved: StringName = actor.combat.resolve_slot(slot)
-	return Library.move(resolved,action) if resolved != &"" else {}
+	var key := equipment_key(slot)
+	return Library.move(key,action,combo_for(key,action),not actor.is_on_floor()) if resolved != &"" else {}
 
 func charged_move(slot: StringName, action: StringName, strength: float) -> Dictionary:
 	var resolved: StringName = actor.combat.resolve_slot(slot)
-	return Library.charged_move(resolved,action,strength) if resolved != &"" else {}
+	var key := equipment_key(slot)
+	return Library.charged_move(key,action,strength,combo_for(key,action),not actor.is_on_floor()) if resolved != &"" else {}
 
 func sync_rig() -> void:
-	rig.equip(actor.combat.resolve_slot(actor.combat.selected_slot),actor.combat.sheathed)
+	var key := equipment_key(actor.combat.selected_slot)
+	if Equipment.is_weapon(key): rig.equip_item(key,actor.combat.sheathed)
+	else: rig.equip(actor.combat.resolve_slot(actor.combat.selected_slot),actor.combat.sheathed)
 
 func aim_direction() -> Vector3:
 	if actor.target_lock.is_locked(): return actor.target_lock.facing()
@@ -245,6 +264,10 @@ func _on_charge_started(_action: StringName, _slot: StringName) -> void:
 func _begin(move: Dictionary) -> void:
 	if is_staggered(): return
 	active_move = move
+	if move.has("combo_next"):
+		_combo_cursor = int(move.combo_next)
+		_combo_item = StringName(move.item_id)
+		_combo_remaining = float(move.duration)+0.65
 	_pulse_targets.clear()
 	elapsed = 0
 	_facing = aim_direction()
@@ -253,6 +276,8 @@ func _begin(move: Dictionary) -> void:
 	changed.emit()
 
 func cancel() -> void:
+	_combo_cursor = 0
+	_combo_remaining = 0
 	actor.combat.cancel_charge()
 	active_move = {}
 	_queued.clear()
@@ -423,6 +448,7 @@ func advance_stagger(delta: float) -> void:
 		changed.emit()
 
 func _physics_process(delta: float) -> void:
+	_combo_remaining = maxf(0,_combo_remaining-delta)
 	advance_stagger(delta)
 	var world_actions: Node = actor.get("world_actions")
 	if is_instance_valid(world_actions) and world_actions.attached():
@@ -663,6 +689,13 @@ func apply_pose(delta: float) -> void:
 		var pose := katana_pose(attacking,guarding)
 		right = pose.hand
 		right_rotation = pose.rotation
+	if attacking and active_move.has("motion"):
+		var authored := Motion.sample(active_move,elapsed)
+		if not authored.is_empty():
+			right = authored.right
+			left = authored.left
+			right_rotation = authored.right_rotation
+			left_rotation = authored.left_rotation
 	if recoil>0:
 		right = right.lerp(Vector3(0.40,1.32,-0.08),recoil)
 		left = left.lerp(Vector3(-0.36,1.22,-0.10),recoil)

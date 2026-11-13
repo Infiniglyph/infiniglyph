@@ -1,5 +1,13 @@
 # Recovering the first public checkpoint
 
+The equipment catalog, named procedural moves and live Tower archive are
+preserved by `checkpoint-2026-11-12-equipment-library` on
+`feat/equipment-counterparts`. Its verified complete-history bundle is
+`infiniglyph-equipment-library-2026-11-12.bundle` in the parent workspace's
+`backups` directory. Original runtime definitions are included; local reference
+archives and the private analysis crosswalk remain outside Git. Existing item
+ownership and checkpoints keep their version-one format. Earlier tags stay fixed.
+
 Curb and raised-parking traversal for cars, bikes and trucks is preserved by
 `checkpoint-2026-11-12-vehicle-curbs-hills` on `fix/vehicle-curbs-hills`.
 Its verified complete-history bundle is

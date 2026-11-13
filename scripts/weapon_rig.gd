@@ -3,6 +3,9 @@ extends Node3D
 ## existing forearms. Back mounts follow the chest; the katana follows the hip.
 const Neon = preload("res://scripts/neon.gd")
 const Library = preload("res://scripts/weapon_library.gd")
+const Equipment = preload("res://scripts/equipment_database.gd")
+const Geometry = preload("res://scripts/equipment_geometry.gd")
+var _custom_key: StringName = &""
 var visual: Node3D
 var right_hand: Node3D
 var left_hand: Node3D
@@ -72,6 +75,49 @@ func equip(slot: StringName, stow: bool) -> void:
 		models[key].left.visible = key == slot and not stow
 		models[key].stowed.visible = key == slot and stow
 
+func equip_item(id: StringName, stow: bool) -> void:
+	var item := Equipment.get_item(id)
+	if item.is_empty(): return
+	if id!=_custom_key:
+		if models.has(_custom_key):
+			for key: String in ["right","left","stowed"]:
+				var node: Node3D = models[_custom_key][key]
+				node.get_parent().remove_child(node)
+				node.queue_free()
+			models.erase(_custom_key)
+		_custom_key = id
+		var geometry: Dictionary = item.geometry
+		var kind := StringName(item.combat_kind)
+		var right := Geometry.model(geometry)
+		right_hand.add_child(right)
+		var left := Node3D.new()
+		left_hand.add_child(left)
+		if kind==&"twin_blades":
+			var other := geometry.duplicate(true)
+			if other.get("asymmetric",false): other.length = float(other.length)*.78
+			left.add_child(Geometry.model(other))
+		var stored := Node3D.new()
+		(visual.pelvis if kind==&"katana" else visual.chest).add_child(stored)
+		stored.position = Vector3(-.29,.07,.14) if kind==&"katana" else Vector3(0,0,-.19)
+		var back := Geometry.model(geometry)
+		stored.add_child(back)
+		back.position = Vector3(.15,.34,0)
+		back.rotation.z = PI-.45
+		if kind==&"katana":
+			back.position = Vector3.ZERO
+			back.rotation = Vector3(-1.97,.10,0)
+		var stowed_blades: Array[Node3D] = [back]
+		if kind==&"twin_blades":
+			var second := geometry.duplicate(true)
+			if second.get("asymmetric",false): second.length = float(second.length)*.78
+			var other := Geometry.model(second)
+			stored.add_child(other)
+			other.position = Vector3(-.15,.34,0)
+			other.rotation.z = PI+.45
+			stowed_blades.append(other)
+		models[id] = {"right":right,"left":left,"stowed":stored,"stowed_blades":stowed_blades}
+	equip(id,stow)
+
 func orient(right: Vector3, left: Vector3) -> void:
 	orient_hand(right_hand,visual.chest.global_basis*Basis.from_euler(right))
 	orient_hand(left_hand,visual.chest.global_basis*Basis.from_euler(left))
@@ -86,8 +132,10 @@ func blade_segments() -> Array:
 	if sheathed or not models.has(selected): return []
 	var kind: StringName = Library.loadout(selected).id
 	var length := 1.74 if kind == &"spear" else (0.66 if kind == &"twin_blades" else 1.15)
+	var item := Equipment.get_item(selected)
+	if not item.is_empty(): length = float(item.geometry.length)
 	var result := [{"a":right_hand.global_position,"b":right_hand.to_global(Vector3(0,length,0))}]
-	if kind == &"twin_blades": result.append({"a":left_hand.global_position,"b":left_hand.to_global(Vector3(0,0.66,0))})
+	if kind == &"twin_blades": result.append({"a":left_hand.global_position,"b":left_hand.to_global(Vector3(0,length*(.78 if item.get("geometry",{}).get("asymmetric",false) else 1.0),0))})
 	return result
 
 func _triangle(a: Vector3, b: Vector3, c: Vector3) -> void:

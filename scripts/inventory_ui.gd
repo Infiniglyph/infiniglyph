@@ -2,11 +2,12 @@ extends CanvasLayer
 ## An event-driven inventory view; the world controller owns the local input gate.
 const Catalog = preload("res://scripts/item_catalog.gd")
 const Library = preload("res://scripts/weapon_library.gd")
+const Database = preload("res://scripts/equipment_database.gd")
 const CATEGORIES := [&"weapons",&"cosmetics",&"consumables",&"materials",&"key_items",&"misc"]
 const CATEGORY_NAMES := ["WEAPONS","ARMOR / COSMETICS","CONSUMABLES","MATERIALS","KEY ITEMS","MISCELLANEOUS"]
 const CATEGORY_GLYPHS := ["/|","<>" ,"+","#","*","::"]
 const DIRECTIONS := [&"up",&"left",&"right",&"down"]
-const EQUIPMENT_SLOTS := [&"up",&"left",&"right",&"down",&"body"]
+const EQUIPMENT_SLOTS := [&"up",&"left",&"right",&"down",&"body",&"head",&"hands",&"legs",&"shield",&"ring1",&"ring2"]
 const PAGE_SIZE := 8
 const CYAN := Color(0.12,0.9,0.96)
 const WHITE := Color(0.9,0.96,0.98)
@@ -42,6 +43,8 @@ var _repeat_timer := 0.0
 var _trigger_latched := {JOY_AXIS_TRIGGER_LEFT:false,JOY_AXIS_TRIGGER_RIGHT:false}
 var _screen: Control
 var _rows: VBoxContainer
+var _row_scroll: ScrollContainer
+var _scroll_queued := false
 var _category_column: VBoxContainer
 var _list_title: Label
 var _page_label: Label
@@ -193,10 +196,16 @@ func _build() -> void:
 	content.add_child(list_column)
 	_list_title = _label("",17,CYAN)
 	list_column.add_child(_list_title)
+	_row_scroll = ScrollContainer.new()
+	_row_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_row_scroll.follow_focus = true
+	_row_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	list_column.add_child(_row_scroll)
 	_rows = VBoxContainer.new()
+	_rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_rows.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_rows.add_theme_constant_override("separation",5)
-	list_column.add_child(_rows)
+	_row_scroll.add_child(_rows)
 	_empty_label = _label("",16,MUTED)
 	_empty_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_rows.add_child(_empty_label)
@@ -362,7 +371,16 @@ func refresh() -> void:
 	if tab_index==1: _refresh_equipment()
 	else: _refresh_items()
 	_inspect()
+	if tab_index==1 and not _scroll_queued:
+		_scroll_queued = true
+		call_deferred("_scroll_to_equipment")
 	_help.text = "A / ENTER: actions    B / ESC: back    LB / RB: tabs    LT / RT or LEFT / RIGHT: categories    F5: save"
+
+func _scroll_to_equipment() -> void:
+	_scroll_queued = false
+	if not is_open or tab_index!=1 or equipment_buttons.is_empty(): return
+	var button: Button = equipment_buttons[clampi(selected_index,0,equipment_buttons.size()-1)]
+	if is_instance_valid(button) and _row_scroll.is_ancestor_of(button): _row_scroll.ensure_control_visible(button)
 
 func _clear_rows() -> void:
 	for child in _rows.get_children():
@@ -397,7 +415,7 @@ func _refresh_items() -> void:
 	if visible_ids.is_empty():
 		_empty_label.show()
 		_empty_label.text = "No "+CATEGORY_NAMES[category_index].to_lower()+" in your field kit."
-		if category_index==1: _empty_label.text += "\n\nClothing can be equipped in Body."
+		if category_index==1: _empty_label.text += "\n\nWear equipment in its matching appearance slot."
 	for index in range(visible_ids.size()):
 		var iid := visible_ids[index]
 		var item: Resource = inventory.get_item(iid)
@@ -424,16 +442,17 @@ func _refresh_equipment() -> void:
 		var slot: StringName = EQUIPMENT_SLOTS[index]
 		var iid := String(inventory.equipment.get(slot,""))
 		visible_ids.append(iid)
-		var button := _button(String(slot).to_upper()+"    /    "+_item_name(iid),_select_row.bind(index),52)
+		var button := _button(String(slot).to_upper()+"    /    "+_item_name(iid),_select_row.bind(index),29)
+		button.add_theme_font_size_override("font_size",14)
 		button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		_rows.add_child(button)
 		_mark(button,index==selected_index)
 		equipment_buttons.append(button)
 	selected_iid = visible_ids[selected_index]
-	var note := _label("Any owned weapon can occupy a direction.\nEmpty directions cannot draw or attack.\nBody holds cosmetic clothing.",14,MUTED)
+	var note := _label("Four weapon directions. Armor and shields are cosmetic.\nRings have no active effects.",13,MUTED)
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_rows.add_child(note)
-	_page_label.text = "4 WEAPON DIRECTIONS / 1 CLOTHING SLOT"
+	_page_label.text = "4 WEAPONS / 5 COSMETICS / 2 RINGS"
 	_previous.disabled = true
 	_next.disabled = true
 	_actions_button.disabled = false
@@ -456,7 +475,7 @@ func _inspect() -> void:
 	if item==null or definition==null:
 		_name_label.text = "Empty slot" if tab_index==1 else "Nothing selected"
 		_meta_label.text = String(EQUIPMENT_SLOTS[selected_index]).to_upper() if tab_index==1 else CATEGORY_NAMES[category_index]
-		_description.text = "Choose Change to assign an owned weapon or clothing." if tab_index==1 else "Choose another category or pick up an item in the city."
+		_description.text = "Choose Change to assign owned equipment." if tab_index==1 else "Choose another category or pick up an item in the city."
 		_stats.text = ""
 		_arts.text = ""
 		_equipped.text = ""
@@ -465,6 +484,7 @@ func _inspect() -> void:
 	_meta_label.text = "%s   |   QTY %d   |   UPGRADE +%d" % [String(definition.category).replace("_"," ").to_upper(),item.quantity,item.upgrade_level]
 	_description.text = definition.description
 	var canonical := StringName(definition.custom_properties.get("weapon_slot",&""))
+	if Database.is_weapon(item.item_type_id): canonical = item.item_type_id
 	if not canonical.is_empty() and definition.category==&"weapons":
 		var left: Dictionary = Library.move(canonical,&"attack_left")
 		var right: Dictionary = Library.move(canonical,&"attack_right")
@@ -479,6 +499,10 @@ func _inspect() -> void:
 		_stats.text = "STACK LIMIT    %d\nDROP    %s     TRADE    %s" % [definition.max_stack,"YES" if definition.is_droppable else "NO","YES" if definition.is_tradeable else "NO"]
 		_arts.text = ("BODY CLOTHING\nCosmetic; movement and combat values stay unchanged." if definition.is_equippable else "Stored cosmetic pattern.") if definition.category==&"cosmetics" else "Stored in your field kit.\nNo use action is available for this item."
 	var slots := _equipped_slots(selected_iid)
+	if definition.custom_properties.get("cosmetic_slot")=="ring":
+		_arts.text = "RING APPEARANCE\nNo gameplay effects are configured."
+	elif definition.category==&"cosmetics" and definition.is_equippable:
+		_arts.text = String(definition.custom_properties.get("cosmetic_slot","body")).to_upper()+" APPEARANCE\nCosmetic; movement and combat values stay unchanged."
 	var names: Array[String] = []
 	for slot: StringName in slots: names.append(String(slot).to_upper())
 	_equipped.text = "ASSIGNED   "+", ".join(names) if not names.is_empty() else "NOT ASSIGNED"
@@ -490,7 +514,7 @@ func activate_selection() -> void:
 	if tab_index==1:
 		_target_slot = EQUIPMENT_SLOTS[selected_index]
 		_begin_modal(&"equipment","%s EQUIPMENT" % String(_target_slot).to_upper())
-		_modal_choice("CHANGE CLOTHING" if _target_slot==&"body" else "CHANGE WEAPON",_choose_weapon)
+		_modal_choice("CHANGE EQUIPMENT",_choose_weapon)
 		if not selected_iid.is_empty(): _modal_choice("UNEQUIP",func(): _unequip_slot(_target_slot))
 		_modal_choice("BACK",_close_modal)
 		return
@@ -499,7 +523,11 @@ func activate_selection() -> void:
 	if definition==null: return
 	_begin_modal(&"actions",definition.display_name)
 	if definition.category==&"weapons" and definition.is_equippable: _modal_choice("EQUIP TO DIRECTION",_choose_slot)
-	if definition.category==&"cosmetics" and definition.is_equippable: _modal_choice("WEAR IN BODY",_equip.bind(&"body",selected_iid))
+	if definition.category==&"cosmetics" and definition.is_equippable:
+		var slot := StringName(definition.custom_properties.get("cosmetic_slot","body"))
+		_modal_choice("WEAR IN "+String(slot).to_upper(),_equip.bind(slot,selected_iid))
+	if definition.custom_properties.get("cosmetic_slot")=="ring":
+		for slot: StringName in [&"ring1",&"ring2"]: _modal_choice("WEAR IN "+String(slot).to_upper(),_equip.bind(slot,selected_iid))
 	if not _equipped_slots(selected_iid).is_empty(): _modal_choice("UNEQUIP",_unequip_item)
 	if definition.is_droppable and definition.is_tradeable: _modal_choice("DROP",_choose_quantity)
 	if _modal_buttons.is_empty(): _modal_rows.add_child(_label("This item has no available actions.",15,MUTED))
@@ -546,7 +574,7 @@ func _choose_weapon() -> void:
 	# Weapon choice remains paged in the normal inventory for larger collections.
 	if choices.size()>8:
 		_modal_rows.add_child(_label("Choose an item in Inventory, then equip it.",15,MUTED))
-		_modal_choice("OPEN INVENTORY",func(): select_category(1 if _target_slot==&"body" else 0))
+		_modal_choice("OPEN INVENTORY",func(): select_category(0 if _target_slot in DIRECTIONS else (5 if _target_slot in [&"ring1",&"ring2"] else 1)))
 	else:
 		for iid: String in choices: _modal_choice(_item_name(iid),_equip.bind(_target_slot,iid))
 	if choices.is_empty(): _modal_rows.add_child(_label("No compatible owned items are available.",15,MUTED))

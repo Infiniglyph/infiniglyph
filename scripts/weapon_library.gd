@@ -1,4 +1,5 @@
 extends RefCounted
+const Equipment = preload("res://scripts/equipment_database.gd")
 ## Authored prototype moves: timing and damage are tuning data, not animation assets.
 const LOADOUTS := {
 	&"down":{"id":&"sword_shield","name":"Longsword + Shield","short":"Sword + Shield","color":Color(0.45,0.85,1),"guard":0.85},
@@ -7,9 +8,47 @@ const LOADOUTS := {
 	&"up":{"id":&"twin_blades","name":"Twin Blades","short":"Twin Blades","color":Color(1,0.35,0.8),"guard":0.55}}
 
 static func loadout(slot: StringName) -> Dictionary:
+	var item := Equipment.get_item(slot)
+	if item.get("category")=="weapons":
+		var base: Dictionary = LOADOUTS[StringName(item.slot)]
+		return {"id":StringName(item.combat_kind),"name":item.name,"short":item.name,"color":Color(item.geometry.tint),"guard":base.guard,"item_id":slot}
 	return LOADOUTS.get(slot,LOADOUTS[&"down"])
 
-static func move(slot: StringName, action: StringName) -> Dictionary:
+static func move(slot: StringName, action: StringName, combo: int = 0, aerial: bool = false) -> Dictionary:
+	var item := Equipment.get_item(slot)
+	if item.get("category")=="weapons":
+		if item.has("moves"):
+			var key := String(action)+("_air" if aerial else "")
+			var sequence: Array = item.moves.get(key,[])
+			if sequence.is_empty(): return {}
+			var index := posmod(combo,sequence.size())
+			var result: Dictionary = sequence[index].duplicate(true)
+			result.item_id = String(slot)
+			result.combo_next = (index+1)%sequence.size()
+			result.combo_index = index
+			result.aerial = aerial
+			return result
+		var result := move(StringName(item.slot),action)
+		# Ordinary equipment shares authored family handling, rather than
+		# pretending every counterpart has a bespoke named-weapon moveset.
+		var fam: String = item.family
+		var factor := clampf(float(item.geometry.length)/1.25,.6,1.45)
+		result.reach = maxf(.9,float(result.reach)*factor)
+		if fam in ["dagger","fist"]: result.duration = maxf(.25,float(result.duration)*.8)
+		elif fam in ["axe","hammer","greatsword"]:
+			result.duration = float(result.duration)*1.18
+			result.body_profile = [.17,.60,.27,.23,.13]
+			if action==&"attack_right": result.profile = "slam"
+		elif fam=="curved_sword": result.profile = "crescent"
+		if action==&"attack_right" and item.geometry.get("attack_style")=="thrust":
+			result.profile = "thrust"
+			result.arc = 42
+		if fam in ["scythe","halberd"] and action in [&"attack_left",&"attack_right"]:
+			result.profile = "sweep"
+			result.arc = 145
+		result.name = String(item.name)+" / "+String(result.name)
+		if action==&"attack_left" and item.combat_kind=="sword_shield": result.name = String(item.name)+" / Offhand Check"
+		return result
 	var weapon: StringName = loadout(slot).id
 	var right := action == &"attack_right"
 	if action in [&"attack_left",&"attack_right"]:
@@ -47,10 +86,11 @@ static func move(slot: StringName, action: StringName) -> Dictionary:
 static func spec(title: String, duration: float, windup: float, damage: float, reach: float, arc: float, profile: String, hits: Array, side: int = 1) -> Dictionary:
 	return {"name":title,"duration":duration,"windup":windup,"damage":damage,"reach":reach,"arc":arc,"profile":profile,"hits":hits,"side":side,"parryable":true,"hit_stun_level":clampf(damage*0.05,0.65,3.6),"hit_stagger":clampf(0.12+damage*0.005,0.2,0.48)}
 
-static func charged_move(slot: StringName, action: StringName, strength: float) -> Dictionary:
-	var result := move(slot,action).duplicate(true)
+static func charged_move(slot: StringName, action: StringName, strength: float, combo: int = 0, aerial: bool = false) -> Dictionary:
+	var result := move(slot,action,combo,aerial).duplicate(true)
 	if result.is_empty() or strength<=0 or not String(action).begins_with("special_"): return result
 	var power := clampf(strength,0,1)
+	if result.has("motion"): result.motion_contact = float(result.hits[0])/float(result.duration)
 	result.name = "Extended "+String(result.name)
 	result.damage = float(result.damage)*(1+0.65*power)
 	result.reach = float(result.reach)*(1+0.3*power)

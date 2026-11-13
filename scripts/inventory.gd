@@ -3,7 +3,7 @@ extends Node
 const Catalog = preload("res://scripts/item_catalog.gd")
 const Instance = preload("res://scripts/item_instance.gd")
 const SLOTS: Array[StringName] = [&"down",&"left",&"right",&"up"]
-const EQUIPMENT_SLOTS: Array[StringName] = [&"down",&"left",&"right",&"up",&"body"]
+const EQUIPMENT_SLOTS: Array[StringName] = [&"down",&"left",&"right",&"up",&"body",&"head",&"hands",&"legs",&"shield",&"ring1",&"ring2"]
 const MAX_ITEMS := 4096
 signal changed
 signal equipment_changed
@@ -115,7 +115,8 @@ func unequip(slot: StringName) -> bool:
 
 static func fits_slot(definition: Resource, slot: StringName) -> bool:
 	if definition==null or not definition.is_equippable: return false
-	if slot==&"body": return definition.category==&"cosmetics" and definition.custom_properties.get("cosmetic_slot","")=="body"
+	if slot in [&"body",&"head",&"hands",&"legs",&"shield"]: return definition.category==&"cosmetics" and definition.custom_properties.get("cosmetic_slot","")==String(slot)
+	if slot in [&"ring1",&"ring2"]: return definition.custom_properties.get("cosmetic_slot","")=="ring"
 	return slot in SLOTS and definition.category==&"weapons" and StringName(definition.custom_properties.get("weapon_slot","")) in SLOTS
 
 func weapon_slot(slot: StringName) -> StringName:

@@ -1,6 +1,10 @@
 extends CanvasLayer
 ## A live exchange at the civic crystal; grants go through the loot authority.
 const Catalog = preload("res://scripts/item_catalog.gd")
+const Database = preload("res://scripts/equipment_database.gd")
+const Browser = preload("res://scripts/equipment_browser.gd")
+var browser: PanelContainer
+var _main_panel: PanelContainer
 const SHOP_ID := &"central_tower"
 const ITEMS: Array[StringName] = [&"sword_shield",&"spear",&"katana",&"twin_blades",&"health_glyph",&"eternal_scribe_robes"]
 # Authoritative offer prices. Currency settlement can be added here later;
@@ -32,8 +36,8 @@ func anchor() -> Vector3:
 	return _metro.to_global(_metro.TOWER+Vector3.UP*_metro.DAIS_HEIGHT)
 
 func offer(id: StringName) -> Dictionary:
-	if id not in ITEMS: return {}
-	var price: Variant = prices.get(String(id))
+	if id not in ITEMS and Database.get_item(id).is_empty(): return {}
+	var price: Variant = prices.get(String(id),0 if not Database.get_item(id).is_empty() else null)
 	if not price is int or price<0: return {}
 	return {"item_type_id":id,"price":price}
 
@@ -78,6 +82,7 @@ func _build() -> void:
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_screen.add_child(shade)
 	var panel := PanelContainer.new()
+	_main_panel = panel
 	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	panel.anchor_left = 0.28
 	panel.anchor_right = 0.72
@@ -97,12 +102,27 @@ func _build() -> void:
 	box.add_child(_label("Central tower  /  All items currently free",16))
 	for id: StringName in ITEMS:
 		_add_button(box,"",func(): buy(id))
+	_add_button(box,"Browse equipment archive",open_browser)
 	_status = _label("",16)
 	_status.custom_minimum_size.y = 52
 	_status.modulate = Color(1,0.66,0.28)
 	box.add_child(_status)
 	_add_button(box,"Leave exchange",close_menu)
 	box.add_child(_label("A / ENTER: acquire   B / ESC: leave\nEquip weapons and clothing from inventory.",14))
+	browser = Browser.new()
+	browser.shop = self
+	_screen.add_child(browser)
+
+func open_browser() -> void:
+	_main_panel.hide()
+	browser.show()
+	browser.refresh()
+	if not browser.buttons.is_empty(): browser.buttons[0].grab_focus()
+
+func close_browser() -> void:
+	browser.hide()
+	_main_panel.show()
+	_buttons[ITEMS.size()].grab_focus()
 
 func _add_button(box: VBoxContainer, text: String, action: Callable) -> void:
 	var button := Button.new()
@@ -139,6 +159,8 @@ func open_menu() -> void:
 	_repeat = 0
 	_status.text = "Choose an item to add to your inventory."
 	refresh()
+	browser.hide()
+	_main_panel.show()
 	_screen.show()
 	set_process(true)
 	opened.emit()
@@ -159,23 +181,27 @@ func buy(id: StringName) -> bool:
 	if accepted:
 		_status.text = "Acquired %s. Added to inventory." % Catalog.get_definition(id).display_name
 		refresh()
+		if browser.visible: browser.refresh()
 	else: _status.text = "Item unavailable. Check your inventory space and distance to the tower."
 	return accepted
 
 func _navigate(direction: int) -> void:
-	var index := _buttons.find(get_viewport().gui_get_focus_owner())
-	for step in range(_buttons.size()):
-		index = posmod(index+direction,_buttons.size())
-		if not _buttons[index].disabled:
-			_buttons[index].grab_focus()
+	var active: Array[Button] = browser.buttons if browser.visible else _buttons
+	var index := active.find(get_viewport().gui_get_focus_owner())
+	for step in range(active.size()):
+		index = posmod(index+direction,active.size())
+		if not active[index].disabled:
+			active[index].grab_focus()
 			return
 
 func _accept() -> void:
 	var focused := get_viewport().gui_get_focus_owner()
-	if focused is Button and focused in _buttons and not focused.disabled: focused.pressed.emit()
+	var active: Array[Button] = browser.buttons if browser.visible else _buttons
+	if focused is Button and focused in active and not focused.disabled: focused.pressed.emit()
 
 func _input(event: InputEvent) -> void:
 	if not is_open: return
+	if browser.visible and event is InputEventKey and browser.query.has_focus() and not event.is_action_pressed("ui_cancel"): return
 	# Let the session hand View / inventory over to its existing UI.
 	if event.is_action_pressed("inventory_toggle") and not event.is_echo(): return
 	# Consume before GUI defaults so one press cannot also buy a second item,
@@ -187,13 +213,22 @@ func _input(event: InputEvent) -> void:
 			KEY_UP,KEY_W: _navigate(-1)
 			KEY_DOWN,KEY_S: _navigate(1)
 			KEY_ENTER,KEY_SPACE: _accept()
-			KEY_ESCAPE: close_menu()
+			KEY_LEFT: if browser.visible: browser.change_page(-1)
+			KEY_RIGHT: if browser.visible: browser.change_page(1)
+			KEY_ESCAPE:
+				if browser.visible: close_browser()
+				else: close_menu()
 	elif event is InputEventJoypadButton and event.pressed:
 		match event.button_index:
 			JOY_BUTTON_DPAD_UP: _navigate(-1)
 			JOY_BUTTON_DPAD_DOWN: _navigate(1)
 			JOY_BUTTON_A: _accept()
-			JOY_BUTTON_B: close_menu()
+			JOY_BUTTON_DPAD_LEFT: if browser.visible: browser.change_page(-1)
+			JOY_BUTTON_DPAD_RIGHT: if browser.visible: browser.change_page(1)
+			JOY_BUTTON_RIGHT_SHOULDER: if browser.visible: browser.cycle_filter()
+			JOY_BUTTON_B:
+				if browser.visible: close_browser()
+				else: close_menu()
 	elif event is InputEventJoypadMotion and event.axis==JOY_AXIS_LEFT_Y:
 		_stick = event.axis_value
 		if absf(_stick)<0.3: _armed = true

@@ -4,7 +4,9 @@ const Neon = preload("res://scripts/neon.gd")
 const Spring = preload("res://scripts/pose_spring.gd")
 const Retrieval = preload("res://scripts/motion_retrieval.gd")
 const ScribeRobe = preload("res://scripts/eternal_scribe_robe.gd")
+const Cosmetics = preload("res://scripts/equipment_cosmetics.gd")
 var robe: Node3D
+var equipment_cosmetics: Node3D
 const REST_HIP_HEIGHT := 0.946
 const MAX_LANDING_COMPRESSION := 0.34
 @export var live_retrieval := true
@@ -61,6 +63,11 @@ func sync_clothing(inventory: Node) -> void:
 		robe.rotation.y = PI
 		robe.configure(get_parent(),self,chest,joints.LeftArm,joints.RightArm)
 	if is_instance_valid(robe): robe.set_equipped(worn)
+	if not is_instance_valid(equipment_cosmetics):
+		equipment_cosmetics = Cosmetics.new()
+		equipment_cosmetics.visual = self
+		add_child(equipment_cosmetics)
+	equipment_cosmetics.sync(inventory)
 
 func clear_combat_pose() -> void:
 	for joint: Node3D in _combat_positions:

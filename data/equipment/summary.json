@@ -1,0 +1,32 @@
+{
+  "counterparts": 2906,
+  "families": {
+    "fist": 67,
+    "dagger": 132,
+    "sword": 237,
+    "curved_sword": 87,
+    "greatsword": 222,
+    "katana": 52,
+    "axe": 184,
+    "twin_blades": 148,
+    "hammer": 185,
+    "spear": 184,
+    "scythe": 34,
+    "halberd": 100,
+    "whip": 34,
+    "talisman": 8,
+    "staff": 12,
+    "chime": 7,
+    "bow": 12,
+    "crossbow": 8,
+    "shield": 693,
+    "head": 98,
+    "body": 102,
+    "hands": 82,
+    "legs": 89,
+    "ring": 129
+  },
+  "named_demonstrations": 3,
+  "source_rows": 2887,
+  "portrait_only": 19
+}

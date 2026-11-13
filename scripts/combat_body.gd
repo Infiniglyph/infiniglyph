@@ -2,6 +2,7 @@ extends RefCounted
 ## Visual weight transfer: authored load/drive/follow-through over real floor
 ## contacts. The CharacterBody, collision capsule and velocity are never moved.
 const Spring = preload("res://scripts/pose_spring.gd")
+const Motion = preload("res://scripts/weapon_motion.gd")
 # Per profile: load depth, hip yaw, stance stagger, half-width, forward drive.
 const PROFILES := {
 	"sweep": [0.12,0.68,0.23,0.20,0.12],
@@ -127,7 +128,7 @@ func apply(delta: float, move: Dictionary, time: float, guarding: bool, kind: St
 	phase_label = "rest"
 	if active:
 		var profile: String = move.profile
-		var values: Array = PROFILES.get(profile,PROFILES.sweep)
+		var values: Array = move.get("body_profile",PROFILES.get(profile,PROFILES.sweep))
 		windup = float(move.windup)
 		first = float(move.hits[0])
 		var last := float(move.hits[-1])
@@ -152,12 +153,19 @@ func apply(delta: float, move: Dictionary, time: float, guarding: bool, kind: St
 			var alternation := sin(smoothstep(windup*0.7,last+0.07,t)*PI*3)
 			rotation.y = alternation*0.62*envelope
 			chest.y = -alternation*0.16*envelope
-		rotary = profile in ["orbit","waltz","lattice"]
+		# Authored hips must remain authoritative over the reusable profile's
+		# full-spin preset. Legacy moves keep their existing rotary footwork.
+		rotary = profile in ["orbit","waltz","lattice"] and not move.has("motion")
 		if rotary:
 			spin = smoothstep(windup*0.65,minf(duration*0.82,last+0.17),t)
 			rotation.y = _spin_base+spin*TAU
 			chest.y = -0.22*sin(spin*PI)*envelope
 			if spin>=1: rotation.y = _spin_base+TAU
+		if move.has("motion"):
+			var authored := Motion.sample(move,t)
+			if not authored.is_empty():
+				rotation = authored.hip
+				chest = authored.chest
 	elif guarding:
 		envelope = smoothstep(0,0.18,t)
 		offset = Vector3(0,-0.10,0.025)*envelope

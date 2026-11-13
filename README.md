@@ -423,6 +423,19 @@ floor snap while a rounded heel is still supported by the curb edge. Both the
 160-second interaction soak and 300-second population-flow soak now pass their
 physical contact checks at 60 Hz.
 
+## Equipment library
+
+The [equipment library](docs/EQUIPMENT.md) adds 2,906 original reference
+counterparts and three named weapons: **The Fractured Moon**, **Event Horizon**
+and **The Last Argument**. At the central bipyramid, open **Tower Exchange →
+Browse equipment archive** to search, preview and acquire items for free.
+Equip owned weapons to the same four directions. Head, Body, Hands, Legs and
+Shield are cosmetic slots; two ring slots have no active effects. Named weapons
+have separate grounded/aerial combos and authored whole-body curves. Existing
+momentum damage, defenses, traversal, live menus and version-one saves remain.
+The linked guide records architecture, reference coverage, validation, measured
+content-load costs, limitations and how to add the next weapon through data.
+
 ## Canonical narrative reference
 
 The [Canonical World Lore & Narrative Design Profile](docs/canonical_world_lore.txt)

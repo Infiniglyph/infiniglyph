@@ -112,7 +112,7 @@ func run() -> void:
 	key(KEY_F5)
 	check(signals_seen.save==1,"F5 requests an explicit checkpoint save")
 	pad(JOY_BUTTON_RIGHT_SHOULDER)
-	check(ui.tab_index==1 and ui.equipment_buttons.size()==5,"Controller RB opens four weapon directions and the Body clothing slot")
+	check(ui.tab_index==1 and ui.equipment_buttons.size()==11,"Controller RB opens four weapon directions, five cosmetic slots and two rings")
 	pad(JOY_BUTTON_A)
 	pad(JOY_BUTTON_A)
 	check(ui.mode==&"weapon_pick","Controller A opens the owned-weapon chooser for a direction")
