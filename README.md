@@ -440,22 +440,39 @@ Grounded, aerial and charged sequences preserve existing momentum damage,
 defenses, cancellations and free traversal. The Fractured Moon, Event Horizon
 and The Last Argument also receive the motion upgrade.
 
+Sampled swings now hinge forward through the actual smoothed torso pose,
+including turns, then blend back into locomotion during recovery. Movement,
+hit schedules and damage remain unchanged. Sheathed scythes carry head-up in
+the same back mount as spears; sword and katana mounts retain their angles.
+
 All 371 wearable pieces now use fitted, articulated Scribe-derived construction:
 shaped torsos, layered plate, shoulders, sleeves, collars, headpieces, boots,
 split hems and capes. Reference silhouettes and fabric colors guide the cuts.
-Cloth trails behind a bike and tucks inside cars. Armor remains cosmetic.
+Hems follow their thighs around pinned seams. Flexible robes and capes add
+smoothed trailing, turn/acceleration response and a second free-hem bend,
+opposing actual travel even while backpedaling or strafing. Plate tassets stay
+firmer. Cloth trails behind a bike and tucks inside cars, restoring on dismount.
+Existing meshes are posed without per-frame mesh rebuilding. Armor remains cosmetic.
 Six corrected head/hand/leg classifications migrate old equipment assignments
 without losing owned items. IDs and version-one saves remain compatible.
+
+Inventory rows, equipment assignments and item inspection now show weapon
+family or armour type and slot, including the original equipment. Long lore
+and arts scroll with the mouse, PageUp/PageDown or right stick while type,
+assignment and menu controls remain visible at 720p.
 
 | Equipment motion/tailoring verification | Result |
 | --- | --- |
 | Complete catalog, geometry and checkpoint | 14 checks passed |
 | Every named signature, all wearables, pulse timing and six save migrations | 15 checks passed |
-| All 15 motion cuts on the actual player rig | 31 checks at each of 30/60/120 Hz |
+| All 15 motion cuts on the actual player rig, including forward contact lean | 46 checks at each of 30/60/120 Hz |
+| Forward contact audit, moving headings and smooth release | 12 checks at each of 30/60/120 Hz; 568 reference contacts |
+| Scythe/pole stow, sword/katana/twin preservation and repeated equips | 78 checks passed |
+| Leg-follow, directional cloth flow, firm plate and mounted clearance | 17 checks at each of 30/60/120 Hz, plus 20 native checks |
 | Combat, acquisition, saves and separate shop departments | 53 checks at each of 30/60/120 Hz, plus native 60 Hz |
 | Existing weapons / body motion / charged sparring / lock and momentum | 123 / 146 / 146 / 110 checks passed |
 | Defender exhaustion / responsive dodge / mounted poses | 36 / 68 / 102 checks passed |
-| Inventory model / UI / integration / Tower shop | 55 / 42 / 36 / 36 checks passed |
+| Inventory model / UI / integration / Tower shop | 55 / 58 / 36 / 36 checks passed |
 | Scribe robe / fitted robe / performance budgets | 31 / 21 / 29 checks passed |
 
 The guide records architecture, reference coverage, source-rig assumptions,

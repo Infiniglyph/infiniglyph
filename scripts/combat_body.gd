@@ -35,6 +35,22 @@ var _guarding := false
 var _guard_time := 0.0
 var _spin_base := 0.0
 
+static func forward_attack_pose(hip: Vector3, chest: Vector3, weight: float) -> Dictionary:
+	# The reference rig's sagittal bend often reads backward on our +Z figure.
+	# Author a supported forward hip hinge, then correct the combined torso in
+	# the facing frame. Local X sign alone fails when a strike also turns in yaw.
+	var strength := clampf(weight,0,1)
+	var hinged := hip
+	hinged.x = lerpf(hip.x,minf(absf(hip.x)*.70,.28),strength)
+	var hips_basis := Basis.from_euler(hinged)
+	var chest_basis := Basis.from_euler(chest)
+	var up := (hips_basis*chest_basis).y
+	var pitch := atan2(up.z,up.y)
+	var drive := clampf(absf(pitch)*.55,.14,.34)
+	var correction := Basis(Vector3.RIGHT,(drive-pitch)*strength)
+	var supported_chest := (hips_basis.inverse()*correction*hips_basis*chest_basis).orthonormalized()
+	return {"hip":hinged,"chest":supported_chest.get_euler()}
+
 func begin(facing: Vector3) -> void:
 	_sources.clear()
 	support_feet.clear()
@@ -201,8 +217,17 @@ func apply(delta: float, move: Dictionary, time: float, guarding: bool, kind: St
 	var posed_position := base_position+shift
 	posed_position.y = maxf(posed_position.y,minf(base_position.y,0.62))
 	visual.combat_position(visual.pelvis,posed_position)
-	visual.combat_rotation(visual.pelvis,visual.pelvis.quaternion*Quaternion.from_euler(hip_angles),1.0)
-	visual.combat_rotation(visual.chest,visual.chest.quaternion*Quaternion.from_euler(shoulder_angles),1.0)
+	var hip_pose: Quaternion = visual.pelvis.quaternion*Quaternion.from_euler(hip_angles)
+	var chest_pose: Quaternion = visual.chest.quaternion*Quaternion.from_euler(shoulder_angles)
+	if active and move.get("retargeted",false):
+		# Support the presented pose after smoothing: separately interpolated
+		# yaw/pitch curves can otherwise introduce a backward dip between keys.
+		# Include locomotion's lean, while leaving all controller motion intact.
+		var supported := forward_attack_pose(hip_pose.get_euler(),chest_pose.get_euler(),envelope)
+		hip_pose = Quaternion.from_euler(supported.hip)
+		chest_pose = Quaternion.from_euler(supported.chest)
+	visual.combat_rotation(visual.pelvis,hip_pose,1.0)
+	visual.combat_rotation(visual.chest,chest_pose,1.0)
 	if grounded:
 		for id in ["LeftLeg","RightLeg"]:
 			var foot_side := -1.0 if id == "LeftLeg" else 1.0

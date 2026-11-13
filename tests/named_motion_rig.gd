@@ -51,6 +51,8 @@ func run() -> void:
 		var finite := true
 		var supported := true
 		var grip := true
+		var forward := true
+		var backward_samples: Array = []
 		var hand_origin: Vector3 = w.rig.right_hand.position
 		for action: StringName in [&"attack_right",&"attack_left",&"special_x",&"special_y",&"special_rt_x",&"special_rt_y"]:
 			for combo in range(3 if action in [&"attack_right",&"attack_left"] else 1):
@@ -63,6 +65,12 @@ func run() -> void:
 					p.visual.animate(1.0/hz,Vector3.ZERO,true)
 					w.elapsed = minf(frame/float(hz),float(w.active_move.duration))
 					w.apply_pose(1.0/hz)
+					for contact: float in w.active_move.hits:
+						if absf(w.elapsed-contact)>1.5/hz: continue
+						var up: Vector3 = p.visual.global_basis.inverse()*p.visual.chest.global_basis.y
+						forward = forward and up.z>.025 and up.y>0
+						if up.z<=.025 or up.y<=0:
+							backward_samples.append([action,combo,snappedf(w.elapsed,.001),up])
 					for name: String in ["LeftArm","RightArm","LeftLeg","RightLeg"]:
 						var joint: Node3D = p.visual.joints[name]
 						finite = finite and joint.global_transform.is_finite() and joint.get_node("Hinge").global_transform.is_finite()
@@ -73,6 +81,7 @@ func run() -> void:
 						var support: Vector3 = w.rig.right_hand.to_global(Vector3(0,-.17,0))
 						grip = grip and w.rig.left_hand.global_position.distance_to(support)<.025
 		check(finite and supported and grip,"All "+cut+" combo/art poses keep finite joints, clear soles and a reachable shared grip")
+		check(forward,"The "+cut+" swings drive forward at their actual contact frames: "+str(backward_samples))
 		check(w.rig.right_hand.position.distance_to(hand_origin)<.00001,"The "+cut+" grip retains its local wrist anchor throughout the sequence")
 		w.cancel()
 		p.visual.clear_combat_pose()

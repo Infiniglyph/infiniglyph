@@ -12,6 +12,12 @@ filter, A/Enter acquires one item, and B/Escape returns to the exchange lobby.
 Equip purchases in the existing inventory. Four directions remain weapon
 shortcuts. Body, Head, Hands, Legs and Shield are cosmetic slots; two ring slots
 hold inert accessories. Health Glyph controls and healing remain unchanged.
+Inventory rows, equipment assignments and the inspector now show the item's
+weapon family or wearable construction and slot, such as Scythe, Cloth Robe /
+Body, Plate Gauntlets / Hands or Hood / Head. The original starter equipment,
+Health Glyphs and inert rings also have readable types. Lore and weapon arts
+scroll within the inspector using the mouse wheel, Page Up/Down or right stick;
+the selected type, assignment and menu controls remain visible.
 
 ## Named weapons and actual reference motion
 
@@ -37,6 +43,13 @@ Extreme source turns and lifts are bounded to the existing visual rig's reach.
 This is a practical reconstruction on our skeleton, rather than a verified
 bone-for-bone source-skeleton retarget.
 
+Retargeted swings use a supported forward hip hinge and a forward torso lean
+measured in the character's facing frame. This corrects source bends that read
+backward on the +Z figure, including strikes with substantial yaw. The adjustment
+belongs to the visual pose; movement vectors, facing, authored turns, hand paths
+and collision authority retain their existing roles. Starter animation handling
+is unchanged.
+
 Each named entry specifies its own basic and art clip order, leverage, support
 grip, tempo, stance width and loading weight. Three-stage basics work from either
 attack button, with separate compact airborne curves. Four arts use their own
@@ -53,6 +66,12 @@ this changes animation only, adding no damage events. Heavy and pole weapons use
 the existing reachable shared-hilt solver. Damage, momentum, guard strain, chip
 damage, parry, iframe, cancellation and stagger resolution remain in the existing
 combat pipeline. Named rarity gives no automatic damage bonus or stamina cost.
+
+Sheathed scythes now carry their heads upward in the existing spear back mount.
+Custom spears, halberds and staves share that upright long-pole carry. Sword and
+paired-blade tips retain their downward angles, and katanas retain their left-hip
+mount. These changes affect only the stowed model, preserving drawn grips and
+attack geometry.
 
 The supplied DAR archive contains 2,344 clips in total. The selected pass skips
 209 category candidates with unsupported track counts or durations. The archive's
@@ -78,9 +97,22 @@ Lattice vestment, narrow-waisted Horizon plate, long Hearth robe, ragged Paralla
 coat and ridged Interval plate. These remain stylized procedural reconstructions
 from 2D references, with no claim to sculpted DS3 mesh or texture fidelity.
 
-Cloth trails backward at speed, folds behind a motorcycle saddle and hides inside
-an enclosed vehicle. Grounded compression shortens hems above the floor. Armor
-adds no collision, defensive stats, movement restrictions or resource costs.
+Split hems follow the corresponding thigh: a front panel clears a forward step,
+and a rear panel follows the backward leg. Each panel rotates about its own sewn
+hip seam; capes stay attached to their shoulder seams. Flexible robes, tabards,
+capes and long ragged skirts have a second free-hem bend with smoothed speed,
+acceleration and turning response. Motion trails behind movement and settles
+after stopping, including opposite travel while backpedaling or strafing. Plate
+tassets articulate with the legs while retaining a firmer
+shape; breastplates and joint sleeves do not flutter.
+
+Mounted handling follows the Scribe treatment. On motorcycles, hems fold over
+the belt and trail behind the saddle above the rear wheel, even at rest. A cape
+keeps its leaned chest attachment while trailing in the hip frame, avoiding an
+upright flag behind the head. Enclosed cars and trucks hide long hems and capes
+inside the cabin; dismount restores their foot-bound pose immediately. Grounded
+compression shortens hems above the floor. Armor adds no collision, defensive
+stats, movement restrictions or resource costs.
 The existing Scribe robe keeps its hood, inscriptions, tome and pooled trails;
 a separately equipped headpiece hides its overlapping hood.
 
@@ -117,12 +149,17 @@ Sixteen source rows lack a matching portrait and use construction defaults.
 | `scripts/garment_surface.gd`, `equipment_garment.gd` | Fitted mesh construction and mount-aware cloth |
 | `scripts/equipment_cosmetics.gd` | Cosmetic slot lifecycle and joint attachments |
 | `scripts/equipment_browser.gd`, `equipment_preview.gd`, `tower_shop.gd` | Separate departments, bounded rows and real-rig previews |
+| `scripts/inventory_item_type.gd`, `inventory_ui.gd` | Readable weapon/armor types and scrolling item inspection |
 | `scripts/inventory.gd` | Existing ownership plus six explicit slot corrections |
 
 Motion banks load on demand with a **four-bank limit**; compiled moves have a
 **24-entry limit**. Weapon/shield geometry retains its 64-entry cache. A weapon
 rig holds the four starter sets plus at most one custom model set. Garment
 meshes are built only on equip or preview; cloth updates existing transforms.
+Flexible panels use two fixed mesh bands instead of rebuilding vertices. An
+eleven-panel stress outfit, including its torso and sleeves, uses 81 fixed mesh
+nodes and 4,176 vertices. This trades some extra draw submissions for articulated
+cloth, with no per-frame geometry allocation or clothing collision simulation.
 Normal combat never scans the full item catalog or opens reference archives.
 TED-RAG retains its bounded locomotion/pose role, independent of hit authority.
 
@@ -163,6 +200,22 @@ unique compiled motion/timing signatures, constructs all 371 worn pieces on the
 actual joints and verifies all six slot migrations. The real-rig fixture samples
 every combo/art across all 15 cuts, checking finite joints, sole clearance,
 shared grips, stable wrist anchors and unchanged controller state.
+
+`forward_weapon_lean.gd` audits source contact bends and exercises presented
+torso lean while standing, advancing, backpedaling and facing different headings.
+`weapon_stow.gd` checks registered scythes and representative long poles against
+the actual back mount, plus sword/katana/paired carry, unchanged drawn transforms
+and repeated equip/draw cycles.
+
+`equipment_cloth_flow.gd` checks thigh support, pinned seams, flexible versus
+firm pieces, acceleration/turn response, stopping settlement, vehicle transitions,
+stable meshes/joint origins and a store mannequin without gameplay state. Its
+17 headless checks run at 30/60/120 Hz. With `--capture`, 20 checks include the
+actual sport-bike rider anchors, cloth height above the wheel, triangle
+intersection checks against both thighs/shins and horizontal cape trailing on a
+leaned rider. Native captures cover walking, motorcycle, car and dismount poses.
+Inventory UI regression coverage checks readable types and bounded, scrollable
+inspection alongside equipment assignment and existing live-menu behavior.
 
 The integration fixture checks actual authoritative purchases, combos, hurtbox
 hits and velocity damage, cancel behavior, equipment slots, version-one saves,

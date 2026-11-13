@@ -4,6 +4,8 @@ const UI = preload("res://scripts/inventory_ui.gd")
 const Inventory = preload("res://scripts/inventory.gd")
 const Catalog = preload("res://scripts/item_catalog.gd")
 const Loot = preload("res://scripts/loot_authority.gd")
+const Types = preload("res://scripts/inventory_item_type.gd")
+const Database = preload("res://scripts/equipment_database.gd")
 class Actor extends Node3D:
 	var visual := Node3D.new()
 	var weapon_combat: Node
@@ -96,6 +98,10 @@ func run() -> void:
 	var katana := find_type(&"katana")
 	ui.select_item(katana)
 	check(ui._name_label.text=="Katana" and "Afterimage Waltz" in ui._arts.text and "22 / 22" in ui._stats.text,"Inspection shows actual weapon name, damage and all authored weapon arts")
+	check("WEAPONS / KATANA" in ui._meta_label.text and "QTY 1" in ui._meta_label.text and "UPGRADE +0" in ui._meta_label.text,"Inspection adds weapon type while preserving category, quantity and upgrade metadata")
+	check("\nKatana" in ui.item_rows[ui.selected_index].text,"Owned weapon rows expose the weapon family beneath the item name")
+	check(Types.label(Catalog.get_definition(&"sword_shield"))=="Longsword + Shield" and Types.label(Catalog.get_definition(&"spear"))=="Spear" and Types.label(Catalog.get_definition(&"twin_blades"))=="Twin Blades","Original weapons have readable type labels without generated equipment metadata")
+	check(Types.label(Catalog.get_definition(&"eternal_scribe_robes"))=="Cloth Robe / Body" and Types.label(Catalog.get_definition(&"cyan_mantle"))=="Cosmetic Pattern","The original robe and stored cosmetic pattern have accurate wearable types")
 	key(KEY_DOWN)
 	check(ui.selected_iid!=katana,"Keyboard arrows navigate the item selection")
 	key(KEY_RIGHT)
@@ -182,6 +188,54 @@ func run() -> void:
 	await frames()
 	check(ui._help.global_position.y+ui._help.size.y<=695,"The menu footer remains inside the 1280x720 viewport with a safe bottom margin")
 	check(ui._equipped.global_position.y+ui._equipped.size.y<=ui._help.global_position.y,"Inspection content stays above the controls footer")
+	var families: Dictionary = {}
+	var covered := true
+	var longest: Dictionary = {}
+	var cloth_body: Dictionary = {}
+	for entry: Dictionary in Database.all():
+		var definition: Resource = Catalog.get_definition(StringName(entry.id))
+		var label := Types.label(definition)
+		covered = covered and not label.is_empty() and not "_" in label
+		families[entry.family] = label
+		if entry.category=="cosmetics": covered = covered and (" / " in label)
+		if entry.family=="body" and entry.geometry.get("tailoring",{}).get("cut")=="cloth" and cloth_body.is_empty(): cloth_body=entry
+		if entry.category=="weapons" and String(entry.name).length()>String(longest.get("name","")).length(): longest=entry
+	check(covered and families.has("scythe") and families.has("head") and families.has("ring"),"All generated weapon, armour and ring families resolve readable types with cosmetic slots")
+	check(families.scythe=="Scythe" and families.ring=="Ring" and "Head" in families.head and "Hands" in families.hands and "Legs" in families.legs,"Generated family labels distinguish scythes, headwear, gloves, legwear and rings")
+	var named: Resource = Catalog.create(StringName(longest.id))
+	check(inventory.add_item(named),"Type-label layout fixture owns a long named weapon")
+	ui.select_item(named.instance_id)
+	await frames()
+	check(Types.label(Catalog.get_definition(named.item_type_id)).to_upper() in ui._meta_label.text and "WEAPONS /" in ui._meta_label.text,"A generated named weapon shows its actual family in inspection")
+	check(ui.item_rows[ui.selected_index].text.contains("\n"+Types.label(Catalog.get_definition(named.item_type_id))),"A generated named weapon shows the same type in the paged item list")
+	check(ui._help.global_position.y+ui._help.size.y<=695 and ui._equipped.global_position.y+ui._equipped.size.y<=ui._help.global_position.y,"Long named-weapon inspection and typed rows stay above the 1280x720 footer")
+	var inspected: String = ui.selected_iid
+	key(KEY_PAGEDOWN)
+	check(ui._detail_scroll.scroll_vertical>0 and ui.selected_iid==inspected,"Keyboard Page Down reads long inspection details without changing the selected owned item")
+	axis(JOY_AXIS_RIGHT_Y,-.9)
+	ui._process(.5)
+	axis(JOY_AXIS_RIGHT_Y,0)
+	check(ui._detail_scroll.scroll_vertical==0 and ui.selected_iid==inspected,"Right-stick inspection scrolling leaves item selection and local gameplay state intact")
+	if "--capture" in OS.get_cmdline_user_args():
+		await RenderingServer.frame_post_draw
+		DirAccess.make_dir_recursive_absolute("res://captures")
+		root.get_texture().get_image().save_png("res://captures/inventory_item_types.png")
+	ui._equip(&"down",named.instance_id)
+	ui.select_tab(1)
+	await frames()
+	check(Types.label(Catalog.get_definition(named.item_type_id)) in ui.equipment_buttons[UI.EQUIPMENT_SLOTS.find(&"down")].text,"Equipment rows identify the assigned weapon family before its display name")
+	if "--capture" in OS.get_cmdline_user_args():
+		await RenderingServer.frame_post_draw
+		root.get_texture().get_image().save_png("res://captures/inventory_equipment_types.png")
+	var armour: Resource = Catalog.create(StringName(cloth_body.id))
+	check(inventory.add_item(armour),"Armour-type fixture owns a generated cloth robe")
+	ui.select_item(armour.instance_id)
+	await frames()
+	check("COSMETICS / CLOTH ROBE / BODY" in ui._meta_label.text and "Cloth Robe / Body" in ui.item_rows[ui.selected_index].text,"Armour list and inspection expose construction and wearable body slot")
+	check(ui._help.global_position.y+ui._help.size.y<=695 and ui._equipped.global_position.y+ui._equipped.size.y<=ui._help.global_position.y,"Armour type metadata keeps the 1280x720 footer and assignment visible")
+	if "--capture" in OS.get_cmdline_user_args():
+		await RenderingServer.frame_post_draw
+		root.get_texture().get_image().save_png("res://captures/inventory_armour_types.png")
 	ui._input(_key_event(KEY_F5))
 	check(signals_seen.save==2 and ui.is_open and not paused,"Inventory actions remain available without pausing gameplay")
 	key(KEY_ESCAPE)

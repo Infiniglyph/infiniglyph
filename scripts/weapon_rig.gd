@@ -106,6 +106,11 @@ func equip_item(id: StringName, stow: bool) -> void:
 		if kind==&"katana":
 			back.position = Vector3.ZERO
 			back.rotation = Vector3(-1.97,.10,0)
+		elif geometry.get("family",item.family) in ["scythe","spear","halberd","staff"] and item.get("attachment",{}).get("stow","back")=="back":
+			# Long poles carry head-up in the same back mount as the base spear.
+			# Sword tips still angle down; only the stowed model is rotated.
+			back.position = Vector3.ZERO
+			back.rotation.z = -.32
 		var stowed_blades: Array[Node3D] = [back]
 		if kind==&"twin_blades":
 			var second := geometry.duplicate(true)

@@ -1,5 +1,13 @@
 # Recovering the first public checkpoint
 
+Forward-facing sampled swings, upright scythe stow, leg-following directional
+cloth flow and inventory equipment-type labels are preserved by
+`checkpoint-2026-11-13-forward-swings-cloth-flow` on
+`fix/forward-swings-cloth-flow`. Its verified complete-history bundle is
+`infiniglyph-forward-swings-cloth-flow-2026-11-13.bundle` in the parent workspace's
+`backups` directory. Combat physics, hit timing, item IDs and personal save
+formats remain unchanged. Earlier tags and bundles stay fixed.
+
 The named-weapon motion, fitted-armor and separate store departments are preserved
 by `checkpoint-2026-11-12-equipment-motion-tailoring` on
 `feat/equipment-motion-tailoring`. Its verified complete-history bundle is

@@ -3,6 +3,7 @@ extends CanvasLayer
 const Catalog = preload("res://scripts/item_catalog.gd")
 const Library = preload("res://scripts/weapon_library.gd")
 const Database = preload("res://scripts/equipment_database.gd")
+const ItemType = preload("res://scripts/inventory_item_type.gd")
 const CATEGORIES := [&"weapons",&"cosmetics",&"consumables",&"materials",&"key_items",&"misc"]
 const CATEGORY_NAMES := ["WEAPONS","ARMOR / COSMETICS","CONSUMABLES","MATERIALS","KEY ITEMS","MISCELLANEOUS"]
 const CATEGORY_GLYPHS := ["/|","<>" ,"+","#","*","::"]
@@ -44,6 +45,9 @@ var _trigger_latched := {JOY_AXIS_TRIGGER_LEFT:false,JOY_AXIS_TRIGGER_RIGHT:fals
 var _screen: Control
 var _rows: VBoxContainer
 var _row_scroll: ScrollContainer
+var _detail_scroll: ScrollContainer
+var _detail_axis := 0.0
+var _inspected_iid := ""
 var _scroll_queued := false
 var _category_column: VBoxContainer
 var _list_title: Label
@@ -235,25 +239,33 @@ func _build() -> void:
 	var inspect_rows := VBoxContainer.new()
 	inspect_rows.add_theme_constant_override("separation",8)
 	inspection.add_child(inspect_rows)
-	inspect_rows.add_child(_label("ITEM INSPECTION",13,CYAN))
+	inspect_rows.add_child(_label("ITEM INSPECTION  /  PGUP, PGDN, RIGHT STICK",13,CYAN))
 	_name_label = _label("",27,WHITE)
 	_name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	inspect_rows.add_child(_name_label)
 	_meta_label = _label("",14,ORANGE)
+	_meta_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	inspect_rows.add_child(_meta_label)
+	# Long item lore and named weapon arts scroll inside inspection, keeping
+	# the item type, assignment and menu controls visible at 1280 x 720.
+	_detail_scroll = ScrollContainer.new()
+	_detail_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_detail_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	inspect_rows.add_child(_detail_scroll)
+	var detail_rows := VBoxContainer.new()
+	detail_rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	detail_rows.add_theme_constant_override("separation",8)
+	_detail_scroll.add_child(detail_rows)
 	_description = _label("",14,MUTED)
 	_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	inspect_rows.add_child(_description)
-	_line(inspect_rows)
+	detail_rows.add_child(_description)
+	_line(detail_rows)
 	_stats = _label("",16,WHITE)
 	_stats.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	inspect_rows.add_child(_stats)
+	detail_rows.add_child(_stats)
 	_arts = _label("",14,CYAN)
 	_arts.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	inspect_rows.add_child(_arts)
-	var inspection_spacer := Control.new()
-	inspection_spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	inspect_rows.add_child(inspection_spacer)
+	detail_rows.add_child(_arts)
 	_equipped = _label("",14,ORANGE)
 	_equipped.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	inspect_rows.add_child(_equipped)
@@ -293,6 +305,7 @@ func open_menu() -> void:
 	_modal.hide()
 	_stick = Vector2.ZERO
 	_stick_direction = Vector2.ZERO
+	_detail_axis = 0
 	set_process(true)
 	refresh()
 	set_status("Select an item to inspect it. Your field kit is saved with the city.")
@@ -328,6 +341,9 @@ func _item_name(iid: String) -> String:
 	var item: Resource = inventory.get_item(iid)
 	var definition := _definition(item)
 	return String(definition.display_name) if definition != null else "Empty"
+
+func _item_type(iid: String) -> String:
+	return ItemType.label(_definition(inventory.get_item(iid)))
 
 func _equipped_slots(iid: String) -> Array[StringName]:
 	var result: Array[StringName] = []
@@ -423,10 +439,17 @@ func _refresh_items() -> void:
 		var suffix := "  x%d" % item.quantity if item.quantity>1 else ""
 		if item.upgrade_level>0: suffix += "  +%d" % item.upgrade_level
 		if not slots.is_empty(): suffix += "  ["+String(slots[0]).to_upper()+"]"
-		var button := _button(CATEGORY_GLYPHS[category_index]+"   "+_item_name(iid)+suffix,_select_row.bind(index),40)
+		var button := _button(CATEGORY_GLYPHS[category_index]+"   "+_item_name(iid)+suffix+"\n"+_item_type(iid),_select_row.bind(index),44)
+		button.add_theme_font_size_override("font_size",14)
+		button.tooltip_text = _item_name(iid)+suffix+"\n"+_item_type(iid)
+		_mark(button,index==selected_index)
+		for state: String in ["normal","hover","focus","pressed"]:
+			var box: StyleBoxFlat = button.get_theme_stylebox(state).duplicate()
+			box.content_margin_top = 4
+			box.content_margin_bottom = 4
+			button.add_theme_stylebox_override(state,box)
 		button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		_rows.add_child(button)
-		_mark(button,index==selected_index)
 		item_rows.append(button)
 	_page_label.text = "%d / %d    |    %d per page" % [page+1,pages,PAGE_SIZE]
 	_previous.disabled = page<=0
@@ -442,7 +465,9 @@ func _refresh_equipment() -> void:
 		var slot: StringName = EQUIPMENT_SLOTS[index]
 		var iid := String(inventory.equipment.get(slot,""))
 		visible_ids.append(iid)
-		var button := _button(String(slot).to_upper()+"    /    "+_item_name(iid),_select_row.bind(index),29)
+		var item_text := (_item_type(iid)+"   /   " if not iid.is_empty() else "")+_item_name(iid)
+		var button := _button(String(slot).to_upper()+"    /    "+item_text,_select_row.bind(index),29)
+		button.tooltip_text = String(slot).to_upper()+" / "+_item_name(iid)+("\n"+_item_type(iid) if not iid.is_empty() else "")
 		button.add_theme_font_size_override("font_size",14)
 		button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		_rows.add_child(button)
@@ -470,6 +495,9 @@ func _change_page(direction: int) -> void:
 	refresh()
 
 func _inspect() -> void:
+	if _inspected_iid!=selected_iid:
+		_detail_scroll.scroll_vertical = 0
+		_inspected_iid = selected_iid
 	var item: Resource = inventory.get_item(selected_iid)
 	var definition := _definition(item)
 	if item==null or definition==null:
@@ -481,7 +509,7 @@ func _inspect() -> void:
 		_equipped.text = ""
 		return
 	_name_label.text = definition.display_name
-	_meta_label.text = "%s   |   QTY %d   |   UPGRADE +%d" % [String(definition.category).replace("_"," ").to_upper(),item.quantity,item.upgrade_level]
+	_meta_label.text = "%s / %s\nQTY %d   |   UPGRADE +%d" % [String(definition.category).replace("_"," ").to_upper(),ItemType.label(definition).to_upper(),item.quantity,item.upgrade_level]
 	_description.text = definition.description
 	var canonical := StringName(definition.custom_properties.get("weapon_slot",&""))
 	if Database.is_weapon(item.item_type_id): canonical = item.item_type_id
@@ -576,7 +604,9 @@ func _choose_weapon() -> void:
 		_modal_rows.add_child(_label("Choose an item in Inventory, then equip it.",15,MUTED))
 		_modal_choice("OPEN INVENTORY",func(): select_category(0 if _target_slot in DIRECTIONS else (5 if _target_slot in [&"ring1",&"ring2"] else 1)))
 	else:
-		for iid: String in choices: _modal_choice(_item_name(iid),_equip.bind(_target_slot,iid))
+		for iid: String in choices:
+			_modal_choice(_item_type(iid)+"   /   "+_item_name(iid),_equip.bind(_target_slot,iid))
+			_modal_buttons[-1].text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	if choices.is_empty(): _modal_rows.add_child(_label("No compatible owned items are available.",15,MUTED))
 	_modal_choice("BACK",_close_modal)
 
@@ -696,6 +726,8 @@ func _input(event: InputEvent) -> void:
 			KEY_ESCAPE,KEY_B: back()
 			KEY_TAB: select_tab(tab_index+1)
 			KEY_F5: save_requested.emit()
+			KEY_PAGEUP: _detail_scroll.scroll_vertical -= 160
+			KEY_PAGEDOWN: _detail_scroll.scroll_vertical += 160
 			_: handled = false
 	elif event is InputEventJoypadButton:
 		if not event.pressed: return
@@ -727,11 +759,15 @@ func _input(event: InputEvent) -> void:
 			var held: bool = event.axis_value>0.55
 			if held and not _trigger_latched[event.axis] and mode.is_empty(): select_category(category_index+(-1 if event.axis==JOY_AXIS_TRIGGER_LEFT else 1))
 			_trigger_latched[event.axis] = held
+		elif event.axis==JOY_AXIS_RIGHT_Y:
+			_detail_axis = event.axis_value if absf(event.axis_value)>.2 else 0.0
 		else: handled = false
 	else: handled = false
 	if handled: get_viewport().set_input_as_handled()
 
 func _process(delta: float) -> void:
+	if not is_zero_approx(_detail_axis) and mode.is_empty():
+		_detail_scroll.scroll_vertical += roundi(_detail_axis*360.0*delta)
 	if _stick_direction.is_zero_approx(): return
 	_repeat_timer -= delta
 	if _repeat_timer<=0:

@@ -10,6 +10,13 @@ var ink := Color("75eaff")
 var trim := Color("bcd8e1")
 var fabric := Color("0b111b")
 var _time := 0.0
+var _flow := 0.0
+var _turn := 0.0
+var _inertia := Vector3.ZERO
+var _previous_velocity := Vector3.ZERO
+var _previous_yaw := 0.0
+var _motion_initialized := false
+var _mounted_kind := ""
 
 func node(parent: Node3D,label: String) -> Node3D:
 	var piece := Node3D.new()
@@ -99,25 +106,49 @@ func panel(label: String,length: float,angle: float,half_width: float,rx: float,
 	tail.set_meta("cape",cape)
 	tail.set_meta("angle",angle)
 	tail.set_meta("length",length)
+	var seam := Vector3(sin(angle)*rx,0,cos(angle)*rz)
+	tail.set_meta("seam",seam)
+	# A cape remains flexible over a plated cuirass. Short metal tassets follow
+	# the legs as articulated pieces, without the extra fabric bend or flutter.
+	var flexible: bool = cape or String(profile.cut)=="cloth" or label.begins_with("LappedTabard") or (ragged and length>.4)
+	tail.set_meta("flexible",flexible)
+	tail.set_meta("cloth_angles",Vector3.ZERO)
+	if flexible:
+		var bend := Node3D.new()
+		bend.name = "FreeHemBend"
+		tail.add_child(bend)
+		var bend_seam := _panel_point(.45,angle,rx,rz,length)-seam
+		bend.position = bend_seam
+		tail.set_meta("bend",bend)
+		tail.set_meta("bend_angles",Vector3.ZERO)
+		_panel_band(tail,label+"UpperFabric",0,.45,angle,half_width,rx,rz,length,ragged,seam)
+		_panel_band(bend,label+"FreeFabric",.45,1,angle,half_width,rx,rz,length,ragged,seam+bend_seam)
+	else:
+		_panel_band(tail,label+"Fabric",0,1,angle,half_width,rx,rz,length,ragged,seam)
+
+func _panel_point(t: float,angle: float,rx: float,rz: float,length: float) -> Vector3:
+	return Vector3(sin(angle)*rx*(1+t*.62),-t*length,cos(angle)*rz*(1+t*.62))
+
+func _panel_band(parent: Node3D,label: String,start: float,end: float,angle: float,half_width: float,rx: float,rz: float,length: float,ragged: bool,pivot: Vector3) -> void:
 	var b := Surface.new()
 	var grid: Array = []
-	for row in range(4):
-		var t := row/3.0
+	for row in range(3):
+		var t := lerpf(start,end,row/2.0)
 		for column in range(5):
 			var a := angle+(column/4.0-.5)*half_width*2
 			var flare := 1+t*.62
 			var pleat := sin(column*PI)*.008+cos(column*PI)*.007*t
-			var y: float = -t*length+(0.045 if ragged and row==3 and column%2==1 else 0)
-			grid.append(Vector3(sin(a)*(rx*flare+pleat),y,cos(a)*(rz*flare+pleat)))
-	for row in range(3):
+			var y: float = -t*length+(0.045 if ragged and is_equal_approx(t,1) and column%2==1 else 0)
+			grid.append(Vector3(sin(a)*(rx*flare+pleat),y,cos(a)*(rz*flare+pleat))-pivot)
+	for row in range(2):
 		for column in range(4):
 			var j := row*5+column
 			b.quad(grid[j],grid[j+1],grid[j+6],grid[j+5])
-	b.line([grid[0],grid[4],grid[9],grid[14],grid[19],grid[18],grid[17],grid[16],grid[15],grid[10],grid[5],grid[0]])
-	b.line([grid[2],grid[7],grid[12],grid[17]],true)
+	b.line([grid[0],grid[4],grid[9],grid[14],grid[13],grid[12],grid[11],grid[10],grid[5],grid[0]])
+	b.line([grid[2],grid[7],grid[12]],true)
 	if profile.ornate:
 		b.line([grid[11],(grid[11]+grid[13])*.5+Vector3(0,-.04,.003),grid[13]],true)
-	finish(b,tail,label+"Fabric")
+	finish(b,parent,label)
 
 func head() -> void:
 	var root := node(figure.chest,"FittedHeadpiece")
@@ -184,29 +215,94 @@ func legs() -> void:
 			finish(b,root,"ContouredLegPlate",profile.cut!="cloth")
 
 func _process(delta: float) -> void:
+	if not is_instance_valid(figure): return
 	_time += delta
 	var actor: Node = figure.get_parent()
 	var actions: Node = actor.get("world_actions")
 	var vehicle: Node = actions.vehicle if is_instance_valid(actions) else null
 	var mounted_kind: String = vehicle.kind if is_instance_valid(vehicle) else ""
-	var speed: float = vehicle.velocity.length() if is_instance_valid(vehicle) else actor.velocity.length() if actor is CharacterBody3D else 0.0
-	var flow := clampf(speed/18,0,1)
+	var motion: Vector3 = vehicle.velocity if is_instance_valid(vehicle) else actor.velocity if actor is CharacterBody3D else Vector3.ZERO
+	var changed_mount := mounted_kind!=_mounted_kind
+	_mounted_kind = mounted_kind
+	var figure_basis: Basis = figure.global_basis.orthonormalized()
+	var yaw := figure.global_rotation.y
+	if not _motion_initialized or changed_mount:
+		_previous_velocity = motion
+		_previous_yaw = yaw
+		_inertia = Vector3.ZERO
+		_turn = 0
+		_motion_initialized = true
+	var local_motion := figure_basis.inverse()*motion
+	var acceleration := Vector3.ZERO
+	var angular_speed := 0.0
+	if delta>0:
+		acceleration = (figure_basis.inverse()*(motion-_previous_velocity)/delta/28.0).limit_length(1)
+		angular_speed = clampf(wrapf(yaw-_previous_yaw,-PI,PI)/delta*.10,-.45,.45)
+	_previous_velocity = motion
+	_previous_yaw = yaw
+	var speed := Vector2(motion.x,motion.z).length()
+	var target_flow := clampf(speed/14.0+absf(motion.y)*.006,0,1)
+	_flow = lerpf(_flow,target_flow,1-exp(-6*delta))
+	_inertia = _inertia.lerp(acceleration,1-exp(-6*delta))
+	_turn = lerpf(_turn,angular_speed,1-exp(-8*delta))
+	# Flow opposes travel, including backpedaling and strafing. The mounted
+	# saddle fold below intentionally remains rearward even while reversing.
+	var trail_forward := _flow*clampf(local_motion.z/maxf(speed,.1),-1,1)
+	var trail_side := _flow*clampf(local_motion.x/maxf(speed,.1),-1,1)
 	for i in range(tails.size()):
 		var tail := tails[i]
 		var cape: bool = tail.get_meta("cape")
+		var flexible: bool = tail.get_meta("flexible")
 		tail.visible = mounted_kind in ["","motorcycle"]
 		var origin: Node3D = figure.chest if cape else figure.pelvis
-		var anchor: Vector3 = origin.global_position+(origin.global_basis*Vector3(0,.43,0) if cape else Vector3.ZERO)
-		tail.position = to_local(anchor)
-		var pitch := .10+flow*.40
-		if mounted_kind=="motorcycle": pitch=1.45
-		var sway := sin(_time*(3+flow*4)+i*1.7)*(.008+flow*.035)
-		var angles := Vector3(pitch+sway,0,sway*.35)
-		var target := Basis.from_euler(angles)
+		var relative_basis := global_basis.inverse()*origin.global_basis
+		var orientation_basis := relative_basis
+		var anchor := to_local(origin.global_position)
+		if cape: anchor += relative_basis*Vector3(0,.43,0)
+		var seam: Vector3 = tail.get_meta("seam")
+		# The sewn edge stays on its own hip/shoulder seam. Geometry was built
+		# relative to this pivot, so leaning never sweeps the attachment inward.
+		tail.position = anchor+relative_basis*seam
+		var leg_pitch := 0.0
+		var leg_roll := 0.0
+		if not cape:
+			var leg: Node3D = figure.joints.RightLeg if seam.x>0 else figure.joints.LeftLeg
+			var thigh: Vector3 = origin.global_basis.inverse()*(leg.global_basis*Vector3.DOWN)
+			var pitch := atan2(-thigh.z,-thigh.y)
+			var front: bool = cos(float(tail.get_meta("angle")))>=0
+			leg_pitch = (minf(pitch,0)*.82 if front else maxf(pitch,0)*.72)
+			leg_roll = atan2(thigh.x,-thigh.y)*.40
+		var flutter := sin(_time*(3.3+_flow*5)+i*1.7)*_flow*.045 if flexible else 0.0
+		var flexibility := 1.0 if flexible else .12
+		var angles_target := Vector3(
+			leg_pitch+(trail_forward*(.34 if cape else .22)+_inertia.z*.09+flutter)*flexibility,
+			-_turn*(.65 if cape else .38)*flexibility,
+			leg_roll+(-trail_side*.14-_inertia.x*.09+flutter*.5)*flexibility)
+		if mounted_kind=="motorcycle":
+			# Match the Scribe treatment: fold over the belt, then stream behind
+			# the saddle above the rear wheel, even when the bike is stationary.
+			angles_target = Vector3(1.50+_flow*.08+flutter*.3,-_turn*.15,flutter*.15)
+			tail.position += relative_basis*Vector3(0,.065,0)
+			# The shoulder seam follows the leaned chest, but its free fabric
+			# streams in the hip frame. Adding the chest lean again would turn a
+			# horizontal cape into a vertical flag behind the rider's head.
+			if cape: orientation_basis=global_basis.inverse()*figure.pelvis.global_basis
+		var previous: Vector3 = tail.get_meta("cloth_angles")
+		var angles := angles_target if changed_mount else previous.lerp(angles_target,1-exp(-(10 if flexible else 20)*delta))
+		tail.set_meta("cloth_angles",angles)
 		var hem := float(tail.get_meta("length"))
 		var clearance := 1.0
-		if mounted_kind.is_empty() and not cape: clearance=clampf((figure.pelvis.global_position.y-actor.global_position.y-.08)/maxf(.1,hem),.4,1)
-		tail.basis = global_basis.inverse()*origin.global_basis*target.scaled(Vector3(1,clearance,1))
+		if mounted_kind.is_empty() and actor is CharacterBody3D and actor.is_on_floor():
+			clearance=clampf((to_global(anchor).y-actor.global_position.y-.08)/maxf(.1,hem),.4,1)
+		tail.basis = orientation_basis*Basis.from_euler(angles).scaled(Vector3(1,clearance,1))
+		if flexible:
+			var bend: Node3D = tail.get_meta("bend")
+			var tip_target := Vector3(trail_forward*.25+_inertia.z*.16+flutter*1.7,-_turn*.4,-trail_side*.11-_inertia.x*.13+flutter*.7)
+			if mounted_kind=="motorcycle": tip_target.x = .06+_flow*.04+flutter*.3
+			var bend_previous: Vector3 = tail.get_meta("bend_angles")
+			var bend_angles := tip_target if changed_mount else bend_previous.lerp(tip_target,1-exp(-7*delta))
+			tail.set_meta("bend_angles",bend_angles)
+			bend.basis = Basis.from_euler(bend_angles)
 
 func _exit_tree() -> void:
 	for piece in external:
