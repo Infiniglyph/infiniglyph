@@ -55,7 +55,7 @@ forward convention into the figure's +Z front at playback. Extreme windups ease
 into a small rear shoulder workspace instead of reaching an arm's length behind
 the back. Retargeted elbows use an outward, slightly forward bend relative to
 the animated chest, with a stable fallback for a degenerate pole direction.
-Existing contact schedules, charged/multi-hit retiming and recovery blending
+Authored contact phases, charged/multi-hit retiming and recovery blending
 continue to control the sequence; this adjustment changes the presented pose.
 The return to ready blends shoulder-relative hand endpoints over 0.16 seconds.
 Named-arm IK blends the bend direction and reachable endpoints together, avoiding
@@ -65,6 +65,40 @@ reaction, weapon change or sheathe can take over immediately; this adds no
 combat recovery time or action lock.
 Raised shared grips follow a small forward arc during that return, avoiding
 the shoulder's near-zero reach while preserving the exact resting stance.
+
+Reference weapon playback now uses the basic four weapons as its tempo guide.
+`reference_weapon_flow.gd` compresses slow schedules toward family-specific light
+attack targets: 0.34 s for daggers/fists/paired blades, 0.43 s for katanas/curved
+swords, 0.46 s for staves/chimes, 0.50 s for swords/spears, 0.52 s for whips,
+0.56 s for halberds/scythes, and 0.58/0.62/0.65 s for axes/greatswords/hammers.
+Slow clips retain up to 0.07 s of additional per-item variation. Existing faster
+moves keep their timing. Arts target 0.80–1.08 s before charge extensions.
+Windup, every contact and any dash interval scale together; damage, reach, source
+gesture, charge controls and number of hit pulses retain their definitions.
+
+Buffered inputs survive until the named move's recovery window, opening after
+both 72% of its cycle and 0.10 s beyond the final pulse. The next attack can take
+over there instead of waiting for the entire visual return to ready. Each new
+reference attack blends from the presented grip over 0.07 s without delaying its
+combat clock. Auto-sheathing techniques complete their closing sequence first.
+Charged arts calculate their handoff window after adding their actual pulses.
+
+Monotone cubic interpolation smooths hand, wrist, hip and chest velocity between
+reference keys while retaining unwrapped turns and bounded reach. A small
+post-contact continuation extends the existing gesture, with a stronger 0.10 m
+hand continuation on staves/chimes. It fades to the original endpoint. Existing
+arm-return blending remains interruptible. The four starters, Scribe, Paintbrush
+and disc handling keep their existing animation and input timing.
+
+`tests/reference_weapon_flow.gd` audits shipped reference definitions and exercises
+real early bumper presses across all fifteen cuts, charged contact schedules,
+smooth key transitions and staff continuation. `tests/named_motion_rig.gd` and
+`tests/natural_weapon_arms.gd` check the actual skeleton, shared grips, supported
+feet, facing and return to locomotion. For native staff/greatsword combo captures,
+run `natural_weapon_arms.gd -- --capture-only --flow-video`.
+The flow suite passes 40 checks and the arm suite passes 190 checks at each of
+30/60/120 Hz. The full named-rig suite passes 46 checks at 60 Hz; equipment
+integration, starter combat, parry/stagger, Paintbrush and Scribe regressions pass.
 
 Each named entry specifies its own basic and art clip order, leverage, support
 grip, tempo, stance width and loading weight. Three-stage basics work from either
@@ -77,7 +111,7 @@ authored katana recipe, for duplication.
 
 Contact timing is inferred from sampled motion because the selected clips lack
 usable hit annotations. The three original named designs retain their existing
-hit schedules, retimed against the sampled contact phase. Each existing multi-hit
+pulse patterns, retimed against the sampled contact phase. Each existing multi-hit
 or charged pulse repeats a visible drive, with a blended recovery between pulses;
 this changes animation only, adding no damage events. Heavy and pole weapons use
 the existing reachable shared-hilt solver. Damage, momentum, guard strain, chip

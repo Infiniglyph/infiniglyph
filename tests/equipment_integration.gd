@@ -161,7 +161,7 @@ func run() -> void:
 	await frames(hz/2)
 	shop.open_menu()
 	shop.open_browser()
-	check(shop.is_open and shop.browser.ids.size()==1708 and shop.browser.buttons.size()<=9 and not paused,"The Weapons department includes all named weapons and the four starters, with bounded rows")
+	check(shop.is_open and shop.browser.ids.size()==1716 and shop.browser.buttons.size()<=9 and not paused,"The Weapons department includes all named weapons, eight Paintbrushes and four starters, with bounded rows")
 	await frames(3)
 	check(root.get_visible_rect().encloses(shop.browser.buttons[-1].get_global_rect()),"A complete browser page fits the viewport")
 	shop.browser.query.text = "The Fractured Moon"
@@ -188,7 +188,7 @@ func run() -> void:
 	for category: String in ["weapons","items","armour"]:
 		var previous_model: Node3D = shop.browser.model
 		shop.open_browser(category)
-		var expected: Dictionary = {"weapons":1708,"items":142,"armour":403}
+		var expected: Dictionary = {"weapons":1716,"items":142,"armour":403}
 		var isolated: bool = shop.browser.ids.size()==expected[category]
 		for id: StringName in shop.browser.ids:
 			isolated = isolated and not visited.has(id)

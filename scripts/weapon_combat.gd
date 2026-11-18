@@ -142,6 +142,9 @@ var _natural_pole_weight := 0.0
 var _arm_bends: Dictionary = {}
 var _arm_reaches: Dictionary = {}
 var _arm_pose_delta := 0.0
+var _flow_blend_remaining := 0.0
+var _flow_start_right := Vector3.ZERO
+var _flow_start_left := Vector3.ZERO
 
 func _ready() -> void:
 	name = "WeaponCombat"
@@ -393,7 +396,7 @@ func _on_action(action: StringName, slot: StringName) -> void:
 	move.action = String(action)
 	if actor.dodge.active or not active_move.is_empty():
 		_queued = {"action":action,"slot":slot,"charge":strength}
-		_queue_time = 0.4
+		_queue_time = maxf(.4,float(active_move.get("chain_open",0))-elapsed+.08) if active_move.get("reference_flow",false) else .4
 		return
 	_begin(move)
 
@@ -411,6 +414,10 @@ func _on_charge_started(_action: StringName, _slot: StringName) -> void:
 
 func _begin(move: Dictionary) -> void:
 	if is_staggered(): return
+	_flow_blend_remaining = .07 if move.get("reference_flow",false) else 0.0
+	if _flow_blend_remaining>0:
+		_flow_start_right = actor.visual.chest.to_local(rig.right_hand.global_position)
+		_flow_start_left = actor.visual.chest.to_local(rig.left_hand.global_position)
 	attack_serial += 1
 	_attack_hit_start = total_hits
 	active_move = move
@@ -430,6 +437,7 @@ func _begin(move: Dictionary) -> void:
 	attack_started.emit(move.duplicate())
 
 func cancel() -> void:
+	_flow_blend_remaining = 0
 	if is_instance_valid(paint_trace): paint_trace.stop()
 	for disc in flying_discs.duplicate():
 		if is_instance_valid(disc): disc.reclaim()
@@ -672,7 +680,8 @@ func _physics_process(delta: float) -> void:
 		var previous := elapsed
 		elapsed += delta
 		advance_strikes(previous)
-		if not active_move.is_empty() and elapsed >= float(active_move.duration):
+		var chain_ready: bool = not active_move.is_empty() and not _queued.is_empty() and elapsed>=float(active_move.get("chain_open",active_move.duration))
+		if not active_move.is_empty() and (elapsed >= float(active_move.duration) or chain_ready):
 			var completed := active_move.duplicate()
 			active_move = {}
 			if completed.get("weapon_family")=="paintbrush" and is_instance_valid(paint_trace): paint_trace.stop()
@@ -1060,6 +1069,11 @@ func apply_pose(delta: float) -> void:
 				_katana_gripping = true
 			_katana_anchor = _katana_anchor.lerp(hand_local,1-exp(-30*delta))
 			right_world = actor.visual.chest.to_global(_katana_anchor)
+		if natural and _flow_blend_remaining>0:
+			_flow_blend_remaining = maxf(0,_flow_blend_remaining-delta)
+			var blend := smoothstep(0,.07,_flow_blend_remaining)
+			right_world = right_world.lerp(actor.visual.chest.to_global(_flow_start_right),blend)
+			left_world = left_world.lerp(actor.visual.chest.to_global(_flow_start_left),blend)
 		if releasing:
 			# Only the visual handoff to ready is blended. Fresh attacks, guard,
 			# dodge and reactions take over immediately, without an action lock.

@@ -3,6 +3,7 @@ const Equipment = preload("res://scripts/equipment_database.gd")
 const DiscMoves = preload("res://scripts/disc_moves.gd")
 const PaintMoves = preload("res://scripts/paintbrush_moves.gd")
 const NamedMoves = preload("res://scripts/equipment_moves.gd")
+const ReferenceFlow = preload("res://scripts/reference_weapon_flow.gd")
 ## Authored prototype moves: timing and damage are tuning data, not animation assets.
 const LOADOUTS := {
 	&"down":{"id":&"sword_shield","name":"Longsword + Shield","short":"Sword + Shield","color":Color(0.45,0.85,1),"guard":0.85},
@@ -21,6 +22,7 @@ static func move(slot: StringName, action: StringName, combo: int = 0, aerial: b
 	var result := _move(slot,action,combo,aerial)
 	if result.is_empty(): return result
 	result.action = String(action)
+	ReferenceFlow.apply(result,Equipment.get_item(slot))
 	# Bumper attacks deal damage without forcing either fighter out of an action.
 	if action in [&"attack_left",&"attack_right"]:
 		result.hit_stun_level = 0.0
@@ -128,4 +130,5 @@ static func charged_move(slot: StringName, action: StringName, strength: float, 
 		if result.get("disc_gym",false): result.windup=.30
 	if result.has("dash"):
 		result.dash = {"start":.04,"end":.20,"speed":float(result.dash.speed)}
+	ReferenceFlow.finish_timing(result)
 	return result

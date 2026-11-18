@@ -275,6 +275,29 @@ func captures(representatives: Dictionary) -> void:
 	p.move_and_slide()
 	p.velocity = Vector3.ZERO
 	p.apply_floor_snap()
+	if "--flow-video" in OS.get_cmdline_user_args():
+		DirAccess.make_dir_recursive_absolute("res://captures")
+		for cut: String in ["conduit","greatblade"]:
+			var item: Resource = equip(representatives[cut])
+			w.reset()
+			p.visual.rotation.y = 0
+			camera.fov = 40
+			camera.position = Vector3(2.1,1.65,2.7)
+			camera.look_at(Vector3(0,1.05,0))
+			for i in range(24):
+				p.visual.animate(1.0/60,Vector3.ZERO,true)
+				w.apply_pose(1.0/60)
+			w._on_action(&"attack_right",&"right")
+			for tick in range(84):
+				if tick==6: w._on_action(&"attack_left",&"right")
+				p.visual.animate(1.0/60,Vector3.ZERO,true)
+				w._physics_process(1.0/60)
+				if tick%2==0:
+					await process_frame
+					await RenderingServer.frame_post_draw
+					root.get_texture().get_image().save_png("res://captures/weapon_flow_%s_%03d.png" % [cut,tick/2])
+			p.inventory.take_item(item.instance_id,1)
+		return
 	if "--release-trace" in OS.get_cmdline_user_args():
 		await capture_final_line(representatives.longcurve if "--longcurve-release" in OS.get_cmdline_user_args() else representatives.greatblade)
 		return

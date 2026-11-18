@@ -576,6 +576,13 @@ Named weapons use sampled DAR-derived motion adapted to our existing skeleton:
 383 distinct reference clips supply 15 vocabularies, with individual combo/art
 orders, support grips, leverage, stance, tempo and loading. Related variants
 share motifs; these are not thousands of independently hand-keyed animations.
+Reference attacks use the basic four weapons' pace, with family-specific timing,
+earlier buffered combos and smooth, extended follow-through (especially staves).
+Slow light cycles now approach 0.34–0.65 s plus at most 0.07 s of item variation.
+The next buffered attack can take over after the final hit and early recovery;
+visual return to ready does not add an input lock. Scribe, Paintbrush and the
+four starters retain their handling. See [equipment playback](docs/EQUIPMENT.md)
+for tuning and verification.
 Grounded, aerial and charged sequences preserve existing momentum damage,
 defenses, cancellations and free traversal. The Fractured Moon, Event Horizon
 and The Last Argument also receive the motion upgrade.
