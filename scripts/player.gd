@@ -187,7 +187,7 @@ func _physics_process(delta: float) -> void:
 	fall_damage.finish(preimpact_velocity)
 	var horizontal := Vector2(velocity.x,velocity.z).length()
 	if target_lock.is_locked(): face_locked_target()
-	elif horizontal > 0.1 and not weapon_combat.visual_frozen():
+	elif horizontal > 0.1 and not weapon_combat.visual_frozen() and not weapon_combat.is_writing_stance():
 		# This procedural rig faces +Z: elbows bend forward, knees backward.
 		visual.rotation.y = lerp_angle(visual.rotation.y,atan2(velocity.x,velocity.z),1-exp(-16*delta))
 	visual.animate(delta,velocity,is_on_floor(),boost_active,{"boost":float(controls.boost),"repetition":clampf(air_step_count/6.0,0,1),"reversal":reversal})

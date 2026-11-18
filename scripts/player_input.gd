@@ -10,6 +10,9 @@ var interaction_context: Node
 var _rt_interaction_latched := false
 var _resume_triggers := {JOY_AXIS_TRIGGER_LEFT:false,JOY_AXIS_TRIGGER_RIGHT:false}
 var _held_specials: Dictionary = {}
+## Set by the equipped Manuscript only. Outside a live trace RT+A remains shield.
+var trace_jump_context: Callable
+var _held_special_actions: Dictionary = {}
 ## Right-stick camera motion becomes one directional target request per flick.
 var move := Vector2.ZERO
 var look := Vector2.ZERO
@@ -154,6 +157,17 @@ func is_blocking() -> bool:
 func special_modified() -> bool:
 	return _keyboard_modifier or _pad_modifier
 
+func claim_weapon_modifier() -> void:
+	_rt_used = true
+	_rt_pending = false
+
+func trace_jump_active() -> bool:
+	if not trace_jump_context.is_valid() or not trace_jump_context.call(): return false
+	return _held_special_actions.values().any(func(action: StringName) -> bool: return action in [&"special_rt_x",&"special_rt_y"])
+
+func has_pending_trace() -> bool:
+	return _combat_requests.any(func(request: Dictionary) -> bool: return request.kind==&"special_press" and request.value in [&"special_rt_x",&"special_rt_y"])
+
 func trigger_held(value: float, held: bool) -> bool:
 	return value > TRIGGER_RELEASE if held else value >= TRIGGER_PRESS
 
@@ -222,9 +236,11 @@ func _special(button: StringName, device: int = -1, pressed: bool = true) -> voi
 		if _held_specials.has(token): return
 		var action := StringName("special_rt_"+button if special_modified() else "special_"+button)
 		_held_specials[token] = device
+		_held_special_actions[token] = action
 		_combat_requests.append({"kind":&"special_press","value":action,"token":token,"device":device})
 	elif _held_specials.has(token):
 		_held_specials.erase(token)
+		_held_special_actions.erase(token)
 		_request(&"special_release",token,device)
 
 func _press_down(device: int) -> void:
@@ -274,7 +290,7 @@ func _combat_input(event: InputEvent) -> void:
 		elif code == KEY_G: interaction_requested = true
 		elif code == KEY_H: heal_requested = true
 		elif code == KEY_SPACE:
-			if _keyboard_modifier: shield_requested = true
+			if _keyboard_modifier and not trace_jump_active(): shield_requested = true
 			else: jump_requested = true
 		elif WEAPON_KEYS.has(code):
 			_down_cancelled = true
@@ -309,7 +325,7 @@ func _combat_input(event: InputEvent) -> void:
 		match event.button_index:
 			JOY_BUTTON_LEFT_STICK: toggle_boost()
 			JOY_BUTTON_A:
-				if _pad_modifier:
+				if _pad_modifier and not trace_jump_active():
 					_rt_used = true
 					_rt_pending = false
 					shield_requested = true
@@ -343,6 +359,7 @@ func reset_combat_input() -> void:
 	interaction_requested = false
 	dodge_requested = false
 	_held_specials.clear()
+	_held_special_actions.clear()
 	special_hold_cancelled.emit(&"")
 	_lock_requests.clear()
 	_flick_armed = false
@@ -371,6 +388,7 @@ func _on_joy_connection_changed(device: int, connected: bool) -> void:
 	for token: StringName in _held_specials.keys():
 		if _held_specials[token] == device:
 			_held_specials.erase(token)
+			_held_special_actions.erase(token)
 			special_hold_cancelled.emit(token)
 	_pad_block = false
 	_pad_modifier = false

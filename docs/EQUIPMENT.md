@@ -252,6 +252,8 @@ Sixteen source rows lack a matching portrait and use construction defaults.
 | `scripts/kyren_hat.gd`, `scripts/kyren_cosmetic.gd` | Shared NPC hat geometry and wearable Head/Body copies with actual pooled effects |
 | `scripts/eturnull_hat.gd` | Head-mounted geometry and pooled symbol-to-equation rain |
 | `scripts/scribe_moves.gd`, `scribe_presentation.gd` | Conducting, shared writing/contact paths, open book, pages, quill and hip stow |
+| `scripts/equation_trace.gd`, `equation_trace_settings.gd` | Held-quill RT X/circle tracing, world-space mathematical contacts, single reflection and bounded tuning |
+| `scripts/persistent_trail.gd` | Bounded segment storage and lifetime fading shared by vehicle and equation trails |
 | `data/equipment/retired.json` | Exact historical IDs used only to validate and retire old save entries |
 | `data/equipment/named_weapons.json` | Three early named designs, schedules and sampled curves |
 | `data/equipment/motions/*.json` | Runtime joint samples and style manifest; no source paths/binaries |
@@ -364,16 +366,26 @@ for controls, acquisition, active hit geometry and the save migration. New Scrib
 weapons use `family` and `combat_kind` set to `scribe`, `geometry.renderer` set to
 `scribe`, their own `guard`, and authored `moves` with `equation`, `scribe_shape`,
 `stroke_radius`, timing, reach and damage. Their strokes supply both rendering and
-collision contacts through the existing combat resolver. No item-ID cases are
-needed in the controller. The hat uses `geometry.renderer = eturnull_hat`.
+collision contacts through the existing combat resolver. The Manuscript's
+continuous RT arts are a deliberate item-specific extension; other Scribe
+weapons keep their own authored arts. The hat uses `geometry.renderer = eturnull_hat`.
 
 The Scribe tuning pass adapts nine distinct existing named-weapon gestures into
 the conducting arm while keeping the book arm supported. Anatomical sides are
 explicitly corrected for the figure's historical arm-node names. Light stages
 use the starter twin-blade timing; writing and corresponding contact capsules
 reach the spear's seven-metre art range (9.1 m at full charge). The Manuscript's
-base heavy damage is 30; light stages are 13/16/18/17 and arts are 28/24/23/25
-per pulse, with matching aerial values and the existing charge/momentum bonuses.
+base heavy damage is 30; light stages are 13/16/18/17 and the two unmodified arts
+are 28/24 per pulse, with matching aerial values and the existing charge/momentum
+bonuses. Ordinary equations follow camera yaw and pitch. Holding RT/V takes the
+quill into the right hand; RT+X/V+Q and RT+Y/V+R trace persistent X/circular
+mathematics, with tiny taps, 3 s lifetime and the vehicle trail's 750 damage /
+0.5 s contact cooldown. A/Space jumps during an active trace; RT+A/V+Space uses
+a Shield Glyph otherwise. A normal parry redirects intercepted sections once,
+preserving the one-second attacker stun; redirected ink can hit its author and
+cannot be parried again. `equation_trace_settings.gd` exposes tracing, appearance,
+contact, lifetime, reflection and bounded-geometry tuning. Vehicle appearance
+and gameplay remain unchanged.
 Ready stance is
 weighted over the rear left foot, with the right arm relaxed and nearly straight.
 The quill has its own shoulder-high hover a metre to the right, with a smoothed

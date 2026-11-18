@@ -186,6 +186,7 @@ func _process(delta: float) -> void:
 	book.scale *= book_size
 	var charging: bool = is_instance_valid(combat) and actor.combat.charge_action!=&""
 	var guarding: bool = is_instance_valid(combat) and actor.combat.blocking
+	var holding_quill: bool = is_instance_valid(combat) and combat.is_writing_stance()
 	var move: Dictionary = combat.active_move if is_instance_valid(combat) else {}
 	if not stowed and not move.is_empty():
 		# Fresh attacks accelerate the draw so its contact can never precede the
@@ -194,6 +195,7 @@ func _process(delta: float) -> void:
 	var activity := float(move.get("page_energy",.35)) if not move.is_empty() else .04
 	if charging: activity = .65+actor.combat.charge_elapsed/actor.combat.CHARGE_FULL*.35
 	elif guarding: activity = .25
+	elif holding_quill: activity = .3 if combat.tracing_active() else .08
 	page_phase += delta*(1.0+activity*5.5)
 	var opening := (1-smoothstep(.5,1,stow_amount))
 	leaves[0].rotation.y = lerpf(PI*.49,.24,opening)
@@ -234,10 +236,13 @@ func _process(delta: float) -> void:
 	if writing and not active_points.is_empty():
 		var count := ink.multimesh.visible_instance_count
 		if count>0: target = active_transform*active_points[mini(active_points.size()-1,count*2-1)]
+	if holding_quill:
+		clear_writing()
+		target = rig.left_hand.global_position-Vector3.UP*.16
 	var local_target := to_local(target)
 	# Like Scriptorus, follow in the owner's local frame. Fast travel cannot
 	# leave the quill across the map; only the gesture has bounded smoothing.
-	if writing:
+	if writing or holding_quill:
 		quill.position = local_target
 	else:
 		quill.position = quill.position.lerp(local_target,1-exp(-24*delta))
@@ -245,7 +250,9 @@ func _process(delta: float) -> void:
 	quill.global_position = quill.global_position.lerp(book.global_position,dive)
 	quill.visible = stow_amount<.58
 	var movement := quill.global_position-_last_tip
-	if movement.length()>.001:
+	if holding_quill:
+		quill.global_basis = Basis(Vector3.UP,atan2(forward.x,forward.z))*Basis.from_scale(Vector3.ONE*quill_size)
+	elif movement.length()>.001:
 		var direction := (-movement.normalized()+Vector3.UP*1.5).normalized()
 		quill.global_basis = Basis(Quaternion(Vector3.UP,direction)).scaled(Vector3.ONE*quill_size)
 	else: quill.rotation = Vector3(0,0,-.22+sin(clock*.72)*.06)
@@ -254,7 +261,7 @@ func _process(delta: float) -> void:
 func write(move: Dictionary, time: float, facing: Vector3) -> void:
 	var points := Moves.strokes(move)
 	active_points = points
-	active_transform = Transform3D(Basis(Vector3.UP,atan2(facing.x,facing.z)),actor.combat_point())*Moves.stroke_transform(move,time)
+	active_transform = Transform3D(Moves.writing_basis(facing),actor.combat_point())*Moves.stroke_transform(move,time)
 	ink_root.global_transform = active_transform
 	var count := mini(STROKE_LIMIT,int(points.size()/2))
 	var written := mini(count,ceili(count*Moves.progress(move,time)))

@@ -1,6 +1,7 @@
 extends MeshInstance3D
 ## A bounded world-space light wall. Swept contacts prevent fast targets from
 ## crossing between physics samples; one cooldown per victim across all panels.
+const Persistence = preload("res://scripts/persistent_trail.gd")
 const LIFETIME := 4.0
 const HEIGHT := 1.2
 const DAMAGE := 750.0
@@ -52,9 +53,7 @@ func now() -> float: return float(Engine.get_physics_frames())/Engine.physics_ti
 
 func _physics_process(delta: float) -> void:
 	var time:=now()
-	while not segments.is_empty() and time-float(segments[0].born)>=LIFETIME:
-		segments.pop_front()
-		_draw_clock=0
+	if Persistence.expire(segments,time,LIFETIME): _draw_clock=0
 	if enabled and (not is_instance_valid(vehicle.player_driver) or vehicle.health<=0): enabled=false
 	if enabled:
 		var point: Vector3=vehicle.to_global(Vector3(0,.08,-vehicle.dimensions.z*.5-.25))
@@ -64,8 +63,7 @@ func _physics_process(delta: float) -> void:
 			_has_last=false
 		_vehicle_at=vehicle.global_position
 		if _has_last and _last.distance_to(point)>=.75:
-			if segments.size()>=MAX_SEGMENTS: segments.pop_front()
-			segments.append({"a":_last,"b":point,"born":time})
+			Persistence.append(segments,{"a":_last,"b":point,"born":time},MAX_SEGMENTS)
 			_draw_clock=0
 			_last=point
 		elif not _has_last:
@@ -148,13 +146,13 @@ func draw_wave(time: float) -> void:
 	if segments.is_empty(): return
 	mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES,_ink)
 	for segment in segments:
-		var opacity: float=clampf((LIFETIME-(time-float(segment.born)))/.6,0,1)
+		var opacity := Persistence.opacity(segment.born,time,LIFETIME,.6)
 		mesh.surface_set_color(Color(trail_color,.58*opacity))
 		for point: Vector3 in [segment.a,segment.b,segment.b+Vector3.UP*HEIGHT,segment.a,segment.b+Vector3.UP*HEIGHT,segment.a+Vector3.UP*HEIGHT]: mesh.surface_add_vertex(point)
 	mesh.surface_end()
 	mesh.surface_begin(Mesh.PRIMITIVE_LINES,_edge)
 	for segment in segments:
-		var opacity: float=clampf((LIFETIME-(time-float(segment.born)))/.6,0,1)
+		var opacity := Persistence.opacity(segment.born,time,LIFETIME,.6)
 		mesh.surface_set_color(Color(trail_color,opacity))
 		for height: float in [0,HEIGHT*.5,HEIGHT]:
 			mesh.surface_add_vertex(segment.a+Vector3.UP*height)

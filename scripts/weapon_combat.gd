@@ -14,6 +14,10 @@ const Equipment = preload("res://scripts/equipment_database.gd")
 const Shields = preload("res://scripts/shield_glyphs.gd")
 const Motion = preload("res://scripts/weapon_motion.gd")
 const ScribeMoves = preload("res://scripts/scribe_moves.gd")
+const EquationTrace = preload("res://scripts/equation_trace.gd")
+const TraceSettings = preload("res://scripts/equation_trace_settings.gd")
+@export var equation_trace_settings: Resource = TraceSettings.new()
+var equation_trace: MultiMeshInstance3D
 const PARRY_WINDOW := 0.18
 const PARRY_FEEDBACK_TIME := 0.60
 const BASE_HEALTH := 1000.0
@@ -144,6 +148,11 @@ func _ready() -> void:
 	actor.combat.weapon_slot_selected.connect(_on_weapon)
 	actor.combat.sheathed_changed.connect(_on_sheathed)
 	actor.combat.block_changed.connect(_on_block)
+	actor.combat.trace_resolver = uses_equation_trace
+	actor.combat.trace_started.connect(_on_trace_started)
+	actor.combat.trace_stopped.connect(func():
+		if is_instance_valid(equation_trace): equation_trace.stop())
+	if actor.controls.get("trace_jump_context")!=null: actor.controls.trace_jump_context = can_trace_jump
 	actor.dodge.started.connect(func(_a: Vector3, _b: Vector3): cancel())
 	sync_rig()
 
@@ -194,8 +203,42 @@ func sync_rig() -> void:
 	else: rig.equip(actor.combat.resolve_slot(actor.combat.selected_slot),actor.combat.sheathed)
 
 func aim_direction() -> Vector3:
+	if loadout(actor.combat.selected_slot).id==&"scribe":
+		var pitch = actor.camera_rig.get("pitch")
+		return -Basis.from_euler(Vector3(float(pitch) if pitch!=null else 0.0,actor.camera_rig.yaw,0)).z
 	if actor.target_lock.is_locked(): return actor.target_lock.facing()
 	return Vector3.FORWARD.rotated(Vector3.UP,actor.camera_rig.yaw)
+
+func uses_equation_trace(action: StringName) -> bool:
+	return equipment_key(actor.combat.selected_slot)==&"eturnull_manuscript" and action in [&"special_rt_x",&"special_rt_y"]
+
+func is_writing_stance() -> bool:
+	return uses_equation_trace(&"special_rt_x") and not actor.combat.sheathed and can_act() and not actor.dodge.active and not actor.combat.blocking and active_move.is_empty() and actor.combat.charge_action==&"" and actor.controls.has_method("special_modified") and actor.controls.special_modified()
+
+func tracing_active() -> bool:
+	return actor.combat.trace_action!=&"" and uses_equation_trace(actor.combat.trace_action)
+
+func can_trace_jump() -> bool:
+	# Also covers X/Y and A arriving before the next physics poll.
+	var pending: bool = actor.controls.has_method("has_pending_trace") and actor.controls.has_pending_trace()
+	return uses_equation_trace(&"special_rt_x") and not actor.combat.sheathed and can_act() and not actor.dodge.active and not actor.combat.blocking and (tracing_active() or pending)
+
+func _on_trace_started(action: StringName) -> void:
+	if is_staggered() or actor.dodge.active or actor.combat.blocking:
+		actor.combat.cancel_trace()
+		return
+	# Tracing cancels a recovering ordinary move, without freezing locomotion.
+	active_move = {}
+	_queued.clear()
+	if not is_instance_valid(equation_trace):
+		equation_trace = EquationTrace.new()
+		equation_trace.actor = actor
+		equation_trace.combat = self
+		equation_trace.settings = equation_trace_settings
+		add_child(equation_trace)
+	equation_trace.begin(action)
+	status = "Tracing X" if action==&"special_rt_x" else "Tracing circles"
+	changed.emit()
 
 func damage_multiplier(speed: float) -> float:
 	return 1.0+maxf(0,speed)*maxf(0,momentum_damage_gain)
@@ -305,6 +348,13 @@ func _on_action(action: StringName, slot: StringName) -> void:
 	if actor.combat.sheathed:
 		return
 	if actor.combat.blocking: return
+	if uses_equation_trace(action):
+		# Direct AI/script requests have no held-button duration: a legitimate
+		# tiny trace tap, never the superseded charged release attack.
+		actor.combat.cancel_charge()
+		_on_trace_started(action)
+		if is_instance_valid(equation_trace): equation_trace.stop()
+		return
 	var strength: float = actor.combat.released_charge
 	actor.combat.cancel_charge()
 	var move := charged_move(slot,action,strength)
@@ -397,6 +447,7 @@ func _on_block(held: bool) -> void:
 
 func reset() -> void:
 	cancel()
+	if is_instance_valid(equation_trace): equation_trace.clear()
 	clear_stagger()
 	health = max_health
 	last_shield_absorbed=0
@@ -560,7 +611,11 @@ func _physics_process(delta: float) -> void:
 		world_actions.apply_pose()
 		return
 	impact_feedback = maxf(0,impact_feedback-delta)
-	if actor.target_lock.is_locked() and not _dash_active: _facing = actor.target_lock.facing()
+	if loadout(actor.combat.selected_slot).id==&"scribe": _facing = aim_direction()
+	elif actor.target_lock.is_locked() and not _dash_active: _facing = actor.target_lock.facing()
+	if tracing_active() and (not is_writing_stance() or actor.get("transition_locked")==true): actor.combat.cancel_trace()
+	if is_writing_stance() and actor.controls.has_method("claim_weapon_modifier"): actor.controls.claim_weapon_modifier()
+	if tracing_active(): equation_trace.prepare(delta)
 	var was_ready := parry_remaining>0
 	var had_feedback := parry_feedback>0
 	parry_remaining = maxf(0,parry_remaining-delta)
@@ -608,6 +663,7 @@ func _physics_process(delta: float) -> void:
 		if status.begins_with("Charge "): status = "Ready"
 		apply_pose(delta)
 	if actor.get("fall_damage") != null: actor.fall_damage.apply_pose(delta)
+	if tracing_active(): equation_trace.sample(delta,rig.left_hand.global_position-Vector3.UP*.16)
 	if not active_move.is_empty() and active_move.get("auto_sheathe",false) and elapsed/float(active_move.duration)>.94 and rig is Rig:
 		rig.equip(rig.selected,true)
 		_art_stowed = true
@@ -636,7 +692,8 @@ func advance_strikes(previous: float) -> void:
 func strike(pulse: int = -1) -> void:
 	if active_move.is_empty() or is_staggered(): return
 	var move := active_move.duplicate(true)
-	if actor.target_lock.is_locked() and not _dash_active: _facing = actor.target_lock.facing()
+	if move.get("weapon_family")=="scribe": _facing = aim_direction()
+	elif actor.target_lock.is_locked() and not _dash_active: _facing = actor.target_lock.facing()
 	var origin: Vector3 = actor.combat_point()
 	var environment_ray := actor.get_world_3d().direct_space_state.intersect_ray(PhysicsRayQueryParameters3D.create(origin,origin+_facing*float(move.reach),9,[actor.get_rid()]))
 	if not environment_ray.is_empty() and not move.get("disc_throw",false): environment_contact.emit(environment_ray.collider,attack_serial)
@@ -830,7 +887,7 @@ func apply_pose(delta: float) -> void:
 	var desired_weight := 1.0 if attacking or guarding or katana or scribe or recoil>0 else (0.45 if idle and not actor.combat.sheathed else 0.0)
 	_pose_weight = lerpf(_pose_weight,desired_weight,1-exp(-18*delta))
 	_natural_pole_weight = maxf(_pose_weight,release_weight) if named else 0.0
-	if attacking or guarding:
+	if attacking or guarding or scribe and is_writing_stance():
 		var aim := aim_direction() if guarding else _facing
 		actor.visual.rotation.y = lerp_angle(actor.visual.rotation.y,atan2(aim.x,aim.z),1-exp(-22*delta))
 	var right := Vector3(0.28,1.03,0.20)
@@ -922,6 +979,9 @@ func apply_pose(delta: float) -> void:
 		left = conducting.left
 		right_rotation = conducting.right_rotation
 		left_rotation = conducting.left_rotation
+		if is_writing_stance():
+			left = Vector3(-.28,1.23,.36)
+			left_rotation = Vector3.ZERO
 	if recoil>0:
 		right = right.lerp(Vector3(0.40,1.32,-0.08),recoil)
 		left = left.lerp(Vector3(-0.36,1.22,-0.10),recoil)
@@ -930,13 +990,14 @@ func apply_pose(delta: float) -> void:
 	for axis in range(3):
 		_right_rotation[axis] = lerp_angle(_right_rotation[axis],right_rotation[axis],1-exp(-22*delta))
 		_left_rotation[axis] = lerp_angle(_left_rotation[axis],left_rotation[axis],1-exp(-22*delta))
-	var body_facing: Vector3 = aim_direction() if guarding else (actor.visual.global_basis.z if scribe and not attacking else _facing)
+	var body_facing: Vector3 = aim_direction() if guarding or scribe and is_writing_stance() else (actor.visual.global_basis.z if scribe and not attacking else _facing)
 	body.apply(delta,active_move,elapsed,guarding,kind,body_facing)
 	if recoil>0: apply_recoil_body(recoil)
 	if _kneel_remaining>0: apply_exhausted_body()
 	if _pose_weight>0.001:
 		var right_world := hand_world(right)
 		var left_world := hand_world(left)
+		if scribe and tracing_active(): left_world = equation_trace.desired_tip+Vector3.UP*.16
 		if named and not shared_grip:
 			# Match the existing pose influence using reachable endpoints, rather
 			# than independently blending upper/lower joint quaternions. In air,

@@ -14,6 +14,7 @@ var checks := 0
 var failures := 0
 var hz := 60
 var device := 0
+var last_parry_tick := -1
 
 func check(condition: bool, label: String) -> void:
 	checks += 1
@@ -84,9 +85,17 @@ func _initialize() -> void:
 
 func run() -> void:
 	world = load("res://scenes/main.tscn").instantiate()
+	# Time the local duel without streaming/ambient simulation competing with
+	# the test's physics/process-frame rendezvous on modest hardware.
+	world.inventory_persistence_enabled = false
+	world.wider_world_enabled = false
+	world.district_life_enabled = false
+	world.world_memory_enabled = false
+	world.boss_encounters_enabled = false
 	root.add_child(world)
 	p = world.player
 	w = p.weapon_combat
+	w.parried.connect(func(_source: Vector3): last_parry_tick = Engine.get_physics_frames())
 	npc = world.sparring_partner
 	other = npc.weapon_combat
 	duel = world.sparring_duel
@@ -173,7 +182,9 @@ func run() -> void:
 	while other.is_staggered() and ticks<ceili(hz*2):
 		await frames(1)
 		ticks += 1
-	var duration := float(ticks)/hz
+	# The SceneTree may run multiple physics ticks between process frames on
+	# slow hardware. Measure simulation frames from the actual parry event.
+	var duration := float(Engine.get_physics_frames()-last_parry_tick)/hz
 	check(duration>=other.rules.parry_stagger-0.0001 and duration<=other.rules.parry_stagger+1.0/hz+0.0001,"Control lock lasts configured duration within one physics tick (%.4f s)" % duration)
 	check(other.recoil_remaining>0 and other.recoil_amount()>0,"Visual settling outlasts the counter window")
 	other._on_action(&"attack_right",&"right")

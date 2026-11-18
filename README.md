@@ -660,15 +660,15 @@ finishing silhouettes. The left book arm remains supported through them.
 
 Right basic attack cycles Quick Inscription, Crossed Expression, Descending Proof
 and Circular Derivation. Left basic attack uses Final Statement. The four arts
-are Theorem, Integral Closure, Crossed Axiom and Circular Proof. Existing hold and
-release charging, momentum damage, guard strain, timed parry, dodge and Sky Jump
-remain in force. The Manuscript's block power is 72%. All four light stages match
+are Theorem and Integral Closure, plus the RT equation-tracing arts described
+below. The two unmodified arts retain hold/release charging, momentum damage,
+guard strain, timed parry, dodge and Sky Jump. The Manuscript's block power is 72%. All four light stages match
 the starter twin blades: 0.34-second duration, 0.10-second windup and 0.14-second
 contact. Base damage is now **30** for Final Statement (previously 52); light
-stages deal 13/16/18/17 and the four arts deal 28/24/23/25 per pulse. Grounded
+stages deal 13/16/18/17 and the two unmodified arts deal 28/24 per pulse. Grounded
 and aerial variants share this reduction; normal charge and momentum bonuses
 still apply. The heavy uses a 0.395-second named twin-blade tempo; the four arts use
-the starter twin-blade timings. Written strokes extend from the near caster to
+the starter twin-blade timings. Ordinary written strokes extend from the near caster to
 7 m, matching the spear's Prism Skewer; normal full charging extends this to 9.1 m.
 
 The quill tip follows the actual progressively revealed equation strokes. Contact
@@ -676,7 +676,44 @@ pulses query capsules along those same visible segments, then use the shared
 wall, ownership, guard, parry and damage resolver. Being inside a generic reach
 sphere alone cannot cause a Scribe hit. Writing is one fixed 160-instance mesh
 pool; cancellation, sheathing and weapon switching clear it. These are local
-written strokes, with no new projectile or resource system.
+written strokes, with no new resource meter. Scribe attacks now follow camera yaw
+and pitch; the visible equation and its hurt queries use the same 3D frame.
+
+Holding **RT / V** with the Manuscript open brings its quill upright into the
+right hand. Holding the modifier alone does not attack. Releasing it returns
+the quill to its existing independent hover; sheathing still stores it in the
+closed book at the left hip.
+
+**RT+X / V+Q** continuously traces intersecting X expressions; **RT+Y / V+R**
+continuously traces circular expressions. A tap leaves a tiny X or circle.
+Holding repeats the pattern along actual quill-tip movement, including turns,
+sprinting, jumping and Sky Jump. Release stops new writing immediately; the
+existing mathematical strokes remain fixed in world space and fade after **3 s**.
+While actively tracing, **A / Space jumps or Sky Jumps**. Otherwise **RT+A /
+V+Space** still uses a Shield Glyph. Theorem and Integral Closure retain their
+existing charge/release controls.
+
+The equations reuse the vehicle light wave's bounded trail storage, fade rule,
+**750 damage** and **0.5 s victim cooldown**, with arbitrary 3D stroke contacts
+instead of a vehicle-height wall. They use existing ownership, walls, block,
+dodge, exhaustion and parry mechanics. A parry preserves the normal one-second
+attacker stun, opens a gap in nearby intercepted sections and sends those
+sections in the defender's facing direction. Reflected ink can hit its author
+but cannot be parried again. Death, travel and actor removal clear hazards;
+ordinary cancellation stops writing while already written ink expires naturally.
+
+`scripts/equation_trace_settings.gd` exposes X/Y periods (0.25/0.35 s), minimum
+tap size (0.025 m), contact thickness (0.04 m), lifetime, damage, glyph scale,
+spacing (0.13 m), fade duration (0.6 s), reflection speed (9 m/s), sampling
+interval and limits (192 sections / 4,096 strokes). One shared cylinder mesh
+batch and cached glyph paths serve the entire trail; there are no per-symbol
+physics bodies or scene nodes. The existing vehicle wave keeps its appearance,
+dimensions, lifetime and damage behavior.
+
+`tests/equation_tracing.gd` exercises real controller/keyboard input, camera
+pitch and hit agreement, held quill IK, taps, continuous tracing, live movement
+and Sky Jump, swept contacts, timed parry/reflection, fading, bounded storage and
+cancellation. Run with `-- --hz=30`, `60` or `120`; `--capture` saves native views.
 
 Cosmetic shields (693 entries), talismans (eight), bows (twelve), and crossbows
 (eight) are retired, for 721 historical IDs.

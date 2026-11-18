@@ -6,6 +6,11 @@ signal block_changed(held: bool)
 signal sheathed_changed(sheathed: bool)
 signal changed
 signal charge_started(action: StringName, weapon_slot: StringName)
+signal trace_started(action: StringName)
+signal trace_stopped
+var trace_resolver: Callable
+var trace_action: StringName = &""
+var trace_token: StringName = &""
 const CHARGE_MIN := 0.4
 const CHARGE_FULL := 1.2
 var charge_action: StringName = &""
@@ -49,13 +54,22 @@ func charge_strength() -> float:
 	return lerpf(0.25,1.0,clampf((charge_elapsed-CHARGE_MIN)/(CHARGE_FULL-CHARGE_MIN),0,1))
 
 func cancel_charge(token: StringName = &"") -> void:
+	if token==&"" or token==trace_token: cancel_trace()
 	if token != &"" and token != charge_token: return
 	charge_action = &""
 	charge_token = &""
 	charge_elapsed = 0
 	changed.emit()
 
+func cancel_trace() -> void:
+	if trace_action==&"": return
+	trace_action = &""
+	trace_token = &""
+	trace_stopped.emit()
+	changed.emit()
+
 func poll(controls: Node) -> void:
+	if trace_action!=&"" and controls.has_method("special_modified") and not controls.special_modified(): cancel_trace()
 	var held: bool = controls.is_blocking() if controls.has_method("is_blocking") else false
 	held = held and has_weapon(selected_slot)
 	fresh_block = held and not _held_last_poll
@@ -79,11 +93,20 @@ func poll(controls: Node) -> void:
 			if sheathed:
 				sheathed = false
 				sheathed_changed.emit(false)
+			if trace_resolver.is_valid() and trace_resolver.call(request.value):
+				if blocking: continue
+				trace_action = request.value
+				trace_token = request.token
+				trace_started.emit(trace_action)
+				continue
 			charge_action = request.value
 			charge_slot = selected_slot
 			charge_token = request.token
 			charge_started.emit(charge_action,charge_slot)
 		elif request.kind == &"special_release":
+			if request.value==trace_token:
+				cancel_trace()
+				continue
 			if charge_action == &"" or request.value != charge_token: continue
 			var action := charge_action
 			var slot := charge_slot
@@ -119,6 +142,9 @@ func poll(controls: Node) -> void:
 			last_action_slot = selected_slot
 			action_requested.emit(last_action,last_action_slot)
 		changed.emit()
+	# Preserve tiny taps whose press and release both arrived between physics
+	# samples, but never keep drawing after an already released modifier.
+	if trace_action!=&"" and controls.has_method("special_modified") and not controls.special_modified(): cancel_trace()
 
 func reset() -> void:
 	_held_last_poll = false

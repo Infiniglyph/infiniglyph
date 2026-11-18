@@ -522,7 +522,10 @@ func _inspect() -> void:
 		var actions := [&"special_x",&"special_y",&"special_rt_x",&"special_rt_y"]
 		for index in range(4):
 			var move: Dictionary = Library.move(canonical,actions[index])
-			_arts.text += "\n%s   %s\n%d damage  /  %.1f m reach" % [bindings[index],move.name,move.damage,move.reach]
+			if canonical==&"eturnull_manuscript" and index>=2:
+				var tuning: Resource = actor.weapon_combat.equation_trace_settings
+				_arts.text += "\n%s   %s\nHold to write / %d damage / %.1f s trail" % [bindings[index],"Crossed Equation Tracing" if index==2 else "Circular Equation Tracing",tuning.damage,tuning.lifetime]
+			else: _arts.text += "\n%s   %s\n%d damage  /  %.1f m reach" % [bindings[index],move.name,move.damage,move.reach]
 	else:
 		_stats.text = "STACK LIMIT    %d\nDROP    %s     TRADE    %s" % [definition.max_stack,"YES" if definition.is_droppable else "NO","YES" if definition.is_tradeable else "NO"]
 		_arts.text = ("BODY CLOTHING\nCosmetic; movement and combat values stay unchanged." if definition.is_equippable else "Stored cosmetic pattern.") if definition.category==&"cosmetics" else "Stored in your field kit.\nNo use action is available for this item."

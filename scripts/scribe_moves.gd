@@ -4,6 +4,13 @@ const Hat = preload("res://scripts/eturnull_hat.gd")
 const Motion = preload("res://scripts/weapon_motion.gd")
 static var paths: Dictionary = {}
 
+static func writing_basis(facing: Vector3) -> Basis:
+	var forward := facing.normalized()
+	if forward.is_zero_approx(): forward = Vector3.BACK
+	var right := Vector3.UP.cross(forward).normalized()
+	if right.is_zero_approx(): right = Vector3.RIGHT
+	return Basis(right,forward.cross(right).normalized(),forward)
+
 static func strokes(move: Dictionary) -> PackedVector3Array:
 	var expression: String = move.get("equation","E=mc²")
 	var key := expression+":"+String(move.get("scribe_shape","line"))+":"+str(move.reach)
