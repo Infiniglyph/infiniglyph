@@ -46,7 +46,7 @@ func _ready() -> void:
 	_ink.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	_ink.vertex_color_use_as_albedo = true
 	_ink.emission_enabled = true
-	_ink.emission = Color("ba8cff")
+	_ink.emission = Moves.INK_EMISSION
 	_ink.emission_energy_multiplier = 1.5
 	var stroke := CylinderMesh.new()
 	# Contact tolerance matches the vehicle wall, while thin calligraphic ink
@@ -83,7 +83,7 @@ func begin(value: StringName) -> void:
 	# An input can be pressed and released inside one simulation sample. Write
 	# the tiny mark now; holding adds a path rather than scaling this mark up.
 	var tip: Vector3 = combat.rig.left_hand.global_position-Vector3.UP*.16
-	var frame := Moves.writing_basis(combat.aim_direction())
+	var frame := Moves.writing_basis(combat.trace_aim_direction())
 	var points := PackedVector3Array()
 	var radius: float = settings.minimum_mark_size
 	if value==&"special_rt_x":
@@ -110,7 +110,7 @@ func clear() -> void:
 func prepare(delta: float) -> void:
 	if action==&"": return
 	age += delta
-	var frame := Moves.writing_basis(combat.aim_direction())
+	var frame := Moves.writing_basis(combat.trace_aim_direction())
 	var period: float = settings.x_frequency if action==&"special_rt_x" else settings.y_frequency
 	var phase := fposmod(age/maxf(.08,period),1)
 	_stroke_id = floori(age/maxf(.08,period))*2+(1 if phase>=.5 else 0) if action==&"special_rt_x" else 0
@@ -156,7 +156,7 @@ func sample(delta: float, tip: Vector3) -> void:
 				if _distance>=settings.equation_spacing:
 					_distance = fmod(_distance,settings.equation_spacing)
 					var tangent := (b-a).normalized()
-					var up := Moves.writing_basis(combat.aim_direction()).y
+					var up := Moves.writing_basis(combat.trace_aim_direction()).y
 					up = (up-tangent*up.dot(tangent)).normalized()
 					if up.is_zero_approx(): up = Vector3.RIGHT
 					var expression: String = EXPRESSIONS[_expression]
@@ -383,7 +383,7 @@ func redraw() -> void:
 	for section in sections:
 		var alpha := section_opacity(section)
 		if alpha<=0: continue
-		var color := Color("9feaff") if section.reflected else Color("c99aff")
+		var color := Color("9feaff") if section.reflected else Moves.INK_COLOR
 		color.a = alpha
 		for index in range(0,section.points.size(),2):
 			if count>=multimesh.instance_count: break

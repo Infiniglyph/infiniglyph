@@ -326,7 +326,7 @@ system. Light-wall rendering uses two mesh surfaces and no per-panel nodes.
 
 The Tower Exchange's Items / Glyphs category offers **Light Shield Glyphs
 (250 points)**, **Medium Shield Glyphs (500)** and **Heavy Shield Glyphs (1,000)**.
-**Hold RT and press A**, or **hold V and press Space**, to use the strongest
+**Hold RT+B for 0.45 s**, or **hold V+H for 0.45 s**, to use the strongest
 owned Shield Glyph: **heavy, then medium, then light**. This chord does not jump
 or trigger nearby interactions. The blue **Shield Glyphs** count above Health
 Glyphs shows the total owned across all three tiers and updates on use, pickup,
@@ -482,7 +482,7 @@ unloaded by this system. Vehicle journeys/positions are session state, not a
 new disk-save or multiplayer replication system. Regional traffic currently
 runs in offline play; the existing host inventory validation governs healing.
 
-**Hold RT and press B**, or press **H**, to use one owned **Health Glyph** and
+**Hold RT and tap B**, or press **H**, to use one owned **Health Glyph** and
 restore up to **350 HP**. Healing works while moving and has no stamina cost or
 new animation lock. Full HP, no glyphs, or a defeated actor consumes nothing.
 The small bottom-left count reads the actual inventory; glyphs also appear in
@@ -492,8 +492,9 @@ collectible three-glyph stack is available near the arrival court. Consumption,
 ownership and quantities use the existing checkpoint/loot transaction pipeline.
 Invalid checkpoints still fail closed without a starter regrant.
 
-Bare **RT interactions resolve on release**. RT+A uses a Shield Glyph and A alone
-jumps; RT+B exclusively heals, B alone
+Bare **RT interactions resolve on release**. A/Space always jumps, including with
+RT/V held. A quick RT+B tap heals on release; holding it uses a Shield Glyph.
+B alone
 still dodges, and RT+X/Y still use the existing modified charged arts. Held or
 repeated button-down events cannot consume multiple glyphs, and returning from
 menus/focus changes requires neutral triggers. Menus never pause traffic or the
@@ -676,8 +677,11 @@ pulses query capsules along those same visible segments, then use the shared
 wall, ownership, guard, parry and damage resolver. Being inside a generic reach
 sphere alone cannot cause a Scribe hit. Writing is one fixed 160-instance mesh
 pool; cancellation, sheathing and weapon switching clear it. These are local
-written strokes, with no new resource meter. Scribe attacks now follow camera yaw
-and pitch; the visible equation and its hurt queries use the same 3D frame.
+written strokes, with no new resource meter. Ordinary casts keep their original
+horizontal free aim committed at attack start, with target lock taking priority.
+The Manuscript's equations share the purple trace palette. A fixed six-entry mesh
+pool leaves harmless, world-fixed afterglows for 0.65 s beyond normal recovery;
+damage timing, damage amounts and animation duration stay unchanged.
 
 Holding **RT / V** with the Manuscript open brings its quill upright into the
 right hand. Holding the modifier alone does not attack. Releasing it returns
@@ -689,12 +693,16 @@ continuously traces circular expressions. A tap leaves a tiny X or circle.
 Holding repeats the pattern along actual quill-tip movement, including turns,
 sprinting, jumping and Sky Jump. Release stops new writing immediately; the
 existing mathematical strokes remain fixed in world space and fade after **3 s**.
-While actively tracing, **A / Space jumps or Sky Jumps**. Otherwise **RT+A /
-V+Space** still uses a Shield Glyph. Theorem and Integral Closure retain their
-existing charge/release controls.
+**A / Space always jumps or Sky Jumps**, even while holding RT/V without tracing.
+With the Manuscript drawn, holding RT also collects nearby loot through existing
+host validation; it never automatically sits down or starts dialogue. Hold
+**RT+B / V+H for 0.45 s** to use a Shield Glyph. Theorem and Integral Closure
+retain their existing charge/release controls. Only held-quill tracing uses
+camera pitch as well as yaw.
 
-The equations reuse the vehicle light wave's bounded trail storage, fade rule,
-**750 damage** and **0.5 s victim cooldown**, with arbitrary 3D stroke contacts
+The equations reuse the vehicle light wave's bounded trail storage and fade rule,
+with independently balanced **30 damage** and a **0.5 s victim cooldown**. Overlapping
+pieces cannot stack damage inside that cooldown. Arbitrary 3D stroke contacts work
 instead of a vehicle-height wall. They use existing ownership, walls, block,
 dodge, exhaustion and parry mechanics. A parry preserves the normal one-second
 attacker stun, opens a gap in nearby intercepted sections and sends those
@@ -710,10 +718,12 @@ batch and cached glyph paths serve the entire trail; there are no per-symbol
 physics bodies or scene nodes. The existing vehicle wave keeps its appearance,
 dimensions, lifetime and damage behavior.
 
-`tests/equation_tracing.gd` exercises real controller/keyboard input, camera
-pitch and hit agreement, held quill IK, taps, continuous tracing, live movement
+`tests/equation_tracing.gd` exercises real controller/keyboard input, horizontal
+casting versus pitched tracing, harmless afterglow lifetime, held quill IK, taps, live movement
 and Sky Jump, swept contacts, timed parry/reflection, fading, bounded storage and
-cancellation. Run with `-- --hz=30`, `60` or `120`; `--capture` saves native views.
+cancellation. All 55 checks pass at 30/60/120 Hz. Run with `-- --hz=30`, `60` or
+`120`; `--capture` saves native views. The native production-world capture tool
+also reviews the post-recovery cast afterglow, held quill and aerial traces.
 
 Cosmetic shields (693 entries), talismans (eight), bows (twelve), and crossbows
 (eight) are retired, for 721 historical IDs.
@@ -1462,8 +1472,8 @@ your controller playtest; automated checks do not judge those subjective parts.
 | Switch locked opponent | I / J / K / L (up / left / down / right) | Flick right stick up / left / down / right |
 | Jump / repeatable sky step | Press Space | Press A / bottom face button |
 | Phase dodge | Press E | Press B / right face button |
-| Use Health Glyph | Press H | Hold RT, press B |
-| Use strongest Shield Glyph | Hold V, press Space | Hold RT, press A |
+| Use Health Glyph | Press H (or tap V+H) | Hold RT, tap B |
+| Use strongest Shield Glyph | Hold V+H for 0.45 s | Hold RT+B for 0.45 s |
 | Left-side attack | Left mouse button | LB |
 | Right-side attack | Right mouse button | RB |
 | Block / timed parry | Hold F / press just before impact | Hold LT / press just before impact |
@@ -2204,8 +2214,8 @@ the next phase, so rapid presses do not discard travel or bypass collision.
 Position and gravity pause during the brief phase; both carried horizontal and
 vertical velocity return on exit. A jump pressed during the phase is retained
 once and fires on the next normal physics tick. Ground/air movement then
-continues normally, including falling after a blink off a rooftop. RT+B retains
-its Health Glyph mapping, and menus continue running the world while gating
+continues normally, including falling after a blink off a rooftop. Tapping RT+B
+heals; holding it uses a shield. Menus continue running the world while gating
 local gameplay input.
 
 The middle **30–60%** of the phase is fully invisible and invincible to incoming

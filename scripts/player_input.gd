@@ -10,9 +10,9 @@ var interaction_context: Node
 var _rt_interaction_latched := false
 var _resume_triggers := {JOY_AXIS_TRIGGER_LEFT:false,JOY_AXIS_TRIGGER_RIGHT:false}
 var _held_specials: Dictionary = {}
-## Set by the equipped Manuscript only. Outside a live trace RT+A remains shield.
-var trace_jump_context: Callable
-var _held_special_actions: Dictionary = {}
+var _consumable_source: StringName = &""
+var _consumable_elapsed := 0.0
+var _consumable_fired := false
 ## Right-stick camera motion becomes one directional target request per flick.
 var move := Vector2.ZERO
 var look := Vector2.ZERO
@@ -33,6 +33,7 @@ var mouse_look := Vector2.ZERO
 const TRIGGER_PRESS := 0.55
 const TRIGGER_RELEASE := 0.40
 const SHEATHE_HOLD_TIME := 0.45
+const SHIELD_HOLD_TIME := 0.45
 const WEAPON_KEYS := {KEY_DOWN:&"down",KEY_LEFT:&"left",KEY_RIGHT:&"right",KEY_UP:&"up"}
 const WEAPON_BUTTONS := {JOY_BUTTON_DPAD_DOWN:&"down",JOY_BUTTON_DPAD_LEFT:&"left",JOY_BUTTON_DPAD_RIGHT:&"right",JOY_BUTTON_DPAD_UP:&"up"}
 var _combat_requests: Array[Dictionary] = []
@@ -161,12 +162,24 @@ func claim_weapon_modifier() -> void:
 	_rt_used = true
 	_rt_pending = false
 
-func trace_jump_active() -> bool:
-	if not trace_jump_context.is_valid() or not trace_jump_context.call(): return false
-	return _held_special_actions.values().any(func(action: StringName) -> bool: return action in [&"special_rt_x",&"special_rt_y"])
+func can_hold_pickup() -> bool:
+	return _pad_modifier and _consumable_source==&""
 
-func has_pending_trace() -> bool:
-	return _combat_requests.any(func(request: Dictionary) -> bool: return request.kind==&"special_press" and request.value in [&"special_rt_x",&"special_rt_y"])
+func _begin_consumable(source: StringName) -> void:
+	if _consumable_source!=&"": return
+	_consumable_source = source
+	_consumable_elapsed = 0
+	_consumable_fired = false
+	claim_weapon_modifier()
+	interaction_requested = false
+
+func _end_consumable(source: StringName) -> void:
+	if _consumable_source!=source: return
+	# A quick chord still heals; a completed hold exclusively uses a shield.
+	if not _consumable_fired: heal_requested = true
+	_consumable_source = &""
+	_consumable_elapsed = 0
+	_consumable_fired = false
 
 func trigger_held(value: float, held: bool) -> bool:
 	return value > TRIGGER_RELEASE if held else value >= TRIGGER_PRESS
@@ -176,6 +189,7 @@ func set_right_trigger(value: float) -> void:
 	var held := trigger_held(value,_pad_modifier)
 	var fresh := held and not _pad_modifier
 	if not held and _pad_modifier:
+		_end_consumable(&"pad")
 		# Resolve a bare RT tap on release, so RT+A/B/X/Y cannot also interact.
 		if _rt_pending and not _rt_used: interaction_requested = true
 		_rt_pending = false
@@ -236,11 +250,9 @@ func _special(button: StringName, device: int = -1, pressed: bool = true) -> voi
 		if _held_specials.has(token): return
 		var action := StringName("special_rt_"+button if special_modified() else "special_"+button)
 		_held_specials[token] = device
-		_held_special_actions[token] = action
 		_combat_requests.append({"kind":&"special_press","value":action,"token":token,"device":device})
 	elif _held_specials.has(token):
 		_held_specials.erase(token)
-		_held_special_actions.erase(token)
 		_request(&"special_release",token,device)
 
 func _press_down(device: int) -> void:
@@ -257,6 +269,11 @@ func _release_down(device: int) -> void:
 		_request(&"weapon",&"down",device)
 
 func update_combat_hold(delta: float) -> void:
+	if _consumable_source!=&"" and not _consumable_fired:
+		_consumable_elapsed += delta
+		if _consumable_elapsed>=SHIELD_HOLD_TIME:
+			_consumable_fired = true
+			shield_requested = true
 	if _down_sources.is_empty() or _down_fired or _down_cancelled: return
 	_down_elapsed += delta
 	if _down_elapsed >= SHEATHE_HOLD_TIME:
@@ -272,7 +289,15 @@ func _combat_input(event: InputEvent) -> void:
 		if event.pressed: _combat_keys[code] = true
 		else: _combat_keys.erase(code)
 		if code == KEY_F: _keyboard_block = event.pressed
-		if code == KEY_V: _keyboard_modifier = event.pressed
+		if code == KEY_V:
+			if not event.pressed: _end_consumable(&"keyboard")
+			_keyboard_modifier = event.pressed
+		if code == KEY_H:
+			if fresh:
+				if _keyboard_modifier: _begin_consumable(&"keyboard")
+				else: heal_requested = true
+			elif not event.pressed: _end_consumable(&"keyboard")
+			return
 		if code == KEY_DOWN:
 			if fresh: _press_down(-1)
 			elif not event.pressed: _release_down(-1)
@@ -288,10 +313,7 @@ func _combat_input(event: InputEvent) -> void:
 		elif TARGET_KEYS.has(code): _lock_requests.append({"direction":TARGET_KEYS[code],"device":-1})
 		elif code == KEY_E: request_dodge()
 		elif code == KEY_G: interaction_requested = true
-		elif code == KEY_H: heal_requested = true
-		elif code == KEY_SPACE:
-			if _keyboard_modifier and not trace_jump_active(): shield_requested = true
-			else: jump_requested = true
+		elif code == KEY_SPACE: jump_requested = true
 		elif WEAPON_KEYS.has(code):
 			_down_cancelled = true
 			_request(&"weapon",WEAPON_KEYS[code])
@@ -321,23 +343,18 @@ func _combat_input(event: InputEvent) -> void:
 			if fresh and _pad_modifier: _rt_used = true
 			if fresh or not event.pressed: _special(&"x" if event.button_index == JOY_BUTTON_X else &"y",event.device,event.pressed)
 			return
+		if event.button_index==JOY_BUTTON_B:
+			if fresh:
+				if _pad_modifier: _begin_consumable(&"pad")
+				else: request_dodge()
+			elif not event.pressed: _end_consumable(&"pad")
+			return
 		if not fresh: return
 		match event.button_index:
 			JOY_BUTTON_LEFT_STICK: toggle_boost()
 			JOY_BUTTON_A:
-				if _pad_modifier and not trace_jump_active():
-					_rt_used = true
-					_rt_pending = false
-					shield_requested = true
-					interaction_requested = false
-				else: jump_requested = true
-			JOY_BUTTON_B:
-				if _pad_modifier:
-					_rt_used = true
-					_rt_pending = false
-					heal_requested = true
-					interaction_requested = false
-				else: request_dodge()
+				if _pad_modifier: claim_weapon_modifier()
+				jump_requested = true
 			JOY_BUTTON_RIGHT_STICK:
 				if vehicle_mode: _vehicle_wave_requests+=1
 				else: _lock_requests.append({"direction":Vector2.ZERO,"device":event.device})
@@ -359,7 +376,9 @@ func reset_combat_input() -> void:
 	interaction_requested = false
 	dodge_requested = false
 	_held_specials.clear()
-	_held_special_actions.clear()
+	_consumable_source = &""
+	_consumable_elapsed = 0
+	_consumable_fired = false
 	special_hold_cancelled.emit(&"")
 	_lock_requests.clear()
 	_flick_armed = false
@@ -384,11 +403,14 @@ func _on_joy_connection_changed(device: int, connected: bool) -> void:
 	_rt_pending = false
 	heal_requested = false
 	shield_requested = false
+	if _consumable_source==&"pad":
+		_consumable_source = &""
+		_consumable_elapsed = 0
+		_consumable_fired = false
 	dodge_requested = false
 	for token: StringName in _held_specials.keys():
 		if _held_specials[token] == device:
 			_held_specials.erase(token)
-			_held_special_actions.erase(token)
 			special_hold_cancelled.emit(token)
 	_pad_block = false
 	_pad_modifier = false

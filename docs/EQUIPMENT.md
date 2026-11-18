@@ -377,11 +377,17 @@ use the starter twin-blade timing; writing and corresponding contact capsules
 reach the spear's seven-metre art range (9.1 m at full charge). The Manuscript's
 base heavy damage is 30; light stages are 13/16/18/17 and the two unmodified arts
 are 28/24 per pulse, with matching aerial values and the existing charge/momentum
-bonuses. Ordinary equations follow camera yaw and pitch. Holding RT/V takes the
+bonuses. Ordinary equations use the original horizontal free aim committed on
+attack start, with target lock taking priority. Their purple geometry shares the
+trace palette and lingers harmlessly for 0.65 s beyond recovery through a bounded
+six-entry mesh pool; hit windows and damage remain unchanged. Holding RT/V takes the
 quill into the right hand; RT+X/V+Q and RT+Y/V+R trace persistent X/circular
-mathematics, with tiny taps, 3 s lifetime and the vehicle trail's 750 damage /
-0.5 s contact cooldown. A/Space jumps during an active trace; RT+A/V+Space uses
-a Shield Glyph otherwise. A normal parry redirects intercepted sections once,
+mathematics using full camera yaw/pitch, tiny taps, 3 s lifetime, 30 damage and a
+0.5 s victim cooldown that prevents overlapping pieces from stacking. A/Space
+always jumps, even with RT/V held outside tracing. Hold RT+B or V+H for 0.45 s
+to use the strongest Shield Glyph; tap RT+B to heal. Held RT with a drawn
+Manuscript collects nearby loot without auto-triggering other interactions.
+A normal parry redirects intercepted sections once,
 preserving the one-second attacker stun; redirected ink can hit its author and
 cannot be parried again. `equation_trace_settings.gd` exposes tracing, appearance,
 contact, lifetime, reflection and bounded-geometry tuning. Vehicle appearance

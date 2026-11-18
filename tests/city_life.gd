@@ -97,7 +97,7 @@ func run() -> void:
 	actor.weapon_combat.health = 400
 	controls.set_right_trigger(1)
 	button(JOY_BUTTON_B)
-	check(controls.heal_requested and not controls.dodge_requested,"RT+B requests healing without dodge")
+	check(not controls.heal_requested and not controls.dodge_requested,"RT+B defers healing until a short chord releases without dodging")
 	button(JOY_BUTTON_B) # Duplicate down event is not a second use.
 	controls.set_right_trigger(0)
 	await frames(2)
@@ -158,6 +158,16 @@ func run() -> void:
 	await frames(2)
 	button(JOY_BUTTON_B,false)
 	check(actions.attached() and actor.health==1000,"RT+B heals while seated without also standing")
+	actor.inventory.add_item(Catalog.create(&"shield_glyph_heavy"))
+	controls.set_right_trigger(1)
+	button(JOY_BUTTON_B)
+	await frames(ceili(hz*.5))
+	button(JOY_BUTTON_B,false)
+	controls.set_right_trigger(0)
+	await frames(2)
+	check(actions.attached() and actor.weapon_combat.shield_points==1000 and actor.health==1000,"RT+B hold uses a shield while seated without standing or healing")
+	actor.inventory.shield_state={}
+	actor.inventory.changed.emit()
 	await shot("bench",actor.global_position+Vector3(3.4,2.1,3),chosen.point+Vector3.UP*0.4)
 	check(actions.leave() and chosen.occupant==null and actor.collision_layer==1 and actor.collision_mask==13,"Stand releases claim and restores original collision")
 	await frames(8)

@@ -5,6 +5,7 @@ const Robe = preload("res://scripts/eternal_scribe_robe.gd")
 const Glyphs = preload("res://scripts/eturnull_hat.gd")
 const Moves = preload("res://scripts/scribe_moves.gd")
 const STROKE_LIMIT := 160
+const AFTERGLOW_LIMIT := 6
 const TRANSITION_SECONDS := 0.46
 const HIP_STOW_POSITION := Vector3(.225,.03,-.08)
 var rig: Node3D
@@ -32,6 +33,10 @@ var quill_size := 1.0
 @export_range(.5,1.5,.05) var hover_right_distance := 1.0
 @export_range(1.4,1.9,.01) var hover_height := 1.56
 var hover_trail := Vector3.ZERO
+@export_range(.1,2,.05) var cast_afterglow_seconds := .65
+var afterglows: Array[Dictionary] = []
+var _afterglow_cursor := 0
+var _manuscript := false
 
 func configure(value: Node3D, definition: Dictionary = {}) -> void:
 	rig = value
@@ -42,6 +47,7 @@ func configure(value: Node3D, definition: Dictionary = {}) -> void:
 	book = make_book()
 	add_child(book)
 	var geometry: Dictionary = definition.get("geometry",{})
+	_manuscript = definition.get("id","")=="eturnull_manuscript"
 	book_size = clampf(float(geometry.get("book_scale",1)),.6,1.4)
 	leaves = [book.get_node("LeftLeaf"),book.get_node("RightLeaf")]
 	turning_page = book.get_node("TurningPage")
@@ -51,8 +57,9 @@ func configure(value: Node3D, definition: Dictionary = {}) -> void:
 	ink_root = Node3D.new()
 	add_child(ink_root)
 	ink_material = Lines.make_material(Robe.SILVER_BLUE,1.8)
-	ink_material.albedo_color = Color(geometry.get("tint","9feaff"))
-	ink_material.emission = ink_material.albedo_color
+	ink_material.albedo_color = Moves.INK_COLOR if _manuscript else Color(geometry.get("tint","9feaff"))
+	ink_material.emission = Moves.INK_EMISSION if _manuscript else ink_material.albedo_color
+	if _manuscript: ink_material.emission_energy_multiplier = 1.5
 	ink_material.vertex_color_use_as_albedo = false
 	ink_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	ink = MultiMeshInstance3D.new()
@@ -71,11 +78,28 @@ func configure(value: Node3D, definition: Dictionary = {}) -> void:
 	batch.visible_instance_count = 0
 	ink.multimesh = batch
 	ink_root.add_child(ink)
+	if _manuscript:
+		for i in range(AFTERGLOW_LIMIT):
+			var echo := MultiMeshInstance3D.new()
+			echo.name = "HarmlessCastAfterglow"+str(i)
+			echo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			echo.multimesh = MultiMesh.new()
+			echo.multimesh.transform_format = MultiMesh.TRANSFORM_3D
+			echo.multimesh.mesh = mesh
+			echo.multimesh.instance_count = STROKE_LIMIT
+			echo.multimesh.visible_instance_count = 0
+			var material: StandardMaterial3D = ink_material.duplicate()
+			echo.material_override = material
+			add_child(echo)
+			echo.top_level = true
+			echo.hide()
+			afterglows.append({"node":echo,"material":material,"remaining":0.0})
 	ward = Node3D.new()
 	ink_root.add_child(ward)
-	var ring := Lines.circle(.46,32,Robe.SILVER_BLUE)
+	var spell_color := Moves.INK_COLOR if _manuscript else Robe.SILVER_BLUE
+	var ring := Lines.circle(.46,32,spell_color)
 	ward.add_child(ring)
-	ward.add_child(Lines.polyline(PackedVector3Array([Vector3(-.32,-.22,0),Vector3(.32,-.22,0),Vector3(0,.38,0)]),Robe.SILVER_BLUE,true))
+	ward.add_child(Lines.polyline(PackedVector3Array([Vector3(-.32,-.22,0),Vector3(.32,-.22,0),Vector3(0,.38,0)]),spell_color,true))
 	ward.hide()
 	_query.shape = _capsule
 	_query.collision_mask = 6 # Fighter hurtboxes and physical civilians.
@@ -156,10 +180,34 @@ func set_sheathed(value: bool) -> void:
 	stowed = value
 	if value: clear_writing()
 
-func clear_writing() -> void:
+func clear_writing(include_afterglows: bool = true) -> void:
 	active_points = PackedVector3Array()
 	if is_instance_valid(ink): ink.multimesh.visible_instance_count = 0
 	if is_instance_valid(ward): ward.hide()
+	if include_afterglows:
+		for echo in afterglows:
+			echo.remaining = 0.0
+			echo.node.hide()
+			echo.node.multimesh.visible_instance_count = 0
+
+func retain_writing(move: Dictionary, time: float) -> void:
+	if afterglows.is_empty() or StringName(move.get("action",&"")) not in [&"attack_left",&"attack_right",&"special_x",&"special_y"]: return
+	var echo := afterglows[_afterglow_cursor]
+	_afterglow_cursor = (_afterglow_cursor+1)%afterglows.size()
+	echo.remaining = maxf(0,float(move.duration)-time)+cast_afterglow_seconds
+	echo.node.global_transform = active_transform
+	echo.material.albedo_color = Moves.INK_COLOR
+	draw_strokes(echo.node.multimesh,active_points,ink.multimesh.visible_instance_count)
+	echo.node.show()
+
+func advance_afterglows(delta: float) -> void:
+	for echo in afterglows:
+		if echo.remaining<=0: continue
+		echo.remaining = maxf(0,float(echo.remaining)-delta)
+		echo.material.albedo_color.a = clampf(float(echo.remaining)/.35,0,1)
+		if echo.remaining<=0:
+			echo.node.hide()
+			echo.node.multimesh.visible_instance_count = 0
 
 func _process(delta: float) -> void:
 	if not is_visible_in_tree():
@@ -172,6 +220,7 @@ func _process(delta: float) -> void:
 		clear_writing()
 		_last_tip = quill.global_position
 		return
+	advance_afterglows(delta)
 	clock += delta
 	stow_amount = move_toward(stow_amount,1 if stowed else 0,delta/TRANSITION_SECONDS)
 	# The +Z-facing figure's positive-X arm is its anatomical left, despite
@@ -224,7 +273,7 @@ func _process(delta: float) -> void:
 			write(held,float(held.hits[0])*clampf(actor.combat.charge_elapsed/.7,0,1),combat.aim_direction())
 			ink_material.albedo_color.a = .45
 			writing = true
-		else: clear_writing()
+		else: clear_writing(false)
 		ward.visible = guarding
 		if guarding:
 			ink_root.global_transform = Transform3D(Basis(Vector3.UP,atan2(combat.aim_direction().x,combat.aim_direction().z)),actor.combat_point())
@@ -232,12 +281,12 @@ func _process(delta: float) -> void:
 			ward.rotation.z = clock*.5
 			ward.scale = Vector3.ONE*(1.2 if combat.parry_remaining>0 else 1.0)
 			target = ward.to_global(Vector3(cos(clock*6)*.46,sin(clock*6)*.46,0))
-	else: clear_writing()
+	else: clear_writing(false)
 	if writing and not active_points.is_empty():
 		var count := ink.multimesh.visible_instance_count
 		if count>0: target = active_transform*active_points[mini(active_points.size()-1,count*2-1)]
 	if holding_quill:
-		clear_writing()
+		clear_writing(false)
 		target = rig.left_hand.global_position-Vector3.UP*.16
 	var local_target := to_local(target)
 	# Like Scriptorus, follow in the owner's local frame. Fast travel cannot
@@ -261,20 +310,24 @@ func _process(delta: float) -> void:
 func write(move: Dictionary, time: float, facing: Vector3) -> void:
 	var points := Moves.strokes(move)
 	active_points = points
-	active_transform = Transform3D(Moves.writing_basis(facing),actor.combat_point())*Moves.stroke_transform(move,time)
+	active_transform = Transform3D(Basis(Vector3.UP,atan2(facing.x,facing.z)),actor.combat_point())*Moves.stroke_transform(move,time)
 	ink_root.global_transform = active_transform
 	var count := mini(STROKE_LIMIT,int(points.size()/2))
 	var written := mini(count,ceili(count*Moves.progress(move,time)))
 	ink.multimesh.visible_instance_count = written
 	var last := float(move.hits[-1])
 	ink_material.albedo_color.a = 1-smoothstep(last+.08,float(move.duration),time)
+	draw_strokes(ink.multimesh,points,written)
+
+func draw_strokes(batch: MultiMesh, points: PackedVector3Array, written: int) -> void:
+	batch.visible_instance_count = written
 	for index in range(written):
 		var a := points[index*2]
 		var b := points[index*2+1]
 		var direction := b-a
 		var basis := Basis(Quaternion(Vector3.UP,direction.normalized()))
 		basis = basis*Basis.from_scale(Vector3(1,maxf(.001,direction.length()),1))
-		ink.multimesh.set_instance_transform(index,Transform3D(basis,(a+b)*.5))
+		batch.set_instance_transform(index,Transform3D(basis,(a+b)*.5))
 
 func hit_candidates(move: Dictionary, time: float, facing: Vector3) -> Array:
 	write(move,time,facing)

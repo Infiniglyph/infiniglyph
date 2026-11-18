@@ -2,6 +2,8 @@ extends RefCounted
 ## Original conducting vocabulary. Points are shared by writing and hit queries.
 const Hat = preload("res://scripts/eturnull_hat.gd")
 const Motion = preload("res://scripts/weapon_motion.gd")
+const INK_COLOR := Color("c99aff")
+const INK_EMISSION := Color("ba8cff")
 static var paths: Dictionary = {}
 
 static func writing_basis(facing: Vector3) -> Basis:

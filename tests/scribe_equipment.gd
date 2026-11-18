@@ -95,7 +95,7 @@ func run() -> void:
 	root.add_child(world)
 	p = world.player
 	# These legacy reach/pose fixtures place their targets on a level plane.
-	# Pitched camera-directed hit coverage lives in equation_tracing.gd.
+	# Horizontal casting versus pitched tracing coverage lives in equation_tracing.gd.
 	world.camera_rig.pitch = 0
 	w = p.weapon_combat
 	p.visual.retrieval.enabled = false
@@ -514,7 +514,7 @@ func run() -> void:
 	var ui: CanvasLayer = world.inventory_session.ui
 	ui.selected_iid = manuscript.instance_id
 	ui._inspect()
-	check(ui._arts.text.contains("Hold to write / 750 damage / 3.0 s trail") and browser.details.text.contains("Hold X / Q or Y / R to trace"),"Inventory and Equipment Archive explain the Manuscript's live tracing arts")
+	check(ui._arts.text.contains("Hold to write / 30 damage / 3.0 s trail") and browser.details.text.contains("Hold X / Q or Y / R to trace"),"Inventory and Equipment Archive explain the Manuscript's balanced tracing arts")
 	check(browser.model.find_child("ScribePresentation",true,false)!=null,"Equipment Archive preview uses the real Scribe rig")
 	browser.set_category("armour")
 	browser.show_item(&"eturnull_hat")

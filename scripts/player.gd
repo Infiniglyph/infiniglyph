@@ -111,10 +111,10 @@ func _physics_process(delta: float) -> void:
 	weapon_combat.advance_stagger(delta)
 	fall_damage.advance(delta)
 	controls.sample()
+	if controls.has_method("update_combat_hold"): controls.update_combat_hold(delta)
 	if is_instance_valid(world_actions) and world_actions.step(delta): return
 	combat.advance_charge(delta)
 	target_lock.update(delta,controls)
-	if controls.has_method("update_combat_hold"): controls.update_combat_hold(delta)
 	combat.poll(controls)
 	var jump: bool = controls.consume_jump()
 	var dodge_requests := 0

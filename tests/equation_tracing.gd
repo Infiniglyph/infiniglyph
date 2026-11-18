@@ -130,29 +130,59 @@ func run() -> void:
 	key(KEY_V,false)
 	await frames(hz/3,true)
 	check(not w.is_writing_stance() and presentation.quill.global_position.distance_to(w.rig.left_hand.global_position)>.6,"Releasing modifier returns normal floating quill without sheathing")
-	# Camera-directed ordinary equations share the same full 3D frame for ink
-	# and collision; no changes to non-Scribe aim or the player's capsule.
+	# Ordinary casting restores horizontal, committed aim. Held-quill traces
+	# retain the new full camera frame without changing the player's capsule.
 	var target := Target.new()
 	target.health = 100000
 	target.max_health = 100000
 	scene.add_child(target)
 	target.set_physics_process(false)
 	var camera_aims := true
+	var trace_aims := true
 	p.position.y = 5
 	for pitch: float in [-.65,0,.6]:
 		p.camera_rig.pitch = pitch
 		p.camera_rig.yaw = .65
-		var direction: Vector3 = -Basis.from_euler(Vector3(pitch,.65,0)).z
+		var direction := Vector3.FORWARD.rotated(Vector3.UP,.65)
+		trace_aims = trace_aims and w.trace_aim_direction().dot(-Basis.from_euler(Vector3(pitch,.65,0)).z)>.999
 		w.cancel()
 		w._on_action(&"attack_right",&"down")
+		p.camera_rig.yaw = -.7
 		w.elapsed = float(w.active_move.hits[0])
 		target.global_position = p.combat_point()+direction*4.5-Vector3.UP*.95
 		await frames()
 		var before: float = target.total_damage
 		w.strike(0)
 		camera_aims = camera_aims and w._facing.dot(direction)>.999 and presentation.active_transform.basis.z.normalized().dot(direction)>.999 and target.total_damage>before
-	check(camera_aims,"Upward, horizontal and downward camera aim rotate visible ordinary equations AND real hits")
+	check(camera_aims,"Ordinary casting stays horizontal at every pitch and keeps the aim chosen on attack start")
+	check(trace_aims,"Held-quill tracing still follows camera pitch and yaw")
+	check(presentation.ink_material.albedo_color.is_equal_approx(Moves.INK_COLOR),"Ordinary Manuscript equations match the purple trace palette")
+	var lingering := true
+	var unchanged_timing := true
+	for action: StringName in [&"attack_left",&"attack_right",&"special_x",&"special_y"]:
+		w.cancel()
+		w._begin(w.move_for(&"down",action))
+		var authored: Dictionary = w.active_move.duplicate(true)
+		w.elapsed = float(authored.hits[0])
+		w.strike(0)
+		var echo: Dictionary = presentation.afterglows[(presentation._afterglow_cursor-1+presentation.afterglows.size())%presentation.afterglows.size()]
+		var frozen: Transform3D = echo.node.global_transform
+		presentation.set_process(false)
+		var before: float = target.total_damage
+		w.elapsed = float(authored.duration)-.001
+		w._physics_process(.01)
+		presentation.advance_afterglows(float(authored.duration)-float(authored.hits[0])+.1)
+		p.position.x += .4
+		lingering = lingering and echo.node.visible and echo.node.global_transform.is_equal_approx(frozen) and echo.node.get_child_count()==0
+		unchanged_timing = unchanged_timing and w.active_move.is_empty() and is_equal_approx(target.total_damage,before)
+		presentation.advance_afterglows(1)
+		lingering = lingering and not echo.node.visible
+		presentation.set_process(true)
+	check(lingering,"Lights and unmodified arts leave bounded world-fixed afterglows that fade after their moves end")
+	check(unchanged_timing,"Lingering visual geometry adds no damage ticks or recovery time")
 	w.cancel()
+	check(presentation.afterglows.all(func(e: Dictionary): return not e.node.visible),"Cancellation clears harmless cast afterglows")
+	p.position.x = 0
 	p.position.y = .02
 	target.position = Vector3(40,0,40)
 	p.camera_rig.pitch = 0
@@ -202,7 +232,7 @@ func run() -> void:
 	key(KEY_SPACE,false)
 	key(KEY_R,false)
 	key(KEY_SPACE)
-	check(controls.consume_shield() and not controls.consume_jump(),"V+Space retains Shield Glyph use outside tracing")
+	check(controls.consume_jump() and not controls.consume_shield(),"V+Space still jumps when not tracing")
 	key(KEY_SPACE,false)
 	key(KEY_V,false)
 	trace.clear()
@@ -213,14 +243,14 @@ func run() -> void:
 	pad(JOY_BUTTON_A,false)
 	pad(JOY_BUTTON_X,false)
 	pad(JOY_BUTTON_A)
-	check(controls.consume_shield() and not controls.consume_jump(),"Controller RT+A remains Shield Glyph use outside tracing")
+	check(controls.consume_jump() and not controls.consume_shield(),"Controller RT+A jumps outside tracing with the Manuscript drawn")
 	pad(JOY_BUTTON_A,false)
 	pad(JOY_BUTTON_Y)
 	rt(0)
 	check(p.combat.trace_action==&"" and trace.action==&"","Releasing RT stops active Y without waiting for Y release")
 	rt(1)
 	pad(JOY_BUTTON_A)
-	check(controls.consume_shield() and not controls.consume_jump(),"A cancelled, still-held face button cannot steal the Shield Glyph shortcut")
+	check(controls.consume_jump() and not controls.consume_shield(),"RT+A stays available after tracing is cancelled")
 	pad(JOY_BUTTON_A,false)
 	rt(0)
 	pad(JOY_BUTTON_Y,false)
@@ -231,6 +261,14 @@ func run() -> void:
 	w.set_physics_process(true)
 	await frames(hz/4)
 	key(KEY_V)
+	pad(JOY_BUTTON_A)
+	await frames(hz/5)
+	pad(JOY_BUTTON_A,false)
+	var stance_height: float = p.position.y
+	pad(JOY_BUTTON_A)
+	await frames(hz/5)
+	pad(JOY_BUTTON_A,false)
+	check(p.last_sky_impulse.y>0 and p.position.y>stance_height and p.combat.trace_action==&"","Sky Jump works with the quill held before any trace begins")
 	key(KEY_Q)
 	controls.move = Vector2.UP
 	controls.boost = true
@@ -270,9 +308,13 @@ func run() -> void:
 	trace.set_physics_process(true)
 	var damage_before: float = target.total_damage
 	await frames(2)
-	check(is_equal_approx(target.total_damage-damage_before,750),"Persistent equations apply vehicle-trail damage through actual stroke contact")
+	check(is_equal_approx(target.total_damage-damage_before,30),"Each trace contact applies 30 damage through actual strokes")
 	await frames(hz/2+2)
-	check(target.total_damage-damage_before>=1500,"Surviving sections remain hazardous on the shared half-second cooldown")
+	check(is_equal_approx(target.total_damage-damage_before,60),"Surviving sections apply another 30 on the half-second cooldown")
+	trace.append_section(PackedVector3Array([center+Vector3(-.5,0,0),center+Vector3(.5,0,0)]))
+	trace.resolve_contacts()
+	check(is_equal_approx(target.total_damage-damage_before,60),"Overlapping trace pieces cannot multiply damage within the victim cooldown")
+	check(is_equal_approx(preload("res://scripts/vehicle_light_wave.gd").DAMAGE,750),"Vehicle light-wave damage remains 750")
 	trace.clear()
 	trace.append_section(PackedVector3Array([center+Vector3(-1,0,0),center+Vector3(-.6,0,0),center+Vector3(.6,0,0),center+Vector3(1,0,0)]))
 	trace.resolve_contacts()
@@ -297,7 +339,7 @@ func run() -> void:
 	trace.append_section(PackedVector3Array([center+Vector3(-.4,0,0),center+Vector3(.4,0,0)]))
 	var guard_hp: float = defender.health
 	trace.resolve_contacts()
-	check(defender.weapon_combat.last_blocked and guard_hp-defender.health>0 and guard_hp-defender.health<750,"Ordinary guard mitigates persistent ink through existing weapon block power")
+	check(defender.weapon_combat.last_blocked and guard_hp-defender.health>0 and guard_hp-defender.health<30,"Ordinary guard mitigates the balanced trace damage through existing block power")
 	trace.clear()
 	defender.combat.blocking = false
 	defender.dodge.start(Vector3.RIGHT)

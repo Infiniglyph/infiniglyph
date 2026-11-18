@@ -152,7 +152,6 @@ func _ready() -> void:
 	actor.combat.trace_started.connect(_on_trace_started)
 	actor.combat.trace_stopped.connect(func():
 		if is_instance_valid(equation_trace): equation_trace.stop())
-	if actor.controls.get("trace_jump_context")!=null: actor.controls.trace_jump_context = can_trace_jump
 	actor.dodge.started.connect(func(_a: Vector3, _b: Vector3): cancel())
 	sync_rig()
 
@@ -203,11 +202,14 @@ func sync_rig() -> void:
 	else: rig.equip(actor.combat.resolve_slot(actor.combat.selected_slot),actor.combat.sheathed)
 
 func aim_direction() -> Vector3:
-	if loadout(actor.combat.selected_slot).id==&"scribe":
-		var pitch = actor.camera_rig.get("pitch")
-		return -Basis.from_euler(Vector3(float(pitch) if pitch!=null else 0.0,actor.camera_rig.yaw,0)).z
 	if actor.target_lock.is_locked(): return actor.target_lock.facing()
 	return Vector3.FORWARD.rotated(Vector3.UP,actor.camera_rig.yaw)
+
+func trace_aim_direction() -> Vector3:
+	# Only held-quill tracing uses camera pitch. Ordinary casting keeps its
+	# original horizontal free aim, committed at the start of each attack.
+	var pitch = actor.camera_rig.get("pitch")
+	return -Basis.from_euler(Vector3(float(pitch) if pitch!=null else 0.0,actor.camera_rig.yaw,0)).z
 
 func uses_equation_trace(action: StringName) -> bool:
 	return equipment_key(actor.combat.selected_slot)==&"eturnull_manuscript" and action in [&"special_rt_x",&"special_rt_y"]
@@ -217,11 +219,6 @@ func is_writing_stance() -> bool:
 
 func tracing_active() -> bool:
 	return actor.combat.trace_action!=&"" and uses_equation_trace(actor.combat.trace_action)
-
-func can_trace_jump() -> bool:
-	# Also covers X/Y and A arriving before the next physics poll.
-	var pending: bool = actor.controls.has_method("has_pending_trace") and actor.controls.has_pending_trace()
-	return uses_equation_trace(&"special_rt_x") and not actor.combat.sheathed and can_act() and not actor.dodge.active and not actor.combat.blocking and (tracing_active() or pending)
 
 func _on_trace_started(action: StringName) -> void:
 	if is_staggered() or actor.dodge.active or actor.combat.blocking:
@@ -611,10 +608,9 @@ func _physics_process(delta: float) -> void:
 		world_actions.apply_pose()
 		return
 	impact_feedback = maxf(0,impact_feedback-delta)
-	if loadout(actor.combat.selected_slot).id==&"scribe": _facing = aim_direction()
+	if is_writing_stance(): _facing = trace_aim_direction()
 	elif actor.target_lock.is_locked() and not _dash_active: _facing = actor.target_lock.facing()
 	if tracing_active() and (not is_writing_stance() or actor.get("transition_locked")==true): actor.combat.cancel_trace()
-	if is_writing_stance() and actor.controls.has_method("claim_weapon_modifier"): actor.controls.claim_weapon_modifier()
 	if tracing_active(): equation_trace.prepare(delta)
 	var was_ready := parry_remaining>0
 	var had_feedback := parry_feedback>0
@@ -658,7 +654,8 @@ func _physics_process(delta: float) -> void:
 		status = "Charge %d%% - release" % int(actor.combat.charge_elapsed/actor.combat.CHARGE_FULL*100)
 		if actor.combat.charge_elapsed>=actor.combat.CHARGE_FULL and not _full_charge_shown:
 			_full_charge_shown = true
-			emit_effect("parry",0.7,0,loadout(actor.combat.charge_slot).color,actor.combat_point(),aim_direction(),0.3)
+			var color: Color = ScribeMoves.INK_COLOR if equipment_key(actor.combat.charge_slot)==&"eturnull_manuscript" else loadout(actor.combat.charge_slot).color
+			emit_effect("parry",0.7,0,color,actor.combat_point(),aim_direction(),0.3)
 	else:
 		if status.begins_with("Charge "): status = "Ready"
 		apply_pose(delta)
@@ -692,15 +689,16 @@ func advance_strikes(previous: float) -> void:
 func strike(pulse: int = -1) -> void:
 	if active_move.is_empty() or is_staggered(): return
 	var move := active_move.duplicate(true)
-	if move.get("weapon_family")=="scribe": _facing = aim_direction()
-	elif actor.target_lock.is_locked() and not _dash_active: _facing = actor.target_lock.facing()
+	if actor.target_lock.is_locked() and not _dash_active: _facing = actor.target_lock.facing()
 	var origin: Vector3 = actor.combat_point()
 	var environment_ray := actor.get_world_3d().direct_space_state.intersect_ray(PhysicsRayQueryParameters3D.create(origin,origin+_facing*float(move.reach),9,[actor.get_rid()]))
 	if not environment_ray.is_empty() and not move.get("disc_throw",false): environment_contact.emit(environment_ray.collider,attack_serial)
 	if move.get("weapon_family")=="scribe" and rig.models.has(rig.selected):
 		var presentation: Node3D = rig.models[rig.selected].right
 		var contact_time := float(move.hits[pulse]) if pulse>=0 else elapsed
-		resolve_strike(move,pulse,origin,presentation.hit_candidates(move,contact_time,_facing),false)
+		var candidates: Array = presentation.hit_candidates(move,contact_time,_facing)
+		presentation.retain_writing(move,contact_time)
+		resolve_strike(move,pulse,origin,candidates,false)
 		changed.emit()
 		return
 	if move.get("disc_throw",false):

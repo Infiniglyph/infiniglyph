@@ -37,6 +37,7 @@ var _loss_count := 0
 var resident_dialogue: Label
 var _resident_speaker: WeakRef
 var _resident_time := 0.0
+var _held_pickup_cooldown := 0.0
 
 func networked() -> bool:
 	if not is_inside_tree(): return live_session
@@ -237,8 +238,26 @@ func interact() -> void:
 			_resident_speaker = weakref(resident)
 			_resident_time = 5.5
 
+func _collect_while_writing(delta: float) -> void:
+	_held_pickup_cooldown = maxf(0,_held_pickup_cooldown-delta)
+	if _held_pickup_cooldown>0 or not controls.can_hold_pickup(): return
+	if not controls.gameplay_enabled or ui.is_open or shop.is_open or actor.transition_locked: return
+	if actor.combat.sheathed or actor.weapon_combat.equipment_key(actor.combat.selected_slot)!=&"eturnull_manuscript" or not actor.weapon_combat.can_act(): return
+	if duel.active or duel.dialogue_open: return
+	if is_instance_valid(dungeon_travel) and dungeon_travel.busy: return
+	if is_instance_valid(kyren_encounter) and (kyren_encounter.active or kyren_encounter.dialogue_open): return
+	if is_instance_valid(boss_encounter) and (boss_encounter.active or boss_encounter.dialogue_open): return
+	if is_instance_valid(world_actions) and world_actions.attached(): return
+	# Only loot may be collected by a held writing modifier. Never repeatedly
+	# invoke interact(), which could sit down, start dialogue or enter a doorway.
+	_held_pickup_cooldown = .15
+	var pickup: Node3D = loot.nearest_pickup(actor)
+	if pickup!=null and loot.request_pickup(actor.inventory,pickup):
+		controls.claim_weapon_modifier()
+
 func _process(delta: float) -> void:
 	if not is_instance_valid(ui) or _checkpoint_pending: return
+	_collect_while_writing(delta)
 	if controls.consume_heal():
 		if controls.gameplay_enabled and not ui.is_open:
 			if loot.request_health_glyph(actor.inventory): show_notice("Health Glyph restored your light.")
