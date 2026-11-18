@@ -16,6 +16,7 @@ func check(ok: bool,label: String) -> void:
 		push_error("FAIL: "+label)
 func _initialize() -> void: call_deferred("run")
 func run() -> void:
+	create_timer(90).timeout.connect(func(): quit(2))
 	var start := Time.get_ticks_usec()
 	var all := Database.all()
 	var catalog := Catalog.all()
@@ -26,7 +27,8 @@ func run() -> void:
 	var depths: Dictionary=JSON.parse_string(FileAccess.get_file_as_string("res://data/equipment/pyramid_depth_equipment.json"))
 	var void_soul: Dictionary=JSON.parse_string(FileAccess.get_file_as_string("res://data/equipment/void_soul_equipment.json"))
 	var boss_gear: Dictionary=JSON.parse_string(FileAccess.get_file_as_string("res://data/equipment/ahkmet_equipment.json"))
-	check(all.size()==int(summary.counterparts)+named.items.size()+5+void_soul.items.size()+pyramid.items.size()+depths.items.size()+boss_gear.items.size(),"Every audited counterpart and authored design is registered")
+	var brushes: Dictionary=JSON.parse_string(FileAccess.get_file_as_string("res://data/equipment/paintbrush_equipment.json"))
+	check(all.size()==int(summary.counterparts)+named.items.size()+5+void_soul.items.size()+pyramid.items.size()+depths.items.size()+boss_gear.items.size()+brushes.items.size(),"Every audited counterpart and authored design is registered")
 	var names: Dictionary = {}
 	var valid := true
 	var effects_inert := true
@@ -51,9 +53,10 @@ func run() -> void:
 	var vertices := 0
 	for geometry: Dictionary in geometries.values():
 		var model := Geometry.model(geometry)
-		for node: MeshInstance3D in model.get_children():
+		for node: Node3D in model.get_children():
+			if not node is MeshInstance3D: continue
 			geometry_ok = geometry_ok and node.mesh.get_surface_count()>0
-			vertices += node.mesh.surface_get_array_len(0)
+			vertices += node.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX].size()
 		model.free()
 	check(geometry_ok,"Every equipment family builds actual solid and wire geometry")
 	print("FAMILY GEOMETRY: ",families.size()," families; ",geometries.size()," distinct profiles; ",vertices," vertices; ",(Time.get_ticks_usec()-mesh_start)/1000.0," ms")

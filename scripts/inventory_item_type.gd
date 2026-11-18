@@ -6,7 +6,7 @@ const WEAPONS := {
 	"sword":"Sword", "curved_sword":"Curved Sword", "greatsword":"Greatsword",
 	"katana":"Katana", "axe":"Axe", "twin_blades":"Twin Blades", "hammer":"Hammer",
 	"spear":"Spear", "scythe":"Scythe", "halberd":"Halberd", "whip":"Whip", "disc":"Disc", "dual_disc":"Twin Discs",
-	"scribe":"Scribe Weapon", "staff":"Staff", "chime":"Chime", "bow":"Bow", "crossbow":"Crossbow"
+	"scribe":"Scribe Weapon", "paintbrush":"Paintbrush", "staff":"Staff", "chime":"Chime", "bow":"Bow", "crossbow":"Crossbow"
 }
 
 static func label(definition: Resource) -> String:

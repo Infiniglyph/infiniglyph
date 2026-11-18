@@ -52,6 +52,12 @@ static func model(entry: Dictionary) -> Node3D:
 			figure.add_child(rig)
 			rig.equip_item(StringName(entry.id),false)
 			ScribeMoves.preview_ready(figure,rig)
+		elif entry.family=="paintbrush":
+			var rig := Rig.new()
+			rig.visual = figure
+			figure.add_child(rig)
+			rig.equip_item(StringName(entry.id),false)
+			preload("res://scripts/paintbrush_moves.gd").ready_pose(figure,rig)
 		elif String(entry.geometry.get("renderer","")).begins_with("ahkmet_") or entry.geometry.get("renderer")=="union_crown":
 			var copy:=RoyalRegalia.new()
 			copy.configure(figure,entry.geometry.renderer)

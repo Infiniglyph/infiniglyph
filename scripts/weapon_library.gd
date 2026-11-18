@@ -1,6 +1,7 @@
 extends RefCounted
 const Equipment = preload("res://scripts/equipment_database.gd")
 const DiscMoves = preload("res://scripts/disc_moves.gd")
+const PaintMoves = preload("res://scripts/paintbrush_moves.gd")
 const NamedMoves = preload("res://scripts/equipment_moves.gd")
 ## Authored prototype moves: timing and damage are tuning data, not animation assets.
 const LOADOUTS := {
@@ -29,6 +30,7 @@ static func move(slot: StringName, action: StringName, combo: int = 0, aerial: b
 static func _move(slot: StringName, action: StringName, combo: int, aerial: bool) -> Dictionary:
 	var item := Equipment.get_item(slot)
 	if item.get("category")=="weapons":
+		if item.family=="paintbrush": return PaintMoves.move(item,action)
 		if item.family in ["disc","dual_disc"]: return DiscMoves.move(item,action,combo,aerial)
 		if item.has("motion_set"): return NamedMoves.move(item,action,combo,aerial)
 		if item.has("moves"):
@@ -102,6 +104,7 @@ static func spec(title: String, duration: float, windup: float, damage: float, r
 
 static func charged_move(slot: StringName, action: StringName, strength: float, combo: int = 0, aerial: bool = false) -> Dictionary:
 	var result := move(slot,action,combo,aerial).duplicate(true)
+	if result.get("weapon_family")=="paintbrush": return result
 	if result.is_empty() or strength<=0 or not String(action).begins_with("special_"): return result
 	var power := clampf(strength,0,1)
 	if result.has("motion"): result.motion_contact = result.get("motion_contact",float(result.hits[0])/float(result.duration))

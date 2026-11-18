@@ -8,6 +8,7 @@ const Moves = preload("res://scripts/scribe_moves.gd")
 const EXPRESSIONS := ["x²+y²=r²","∫f(x)dx","e^(iπ)+1=0","∇·F=0"]
 static var glyph_strokes: Dictionary = {}
 var settings: Resource = Settings.new()
+var mathematical := true
 var combat: Node
 var actor: CharacterBody3D
 var sections: Array[Dictionary] = []
@@ -37,7 +38,7 @@ var _targets: Array[Node3D] = []
 var _seen: Dictionary = {}
 
 func _ready() -> void:
-	name = "PersistentEquationTrace"
+	name = "PersistentEquationTrace" if mathematical else "PersistentPaintTrace"
 	top_level = true
 	global_transform = Transform3D.IDENTITY
 	cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -46,15 +47,16 @@ func _ready() -> void:
 	_ink.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	_ink.vertex_color_use_as_albedo = true
 	_ink.emission_enabled = true
-	_ink.emission = Moves.INK_EMISSION
-	_ink.emission_energy_multiplier = 1.5
+	_ink.emission = Moves.INK_EMISSION if mathematical else Color.WHITE
+	if not mathematical: _ink.emission_operator = BaseMaterial3D.EMISSION_OP_MULTIPLY
+	_ink.emission_energy_multiplier = 1.5 if mathematical else .45
 	var stroke := CylinderMesh.new()
 	# Contact tolerance matches the vehicle wall, while thin calligraphic ink
 	# leaves operators and counters readable instead of filling each glyph in.
-	stroke.top_radius = settings.thickness*.12
+	stroke.top_radius = settings.thickness*(.12 if mathematical else .65)
 	stroke.bottom_radius = stroke.top_radius
 	stroke.height = 1
-	stroke.radial_segments = 4
+	stroke.radial_segments = 4 if mathematical else 6
 	stroke.rings = 0
 	stroke.material = _ink
 	multimesh = MultiMesh.new()
@@ -63,7 +65,7 @@ func _ready() -> void:
 	multimesh.mesh = stroke
 	multimesh.instance_count = settings.maximum_strokes
 	multimesh.visible_instance_count = 0
-	for expression: String in EXPRESSIONS:
+	for expression: String in EXPRESSIONS if mathematical else []:
 		for character: String in expression:
 			if not glyph_strokes.has(character):
 				glyph_strokes[character] = Glyphs.glyph_mesh(character).surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
@@ -82,8 +84,15 @@ func begin(value: StringName) -> void:
 	prepare(0)
 	# An input can be pressed and released inside one simulation sample. Write
 	# the tiny mark now; holding adds a path rather than scaling this mark up.
-	var tip: Vector3 = combat.rig.left_hand.global_position-Vector3.UP*.16
+	var tip := nib_position()
 	var frame := Moves.writing_basis(combat.trace_aim_direction())
+	append_section(tap_mark(value,tip,frame))
+	set_physics_process(true)
+
+func nib_position() -> Vector3:
+	return combat.rig.left_hand.global_position-Vector3.UP*.16
+
+func tap_mark(value: StringName, tip: Vector3, frame: Basis) -> PackedVector3Array:
 	var points := PackedVector3Array()
 	var radius: float = settings.minimum_mark_size
 	if value==&"special_rt_x":
@@ -92,8 +101,7 @@ func begin(value: StringName) -> void:
 	else:
 		for i in range(8):
 			for j in [i,i+1]: points.append(tip+frame*Vector3(cos(j*TAU/8),sin(j*TAU/8),0)*radius)
-	append_section(points)
-	set_physics_process(true)
+	return points
 
 func stop() -> void:
 	action = &""
@@ -153,7 +161,7 @@ func sample(delta: float, tip: Vector3) -> void:
 				if a.distance_squared_to(b)<.000004: continue
 				var points := PackedVector3Array([a,b])
 				_distance += a.distance_to(b)
-				if _distance>=settings.equation_spacing:
+				if mathematical and _distance>=settings.equation_spacing:
 					_distance = fmod(_distance,settings.equation_spacing)
 					var tangent := (b-a).normalized()
 					var up := Moves.writing_basis(combat.trace_aim_direction()).y
@@ -173,12 +181,14 @@ func sample(delta: float, tip: Vector3) -> void:
 	_was_down = _pen_down
 	_last_stroke_id = _stroke_id
 
-func append_section(points: PackedVector3Array) -> void:
+func append_section(points: PackedVector3Array, metadata: Dictionary = {}) -> void:
 	if points.size()<2: return
 	_serial += 1
 	var bounds := AABB(points[0],Vector3.ZERO)
 	for point in points: bounds = bounds.expand(point)
-	Persistence.append(sections,{"points":points,"bounds":bounds.grow(settings.thickness),"born":time,"owner":weakref(actor),"source":actor.combat_point(),"offset":Vector3.ZERO,"before":Vector3.ZERO,"velocity":Vector3.ZERO,"reflected":false,"serial":_serial},settings.maximum_sections)
+	var entry := {"points":points,"bounds":bounds.grow(settings.thickness),"born":time,"owner":weakref(actor),"source":actor.combat_point(),"offset":Vector3.ZERO,"before":Vector3.ZERO,"velocity":Vector3.ZERO,"reflected":false,"serial":_serial}
+	entry.merge(metadata,true)
+	Persistence.append(sections,entry,settings.maximum_sections)
 	var strokes := 0
 	for section in sections: strokes += section.points.size()/2
 	while strokes>settings.maximum_strokes and not sections.is_empty(): strokes -= sections.pop_front().points.size()/2
@@ -268,9 +278,10 @@ func resolve_contacts() -> void:
 			var source: Vector3 = section.source+section.offset
 			if not get_world_3d().direct_space_state.intersect_ray(PhysicsRayQueryParameters3D.create(source,point,9,excluded)).is_empty(): continue
 			_hit_until[key] = time+settings.contact_interval
-			var move := {"name":"Reflected Equation" if section.reflected else "Equation Trace","action":&"equation_trace","damage":settings.damage,"parryable":not section.reflected,"reflected":section.reflected,"hit_stun_level":0.0,"hit_stagger":0.0,"attack_serial":get_instance_id()+int(section.serial),"pulse":int(time/settings.contact_interval),"contact":point,"hurtbox_shape":contact.shape}
-			if target.has_method("receive_combat_hit"): target.receive_combat_hit(settings.damage,source,owner,move)
-			elif target.has_method("receive_hit"): target.receive_hit(settings.damage,source)
+			var amount: float = section.get("damage",settings.damage)
+			var move := {"name":("Reflected Equation" if section.reflected else "Equation Trace") if mathematical else ("Reflected Paint" if section.reflected else "Paint Trail"),"action":section.get("action",&"equation_trace" if mathematical else &"paint_trace"),"damage":amount,"parryable":not section.reflected,"reflected":section.reflected,"hit_stun_level":0.0,"hit_stagger":0.0,"attack_serial":get_instance_id()+int(section.serial),"pulse":int(time/settings.contact_interval),"contact":point,"hurtbox_shape":contact.shape}
+			if target.has_method("receive_combat_hit"): target.receive_combat_hit(amount,source,owner,move)
+			elif target.has_method("receive_hit"): target.receive_hit(amount,source)
 			var weapon: Node = target.get("weapon_combat")
 			if is_instance_valid(weapon) and weapon.last_parried and not section.reflected:
 				reflect_at(point,target)
@@ -377,13 +388,16 @@ func reflect_at(point: Vector3, defender: Node3D) -> void:
 		reflected_count += 1
 	_dirty = true
 
+func section_color(section: Dictionary) -> Color:
+	return Color("9feaff") if section.reflected else Moves.INK_COLOR
+
 func redraw() -> void:
 	var count := 0
 	var bounds := AABB()
 	for section in sections:
 		var alpha := section_opacity(section)
 		if alpha<=0: continue
-		var color := Color("9feaff") if section.reflected else Moves.INK_COLOR
+		var color := section_color(section)
 		color.a = alpha
 		for index in range(0,section.points.size(),2):
 			if count>=multimesh.instance_count: break

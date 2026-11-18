@@ -7,6 +7,7 @@ const Equipment = preload("res://scripts/equipment_database.gd")
 const Geometry = preload("res://scripts/equipment_geometry.gd")
 const Whip = preload("res://scripts/whip_presentation.gd")
 const Scribe = preload("res://scripts/scribe_presentation.gd")
+const Paintbrush = preload("res://scripts/paintbrush_presentation.gd")
 var _custom_key: StringName = &""
 var visual: Node3D
 var right_hand: Node3D
@@ -104,9 +105,9 @@ func equip_item(id: StringName, stow: bool) -> void:
 			models[id] = {"right":presentation,"left":empty_left,"stowed":empty_stow,"stowed_blades":[]}
 			equip(id,stow)
 			return
-		var right: Node3D = Whip.new() if item.family=="whip" else Geometry.model(geometry)
+		var right: Node3D = Paintbrush.model(Color(geometry.tint)) if kind==&"paintbrush" else Whip.new() if item.family=="whip" else Geometry.model(geometry)
 		if right is Whip: right.configure(self,geometry)
-		right_hand.add_child(right)
+		(left_hand if kind==&"paintbrush" else right_hand).add_child(right)
 		var left := Node3D.new()
 		left_hand.add_child(left)
 		if kind in [&"twin_blades",&"dual_disc"]:
@@ -116,10 +117,13 @@ func equip_item(id: StringName, stow: bool) -> void:
 		var stored := Node3D.new()
 		(visual.pelvis if kind==&"katana" else visual.chest).add_child(stored)
 		stored.position = Vector3(-.29,.07,.14) if kind==&"katana" else Vector3(0,0,-.19)
-		var back := Geometry.model(geometry)
+		var back := Paintbrush.model(Color(geometry.tint)) if kind==&"paintbrush" else Geometry.model(geometry)
 		stored.add_child(back)
 		back.position = Vector3(.15,.34,0)
 		back.rotation.z = PI-.45
+		if kind==&"paintbrush":
+			back.position = Vector3(.08,.12,-.04)
+			back.rotation.z = -.5
 		if kind==&"katana":
 			back.position = Vector3.ZERO
 			back.rotation = Vector3(-1.97,.10,0)
@@ -175,7 +179,7 @@ func orient_hand(hand: Node3D, world_basis: Basis) -> void:
 func blade_segments() -> Array:
 	if sheathed or not models.has(selected): return []
 	var kind: StringName = Library.loadout(selected).id
-	if kind==&"scribe" or Equipment.get_item(selected).get("family")=="whip": return [] # The equations are the attack geometry.
+	if kind in [&"scribe",&"paintbrush"] or Equipment.get_item(selected).get("family")=="whip": return [] # Persistent ink is the attack geometry.
 	var length := 1.74 if kind == &"spear" else (0.66 if kind == &"twin_blades" else 1.15)
 	var item := Equipment.get_item(selected)
 	if not item.is_empty(): length = float(item.geometry.length)

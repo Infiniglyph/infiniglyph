@@ -16,8 +16,13 @@ const Motion = preload("res://scripts/weapon_motion.gd")
 const ScribeMoves = preload("res://scripts/scribe_moves.gd")
 const EquationTrace = preload("res://scripts/equation_trace.gd")
 const TraceSettings = preload("res://scripts/equation_trace_settings.gd")
+const PaintTrace = preload("res://scripts/paint_trace.gd")
+const PaintSettings = preload("res://scripts/paintbrush_settings.gd")
+const PaintMoves = preload("res://scripts/paintbrush_moves.gd")
 @export var equation_trace_settings: Resource = TraceSettings.new()
 var equation_trace: MultiMeshInstance3D
+@export var paintbrush_settings: Resource = PaintSettings.new()
+var paint_trace: MultiMeshInstance3D
 const PARRY_WINDOW := 0.18
 const PARRY_FEEDBACK_TIME := 0.60
 const BASE_HEALTH := 1000.0
@@ -148,10 +153,11 @@ func _ready() -> void:
 	actor.combat.weapon_slot_selected.connect(_on_weapon)
 	actor.combat.sheathed_changed.connect(_on_sheathed)
 	actor.combat.block_changed.connect(_on_block)
-	actor.combat.trace_resolver = uses_equation_trace
+	actor.combat.trace_resolver = uses_trace_art
 	actor.combat.trace_started.connect(_on_trace_started)
 	actor.combat.trace_stopped.connect(func():
-		if is_instance_valid(equation_trace): equation_trace.stop())
+		if is_instance_valid(equation_trace): equation_trace.stop()
+		if is_instance_valid(paint_trace): paint_trace.stop())
 	actor.dodge.started.connect(func(_a: Vector3, _b: Vector3): cancel())
 	sync_rig()
 
@@ -185,11 +191,13 @@ func combo_for(key: StringName,action: StringName) -> int:
 func move_for(slot: StringName, action: StringName) -> Dictionary:
 	var resolved: StringName = actor.combat.resolve_slot(slot)
 	var key := equipment_key(slot)
+	if Equipment.get_item(key).get("family")=="paintbrush": return PaintMoves.move(Equipment.get_item(key),action,paintbrush_settings)
 	return Library.move(key,action,combo_for(key,action),not actor.is_on_floor()) if resolved != &"" else {}
 
 func charged_move(slot: StringName, action: StringName, strength: float) -> Dictionary:
 	var resolved: StringName = actor.combat.resolve_slot(slot)
 	var key := equipment_key(slot)
+	if Equipment.get_item(key).get("family")=="paintbrush": return PaintMoves.move(Equipment.get_item(key),action,paintbrush_settings)
 	return Library.charged_move(key,action,strength,combo_for(key,action),not actor.is_on_floor()) if resolved != &"" else {}
 
 func sync_rig() -> void:
@@ -214,11 +222,36 @@ func trace_aim_direction() -> Vector3:
 func uses_equation_trace(action: StringName) -> bool:
 	return equipment_key(actor.combat.selected_slot)==&"eturnull_manuscript" and action in [&"special_rt_x",&"special_rt_y"]
 
+func is_paintbrush() -> bool:
+	return Equipment.get_item(equipment_key(actor.combat.selected_slot)).get("family")=="paintbrush"
+
+func uses_trace_art(action: StringName) -> bool:
+	return uses_equation_trace(action) or (is_paintbrush() and action in [&"special_x",&"special_y",&"special_rt_x",&"special_rt_y"])
+
+func current_trace() -> MultiMeshInstance3D:
+	return paint_trace if is_paintbrush() else equation_trace
+
+func ensure_paint_trace() -> MultiMeshInstance3D:
+	if not is_instance_valid(paint_trace):
+		paint_trace = PaintTrace.new()
+		paint_trace.actor = actor
+		paint_trace.combat = self
+		paint_trace.settings = paintbrush_settings
+		add_child(paint_trace)
+	paint_trace.tint = Color(Equipment.get_item(equipment_key(actor.combat.selected_slot)).geometry.tint)
+	return paint_trace
+
+func paint_brush_basis() -> Basis:
+	var roll := 0.0
+	if not active_move.is_empty() and active_move.get("weapon_family")=="paintbrush": roll = -.28 if active_move.side<0 else .28
+	return Basis(Vector3.UP,actor.visual.rotation.y)*Basis(Vector3.FORWARD,roll)
+
 func is_writing_stance() -> bool:
-	return uses_equation_trace(&"special_rt_x") and not actor.combat.sheathed and can_act() and not actor.dodge.active and not actor.combat.blocking and active_move.is_empty() and actor.combat.charge_action==&"" and actor.controls.has_method("special_modified") and actor.controls.special_modified()
+	var writing: bool = tracing_active() if is_paintbrush() else uses_equation_trace(&"special_rt_x") and actor.controls.has_method("special_modified") and actor.controls.special_modified()
+	return writing and not actor.combat.sheathed and can_act() and not actor.dodge.active and not actor.combat.blocking and active_move.is_empty() and actor.combat.charge_action==&""
 
 func tracing_active() -> bool:
-	return actor.combat.trace_action!=&"" and uses_equation_trace(actor.combat.trace_action)
+	return actor.combat.trace_action!=&"" and uses_trace_art(actor.combat.trace_action)
 
 func _on_trace_started(action: StringName) -> void:
 	if is_staggered() or actor.dodge.active or actor.combat.blocking:
@@ -227,14 +260,15 @@ func _on_trace_started(action: StringName) -> void:
 	# Tracing cancels a recovering ordinary move, without freezing locomotion.
 	active_move = {}
 	_queued.clear()
-	if not is_instance_valid(equation_trace):
+	if is_paintbrush(): ensure_paint_trace()
+	elif not is_instance_valid(equation_trace):
 		equation_trace = EquationTrace.new()
 		equation_trace.actor = actor
 		equation_trace.combat = self
 		equation_trace.settings = equation_trace_settings
 		add_child(equation_trace)
-	equation_trace.begin(action)
-	status = "Tracing X" if action==&"special_rt_x" else "Tracing circles"
+	current_trace().begin(action)
+	status = PaintMoves.ART_NAMES[[&"special_x",&"special_y",&"special_rt_x",&"special_rt_y"].find(action)] if is_paintbrush() else "Tracing X" if action==&"special_rt_x" else "Tracing circles"
 	changed.emit()
 
 func damage_multiplier(speed: float) -> float:
@@ -345,12 +379,12 @@ func _on_action(action: StringName, slot: StringName) -> void:
 	if actor.combat.sheathed:
 		return
 	if actor.combat.blocking: return
-	if uses_equation_trace(action):
+	if uses_trace_art(action):
 		# Direct AI/script requests have no held-button duration: a legitimate
 		# tiny trace tap, never the superseded charged release attack.
 		actor.combat.cancel_charge()
 		_on_trace_started(action)
-		if is_instance_valid(equation_trace): equation_trace.stop()
+		if is_instance_valid(current_trace()): current_trace().stop()
 		return
 	var strength: float = actor.combat.released_charge
 	actor.combat.cancel_charge()
@@ -387,12 +421,16 @@ func _begin(move: Dictionary) -> void:
 	_pulse_targets.clear()
 	elapsed = 0
 	_facing = aim_direction()
+	if move.get("weapon_family")=="paintbrush":
+		_facing = trace_aim_direction()
+		ensure_paint_trace().start_light(move)
 	body.begin(_facing)
 	status = move.name
 	changed.emit()
 	attack_started.emit(move.duplicate())
 
 func cancel() -> void:
+	if is_instance_valid(paint_trace): paint_trace.stop()
 	for disc in flying_discs.duplicate():
 		if is_instance_valid(disc): disc.reclaim()
 	flying_discs.clear()
@@ -445,6 +483,7 @@ func _on_block(held: bool) -> void:
 func reset() -> void:
 	cancel()
 	if is_instance_valid(equation_trace): equation_trace.clear()
+	if is_instance_valid(paint_trace): paint_trace.clear()
 	clear_stagger()
 	health = max_health
 	last_shield_absorbed=0
@@ -611,7 +650,7 @@ func _physics_process(delta: float) -> void:
 	if is_writing_stance(): _facing = trace_aim_direction()
 	elif actor.target_lock.is_locked() and not _dash_active: _facing = actor.target_lock.facing()
 	if tracing_active() and (not is_writing_stance() or actor.get("transition_locked")==true): actor.combat.cancel_trace()
-	if tracing_active(): equation_trace.prepare(delta)
+	if tracing_active() and not is_paintbrush(): equation_trace.prepare(delta)
 	var was_ready := parry_remaining>0
 	var had_feedback := parry_feedback>0
 	parry_remaining = maxf(0,parry_remaining-delta)
@@ -636,6 +675,7 @@ func _physics_process(delta: float) -> void:
 		if not active_move.is_empty() and elapsed >= float(active_move.duration):
 			var completed := active_move.duplicate()
 			active_move = {}
+			if completed.get("weapon_family")=="paintbrush" and is_instance_valid(paint_trace): paint_trace.stop()
 			if completed.get("auto_sheathe",false):
 				_art_stowed = false
 				actor.combat.sheathed = true
@@ -643,6 +683,7 @@ func _physics_process(delta: float) -> void:
 			attack_finished.emit(completed,total_hits-_attack_hit_start)
 			status = "Ready"
 			changed.emit()
+	if is_paintbrush() and is_instance_valid(paint_trace) and paint_trace.action!=&"": paint_trace.prepare(delta)
 	if actor.combat.charge_action != &"" and active_move.is_empty() and not actor.combat.blocking:
 		var charging := move_for(actor.combat.charge_slot,actor.combat.charge_action)
 		active_move = charging
@@ -660,7 +701,8 @@ func _physics_process(delta: float) -> void:
 		if status.begins_with("Charge "): status = "Ready"
 		apply_pose(delta)
 	if actor.get("fall_damage") != null: actor.fall_damage.apply_pose(delta)
-	if tracing_active(): equation_trace.sample(delta,rig.left_hand.global_position-Vector3.UP*.16)
+	if tracing_active(): current_trace().sample(delta,current_trace().nib_position())
+	elif is_paintbrush() and is_instance_valid(paint_trace) and not paint_trace.light.is_empty(): paint_trace.sample(delta,paint_trace.nib_position())
 	if not active_move.is_empty() and active_move.get("auto_sheathe",false) and elapsed/float(active_move.duration)>.94 and rig is Rig:
 		rig.equip(rig.selected,true)
 		_art_stowed = true
@@ -689,6 +731,7 @@ func advance_strikes(previous: float) -> void:
 func strike(pulse: int = -1) -> void:
 	if active_move.is_empty() or is_staggered(): return
 	var move := active_move.duplicate(true)
+	if move.get("weapon_family")=="paintbrush": return # Its actual moving nib writes the damaging geometry.
 	if actor.target_lock.is_locked() and not _dash_active: _facing = actor.target_lock.facing()
 	var origin: Vector3 = actor.combat_point()
 	var environment_ray := actor.get_world_3d().direct_space_state.intersect_ray(PhysicsRayQueryParameters3D.create(origin,origin+_facing*float(move.reach),9,[actor.get_rid()]))
@@ -882,10 +925,11 @@ func apply_pose(delta: float) -> void:
 	var shared_grip: bool = katana or (attacking and active_move.get("grip_mode")=="support")
 	if not shared_grip: _katana_gripping = false
 	var scribe: bool = kind==&"scribe" and not actor.combat.sheathed
-	var desired_weight := 1.0 if attacking or guarding or katana or scribe or recoil>0 else (0.45 if idle and not actor.combat.sheathed else 0.0)
+	var paint: bool = kind==&"paintbrush" and not actor.combat.sheathed
+	var desired_weight := 1.0 if attacking or guarding or katana or scribe or paint or recoil>0 else (0.45 if idle and not actor.combat.sheathed else 0.0)
 	_pose_weight = lerpf(_pose_weight,desired_weight,1-exp(-18*delta))
 	_natural_pole_weight = maxf(_pose_weight,release_weight) if named else 0.0
-	if attacking or guarding or scribe and is_writing_stance():
+	if attacking or guarding or (scribe or paint) and is_writing_stance():
 		var aim := aim_direction() if guarding else _facing
 		actor.visual.rotation.y = lerp_angle(actor.visual.rotation.y,atan2(aim.x,aim.z),1-exp(-22*delta))
 	var right := Vector3(0.28,1.03,0.20)
@@ -980,6 +1024,12 @@ func apply_pose(delta: float) -> void:
 		if is_writing_stance():
 			left = Vector3(-.28,1.23,.36)
 			left_rotation = Vector3.ZERO
+	if paint:
+		# Historical RightArm is anatomical left: empty, low and forward.
+		right = Vector3(.30,1.00,.35) if not guarding else Vector3(.22,1.30,.40)
+		left = Vector3(-.28,1.23,.36)
+		right_rotation = Vector3(.25,0,-.12)
+		left_rotation = Vector3.ZERO
 	if recoil>0:
 		right = right.lerp(Vector3(0.40,1.32,-0.08),recoil)
 		left = left.lerp(Vector3(-0.36,1.22,-0.10),recoil)
@@ -988,7 +1038,7 @@ func apply_pose(delta: float) -> void:
 	for axis in range(3):
 		_right_rotation[axis] = lerp_angle(_right_rotation[axis],right_rotation[axis],1-exp(-22*delta))
 		_left_rotation[axis] = lerp_angle(_left_rotation[axis],left_rotation[axis],1-exp(-22*delta))
-	var body_facing: Vector3 = aim_direction() if guarding or scribe and is_writing_stance() else (actor.visual.global_basis.z if scribe and not attacking else _facing)
+	var body_facing: Vector3 = aim_direction() if guarding or (scribe or paint) and is_writing_stance() else (actor.visual.global_basis.z if (scribe or paint) and not attacking else _facing)
 	body.apply(delta,active_move,elapsed,guarding,kind,body_facing)
 	if recoil>0: apply_recoil_body(recoil)
 	if _kneel_remaining>0: apply_exhausted_body()
@@ -996,6 +1046,7 @@ func apply_pose(delta: float) -> void:
 		var right_world := hand_world(right)
 		var left_world := hand_world(left)
 		if scribe and tracing_active(): left_world = equation_trace.desired_tip+Vector3.UP*.16
+		if paint and is_instance_valid(paint_trace) and paint_trace.action!=&"": left_world = paint_trace.desired_tip-paint_brush_basis()*PaintMoves.TIP
 		if named and not shared_grip:
 			# Match the existing pose influence using reachable endpoints, rather
 			# than independently blending upper/lower joint quaternions. In air,
@@ -1033,6 +1084,7 @@ func apply_pose(delta: float) -> void:
 		solve_arm("RightArm",actor.visual.to_local(right_world),1.0 if shared_grip else arm_weight)
 		if not shared_grip: solve_arm("LeftArm",actor.visual.to_local(left_world),arm_weight)
 	rig.orient(_right_rotation,_left_rotation)
+	if paint: rig.orient_hand(rig.left_hand,paint_brush_basis())
 	if shared_grip:
 		if katana and not attacking and not guarding and actor.is_on_floor(): clear_katana_tip()
 		solve_arm("LeftArm",actor.visual.to_local(rig.right_hand.to_global(Vector3(0,-0.17,0))),1.0)

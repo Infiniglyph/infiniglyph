@@ -1,0 +1,229 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "id": "paintbrush_cyan",
+      "name": "Paintbrush - Cyan",
+      "description": "A balanced calligraphy brush edged in cyan light. The hand supplies the motion; its luminous pigment keeps the shape. Quick diagonal strokes and four geometric arts leave living paint suspended in the air.",
+      "category": "weapons",
+      "kind": "standard",
+      "family": "paintbrush",
+      "slot": "up",
+      "combat_kind": "paintbrush",
+      "guard": 0.6,
+      "rarity": "Crafted",
+      "value": 70,
+      "acquisition": "Tower Exchange / Equipment Archive",
+      "geometry": {
+        "family": "paintbrush",
+        "renderer": "paintbrush",
+        "length": 0.71,
+        "tint": "75eaff",
+        "palette_group": "paintbrush"
+      },
+      "effects": [],
+      "attachment": {
+        "primary_hand": "right",
+        "offhand": "free",
+        "stow": "back",
+        "model_axis": "+Y"
+      }
+    },
+    {
+      "id": "paintbrush_violet",
+      "name": "Paintbrush - Violet",
+      "description": "A balanced calligraphy brush edged in violet light. The hand supplies the motion; its luminous pigment keeps the shape. Quick diagonal strokes and four geometric arts leave living paint suspended in the air.",
+      "category": "weapons",
+      "kind": "standard",
+      "family": "paintbrush",
+      "slot": "up",
+      "combat_kind": "paintbrush",
+      "guard": 0.6,
+      "rarity": "Crafted",
+      "value": 70,
+      "acquisition": "Tower Exchange / Equipment Archive",
+      "geometry": {
+        "family": "paintbrush",
+        "renderer": "paintbrush",
+        "length": 0.71,
+        "tint": "bc9aff",
+        "palette_group": "paintbrush"
+      },
+      "effects": [],
+      "attachment": {
+        "primary_hand": "right",
+        "offhand": "free",
+        "stow": "back",
+        "model_axis": "+Y"
+      }
+    },
+    {
+      "id": "paintbrush_gold",
+      "name": "Paintbrush - Gold",
+      "description": "A balanced calligraphy brush edged in gold light. The hand supplies the motion; its luminous pigment keeps the shape. Quick diagonal strokes and four geometric arts leave living paint suspended in the air.",
+      "category": "weapons",
+      "kind": "standard",
+      "family": "paintbrush",
+      "slot": "up",
+      "combat_kind": "paintbrush",
+      "guard": 0.6,
+      "rarity": "Crafted",
+      "value": 70,
+      "acquisition": "Tower Exchange / Equipment Archive",
+      "geometry": {
+        "family": "paintbrush",
+        "renderer": "paintbrush",
+        "length": 0.71,
+        "tint": "ffb957",
+        "palette_group": "paintbrush"
+      },
+      "effects": [],
+      "attachment": {
+        "primary_hand": "right",
+        "offhand": "free",
+        "stow": "back",
+        "model_axis": "+Y"
+      }
+    },
+    {
+      "id": "paintbrush_mint",
+      "name": "Paintbrush - Mint",
+      "description": "A balanced calligraphy brush edged in mint light. The hand supplies the motion; its luminous pigment keeps the shape. Quick diagonal strokes and four geometric arts leave living paint suspended in the air.",
+      "category": "weapons",
+      "kind": "standard",
+      "family": "paintbrush",
+      "slot": "up",
+      "combat_kind": "paintbrush",
+      "guard": 0.6,
+      "rarity": "Crafted",
+      "value": 70,
+      "acquisition": "Tower Exchange / Equipment Archive",
+      "geometry": {
+        "family": "paintbrush",
+        "renderer": "paintbrush",
+        "length": 0.71,
+        "tint": "89ffd5",
+        "palette_group": "paintbrush"
+      },
+      "effects": [],
+      "attachment": {
+        "primary_hand": "right",
+        "offhand": "free",
+        "stow": "back",
+        "model_axis": "+Y"
+      }
+    },
+    {
+      "id": "paintbrush_pink",
+      "name": "Paintbrush - Pink",
+      "description": "A balanced calligraphy brush edged in pink light. The hand supplies the motion; its luminous pigment keeps the shape. Quick diagonal strokes and four geometric arts leave living paint suspended in the air.",
+      "category": "weapons",
+      "kind": "standard",
+      "family": "paintbrush",
+      "slot": "up",
+      "combat_kind": "paintbrush",
+      "guard": 0.6,
+      "rarity": "Crafted",
+      "value": 70,
+      "acquisition": "Tower Exchange / Equipment Archive",
+      "geometry": {
+        "family": "paintbrush",
+        "renderer": "paintbrush",
+        "length": 0.71,
+        "tint": "ff7ab3",
+        "palette_group": "paintbrush"
+      },
+      "effects": [],
+      "attachment": {
+        "primary_hand": "right",
+        "offhand": "free",
+        "stow": "back",
+        "model_axis": "+Y"
+      }
+    },
+    {
+      "id": "paintbrush_blue",
+      "name": "Paintbrush - Blue",
+      "description": "A balanced calligraphy brush edged in blue light. The hand supplies the motion; its luminous pigment keeps the shape. Quick diagonal strokes and four geometric arts leave living paint suspended in the air.",
+      "category": "weapons",
+      "kind": "standard",
+      "family": "paintbrush",
+      "slot": "up",
+      "combat_kind": "paintbrush",
+      "guard": 0.6,
+      "rarity": "Crafted",
+      "value": 70,
+      "acquisition": "Tower Exchange / Equipment Archive",
+      "geometry": {
+        "family": "paintbrush",
+        "renderer": "paintbrush",
+        "length": 0.71,
+        "tint": "81aaff",
+        "palette_group": "paintbrush"
+      },
+      "effects": [],
+      "attachment": {
+        "primary_hand": "right",
+        "offhand": "free",
+        "stow": "back",
+        "model_axis": "+Y"
+      }
+    },
+    {
+      "id": "paintbrush_silver",
+      "name": "Paintbrush - Silver",
+      "description": "A balanced calligraphy brush edged in silver light. The hand supplies the motion; its luminous pigment keeps the shape. Quick diagonal strokes and four geometric arts leave living paint suspended in the air.",
+      "category": "weapons",
+      "kind": "standard",
+      "family": "paintbrush",
+      "slot": "up",
+      "combat_kind": "paintbrush",
+      "guard": 0.6,
+      "rarity": "Crafted",
+      "value": 70,
+      "acquisition": "Tower Exchange / Equipment Archive",
+      "geometry": {
+        "family": "paintbrush",
+        "renderer": "paintbrush",
+        "length": 0.71,
+        "tint": "eafcff",
+        "palette_group": "paintbrush"
+      },
+      "effects": [],
+      "attachment": {
+        "primary_hand": "right",
+        "offhand": "free",
+        "stow": "back",
+        "model_axis": "+Y"
+      }
+    },
+    {
+      "id": "paintbrush_ember",
+      "name": "Paintbrush - Ember",
+      "description": "A balanced calligraphy brush edged in ember light. The hand supplies the motion; its luminous pigment keeps the shape. Quick diagonal strokes and four geometric arts leave living paint suspended in the air.",
+      "category": "weapons",
+      "kind": "standard",
+      "family": "paintbrush",
+      "slot": "up",
+      "combat_kind": "paintbrush",
+      "guard": 0.6,
+      "rarity": "Crafted",
+      "value": 70,
+      "acquisition": "Tower Exchange / Equipment Archive",
+      "geometry": {
+        "family": "paintbrush",
+        "renderer": "paintbrush",
+        "length": 0.71,
+        "tint": "ff7459",
+        "palette_group": "paintbrush"
+      },
+      "effects": [],
+      "attachment": {
+        "primary_hand": "right",
+        "offhand": "free",
+        "stow": "back",
+        "model_axis": "+Y"
+      }
+    }
+  ]
+}

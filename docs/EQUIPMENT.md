@@ -370,6 +370,29 @@ collision contacts through the existing combat resolver. The Manuscript's
 continuous RT arts are a deliberate item-specific extension; other Scribe
 weapons keep their own authored arts. The hat uses `geometry.renderer = eturnull_hat`.
 
+The Paintbrush family adds eight equippable editions (`paintbrush_cyan`,
+`paintbrush_violet`, `paintbrush_gold`, `paintbrush_mint`, `paintbrush_pink`,
+`paintbrush_blue`, `paintbrush_silver`, `paintbrush_ember`) in
+`data/equipment/paintbrush_equipment.json`. The PAINTBRUSHES catalog filter,
+inventory, checkpoint ownership, right-hand attachment, back mount and previews
+use existing equipment systems. Each edition's tint is retained on its emitted
+paint, even after weapon/color switching or a single parry redirection.
+
+LB/RB paint opposing quick diagonal strokes; held X/Y paint squares/triangles,
+and RT+X/Y paint crosses/circles (mouse buttons, Q/R and V+Q/R on keyboard).
+Taps make tiny marks, holds continuously trace, release stops new paint. The
+empty left hand remains low and forward in a supported martial stance. There
+is no grimoire, floating quill, charge/release art or new movement restriction.
+Actual nib samples become the visible, damaging world-space paint segments.
+
+`paintbrush_settings.gd` independently exposes 30-damage lights/trails, 1.1 m
+light length, 0.34 s light duration, 0.55/0.50/0.25/0.35 s pattern periods, 0.30 m
+pattern radius, and inherited tap size, thickness, lifetime, fade, cooldown,
+reflection speed and bounded geometry tuning. `paint_trace.gd` supplies brush
+pen motion/pigment while inheriting actual hurt-shape collision, fading and
+single-reflection mechanics from `equation_trace.gd`. No vehicle trail behavior
+or Manuscript equation decoration is replaced.
+
 The Scribe tuning pass adapts nine distinct existing named-weapon gestures into
 the conducting arm while keeping the book arm supported. Anatomical sides are
 explicitly corrected for the figure's historical arm-node names. Light stages

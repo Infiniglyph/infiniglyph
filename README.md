@@ -725,6 +725,64 @@ cancellation. All 55 checks pass at 30/60/120 Hz. Run with `-- --hz=30`, `60` or
 `120`; `--capture` saves native views. The native production-world capture tool
 also reviews the post-recovery cast afterglow, held quill and aerial traces.
 
+The **Paintbrush** is a separate weapon family available in the Tower Exchange /
+Equipment Archive's **PAINTBRUSHES** filter. Its eight editions use the existing
+cyan, violet, gold, mint, pink, blue, silver and ember palette. Each brush's paint
+matches its pigment, including redirected paint; already drawn strokes retain
+their color when switching brushes. All editions share the same handling.
+
+The anatomical right hand holds an upright, physical calligraphy brush. The
+empty left hand stays low and forward, with a forward-leaning martial stance.
+Sheathing uses the normal back mount. There is no book or floating quill.
+
+| Paintbrush input | Keyboard | Paint |
+|---|---|---|
+| LB / RB | Left / right mouse | Opposing quick diagonal strokes |
+| Hold X | Hold Q | Repeating squares |
+| Hold Y | Hold R | Repeating triangles |
+| Hold RT+X | Hold V+Q | Repeating crosses |
+| Hold RT+Y | Hold V+R | Repeating circles |
+
+Taps leave tiny geometric marks; holds continue drawing from the actual brush
+tip. RT alone does not attack. Run, sprint, jump, Sky Jump and dodge retain
+their existing controls. Movement carries new paint through 3D space while old
+paint stays suspended. Dodge, guard, forced reactions, menus, sheathing and
+weapon changes stop drawing; existing paint expires normally. Death, travel
+and actor removal clear hazards. There is no new resource meter or movement lock.
+
+All six attacks reuse the Manuscript's bounded world-space contact, ownership,
+wall, guard, fade and one-time parry redirection logic. Paint is smooth luminous
+geometry with no mathematical notation. Intercepted sections leave a safe
+opening, travel in the defender's facing direction and may hit their author;
+they cannot be parried again. The existing one-second attacker stun remains.
+The Manuscript retains its equations, quill, ordinary casts and RT arts; vehicle
+light waves retain their existing 750-damage behavior.
+
+Brush-only tuning in `scripts/paintbrush_settings.gd` defaults to **30 damage**
+for lights and trails, **0.34 s** light duration, **1.1 m** light stroke length,
+**0.55/0.50/0.25/0.35 s** square/triangle/cross/circle periods, **0.30 m** pattern
+radius, **0.025 m** tap radius, **0.04 m** contact thickness, **3 s** lifetime,
+**0.6 s** fade, **0.5 s** victim cooldown and **9 m/s** reflection speed. Geometry
+is capped at **192 sections / 4,096 strokes** in one batch, with no per-stroke
+scene or physics nodes. Brush guard power is 60%. Its tuning resource is separate
+from the Manuscript, so balancing paint does not alter equation traces.
+
+`tests/paintbrush.gd` covers real input, all six attacks, physical nib/IK agreement,
+colors, live movement/Sky Jump, persistent hits, defenses, reflection and cleanup.
+`tests/paintbrush_equipment.gd` covers real purchases, the catalog, previews,
+inventory and checkpoint restoration. `tests/capture_paintbrush.gd` captures all
+four arts and an eight-color palette in the native Compatibility renderer.
+All 84 combat checks pass at 30/60/120 Hz; the equipment suite passes 39 checks.
+The Manuscript's 55 tracing checks also pass at all three rates. Catalog,
+Scribe equipment, weapons, combat input, shield shortcuts, vehicle/pyramid and
+parry regressions pass. Native readback confirms all eight paint pigments.
+
+The new content registry is `data/equipment/paintbrush_equipment.json`.
+`paintbrush_moves.gd`, `paintbrush_patterns.gd`, `paintbrush_presentation.gd`
+and `paint_trace.gd` provide brush handling, pen paths, mesh and trail adapter.
+Integration extends the existing weapon rig/library/combat, body stance,
+equipment registry/previews, inventory help and combat-intent routing.
+
 Cosmetic shields (693 entries), talismans (eight), bows (twelve), and crossbows
 (eight) are retired, for 721 historical IDs.
 The cosmetic Shield slot and shop filter are removed. The starter Longsword +

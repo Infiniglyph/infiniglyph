@@ -109,7 +109,7 @@ func set_category(value: String) -> void:
 	page = 0
 	selected = &""
 	filter.clear()
-	var choices: Array = ["ALL","DAGGERS","SWORDS","HEAVY","POLEARMS","PAIRED","OTHER","SCRIBE","DISCS"] if category=="weapons" else ["ALL","BODY","HEAD","HANDS","LEGS"] if category=="armour" else ["ALL","GLYPHS","RINGS"]
+	var choices: Array = ["ALL","DAGGERS","SWORDS","HEAVY","POLEARMS","PAIRED","OTHER","SCRIBE","DISCS","PAINTBRUSHES"] if category=="weapons" else ["ALL","BODY","HEAD","HANDS","LEGS"] if category=="armour" else ["ALL","GLYPHS","RINGS"]
 	for choice: String in choices: filter.add_item(choice)
 	filter.select(0)
 
@@ -121,7 +121,7 @@ func matches(entry: Dictionary) -> bool:
 	if filter.selected==0: return true
 	if category=="armour": return fam==["","body","head","hands","legs"][filter.selected]
 	if category=="items": return fam==("consumable" if filter.selected==1 else "ring")
-	var sets: Array = [[],["dagger"],["sword","curved_sword","katana"],["axe","hammer","greatsword"],["spear","halberd","scythe"],["twin_blades","fist"],["staff","chime","whip"],["scribe"],["disc","dual_disc"]]
+	var sets: Array = [[],["dagger"],["sword","curved_sword","katana"],["axe","hammer","greatsword"],["spear","halberd","scythe"],["twin_blades","fist"],["staff","chime","whip"],["scribe"],["disc","dual_disc"],["paintbrush"]]
 	return fam in sets[filter.selected]
 
 func cycle_filter() -> void:
@@ -210,6 +210,8 @@ func show_item(id: StringName) -> void:
 	details.text = "%s / %s\n%s\nCatalog value: %d Glyph Coins. Currently free.\n%s" % [entry.rarity,entry.family,entry.acquisition,entry.value,"Hold a special to charge; release to strike." if entry.kind=="named" else ("No active ring effects." if entry.kind=="ring" else "Cosmetic appearance." if entry.category=="cosmetics" else "Equip or use from inventory.")]
 	if id==&"eturnull_manuscript":
 		details.text = "%s / %s\n%s\nHold RT / V to take the quill.\nHold X / Q or Y / R to trace; release to stop.\nA / Space always jumps.\nHold RT+B / V+H: shield. Tap RT+B: heal." % [entry.rarity,entry.family,entry.acquisition]
+	elif entry.family=="paintbrush":
+		details.text = "%s / Paintbrush\n%s\nLB/RB: opposite diagonal paint strokes.\nHold X/Q: squares; Y/R: triangles.\nHold RT+X/V+Q: crosses; RT+Y/V+R: circles.\nTap for a tiny mark; release to stop.\nPaint matches this brush's color. A/Space always jumps." % [entry.rarity,entry.acquisition]
 	if reuse:
 		model.show()
 		model.process_mode = Node.PROCESS_MODE_INHERIT if is_visible_in_tree() else Node.PROCESS_MODE_DISABLED

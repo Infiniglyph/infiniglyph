@@ -69,7 +69,7 @@ func cancel_trace() -> void:
 	changed.emit()
 
 func poll(controls: Node) -> void:
-	if trace_action!=&"" and controls.has_method("special_modified") and not controls.special_modified(): cancel_trace()
+	if trace_action in [&"special_rt_x",&"special_rt_y"] and controls.has_method("special_modified") and not controls.special_modified(): cancel_trace()
 	var held: bool = controls.is_blocking() if controls.has_method("is_blocking") else false
 	held = held and has_weapon(selected_slot)
 	fresh_block = held and not _held_last_poll
@@ -144,7 +144,7 @@ func poll(controls: Node) -> void:
 		changed.emit()
 	# Preserve tiny taps whose press and release both arrived between physics
 	# samples, but never keep drawing after an already released modifier.
-	if trace_action!=&"" and controls.has_method("special_modified") and not controls.special_modified(): cancel_trace()
+	if trace_action in [&"special_rt_x",&"special_rt_y"] and controls.has_method("special_modified") and not controls.special_modified(): cancel_trace()
 
 func reset() -> void:
 	_held_last_poll = false
