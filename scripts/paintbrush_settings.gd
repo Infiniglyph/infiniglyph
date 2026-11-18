@@ -6,3 +6,6 @@ extends "res://scripts/equation_trace_settings.gd"
 @export_range(.2,2,.01) var square_frequency := .55
 @export_range(.2,2,.01) var triangle_frequency := .50
 @export_range(.1,.5,.01) var pattern_radius := .30
+
+func _init() -> void:
+	contact_interval = .3

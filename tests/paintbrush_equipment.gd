@@ -55,6 +55,9 @@ func run() -> void:
 		browser.show_item(id)
 		await frames(2)
 		check(browser.model.find_child("Paintbrush",true,false)!=null and browser.model.find_child("OpenGrimoire",true,false)==null and browser.details.text.contains("squares; Y/R: triangles"),"Archive previews the actual brush/empty offhand and explains its arts: "+COLORS[i])
+		var brush: Node3D = browser.model.find_child("Paintbrush",true,false)
+		var lean: Vector3 = browser.model.global_basis.inverse()*brush.global_basis.y.normalized()
+		check(is_equal_approx(lean.y,cos(PI/4)) and is_equal_approx(lean.z,sin(PI/4)),"Archive brush shares the forward 45-degree gameplay grip: "+COLORS[i])
 		session.ui.selected_iid = ids[i]
 		session.ui._inspect()
 		check(session.ui._meta_label.text.contains("PAINTBRUSH") and session.ui._arts.text.contains("Hold to paint / 30 damage / 3.0 s trail") and not session.ui._arts.text.contains("Hold to write"),"Inventory shows brush type and persistent paint arts: "+COLORS[i])

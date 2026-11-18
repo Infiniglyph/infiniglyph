@@ -76,6 +76,14 @@ func run() -> void:
 	view.fov = 55
 	world.add_child(view)
 	view.current = true
+	if "--ready-only" in OS.get_cmdline_user_args():
+		equip_color("violet")
+		p.position = Vector3(0,.02,10)
+		p.visual.rotation.y = 0
+		for i in range(24): step(Vector3.ZERO)
+		await shot("ready",p.global_position+Vector3(-3.2,1.8,2.7),p.global_position+Vector3(0,1.15,0))
+		quit()
+		return
 	var examples := [["cyan",KEY_Q,false,"squares"],["mint",KEY_R,false,"triangles"],["violet",KEY_Q,true,"crosses"],["ember",KEY_R,true,"aerial_circles"]]
 	for spec: Array in examples if not "--palette-only" in OS.get_cmdline_user_args() else []:
 		equip_color(spec[0])

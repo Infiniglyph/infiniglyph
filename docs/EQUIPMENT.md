@@ -381,13 +381,14 @@ paint, even after weapon/color switching or a single parry redirection.
 LB/RB paint opposing quick diagonal strokes; held X/Y paint squares/triangles,
 and RT+X/Y paint crosses/circles (mouse buttons, Q/R and V+Q/R on keyboard).
 Taps make tiny marks, holds continuously trace, release stops new paint. The
-empty left hand remains low and forward in a supported martial stance. There
+empty left hand remains low and forward in a supported martial stance. The held
+brush tilts 45° forward in gameplay and archive previews. There
 is no grimoire, floating quill, charge/release art or new movement restriction.
 Actual nib samples become the visible, damaging world-space paint segments.
 
 `paintbrush_settings.gd` independently exposes 30-damage lights/trails, 1.1 m
 light length, 0.34 s light duration, 0.55/0.50/0.25/0.35 s pattern periods, 0.30 m
-pattern radius, and inherited tap size, thickness, lifetime, fade, cooldown,
+pattern radius, 0.3 s victim cooldown, and inherited tap size, thickness, lifetime, fade,
 reflection speed and bounded geometry tuning. `paint_trace.gd` supplies brush
 pen motion/pigment while inheriting actual hurt-shape collision, fading and
 single-reflection mechanics from `equation_trace.gd`. No vehicle trail behavior

@@ -1,7 +1,12 @@
 extends RefCounted
 const Settings = preload("res://scripts/paintbrush_settings.gd")
 const TIP := Vector3(0,.45,0)
+const FORWARD_TILT := PI/4
 const ART_NAMES := ["Square Tracing","Triangle Tracing","Cross Tracing","Circle Tracing"]
+
+static func brush_basis(yaw: float = 0, roll: float = 0) -> Basis:
+	# The figure faces +Z. Tilt the bristles forward from the vertical grip.
+	return Basis(Vector3.UP,yaw)*Basis(Vector3.RIGHT,FORWARD_TILT)*Basis(Vector3.FORWARD,roll)
 
 static func move(item: Dictionary, action: StringName, tuning: Resource = null) -> Dictionary:
 	if tuning==null: tuning = Settings.new()
@@ -16,4 +21,4 @@ static func ready_pose(figure: Node3D, rig: Node3D) -> void:
 	for arm: String in ["RightArm","LeftArm"]:
 		figure.joints[arm].rotation.x = -.38
 		figure.joints[arm].get_node("Hinge").rotation.x = -.65 if arm=="LeftArm" else -.18
-	rig.orient_hand(rig.left_hand,Basis.IDENTITY)
+	rig.orient_hand(rig.left_hand,brush_basis(figure.global_rotation.y))

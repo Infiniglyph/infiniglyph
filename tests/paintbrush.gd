@@ -69,13 +69,15 @@ func run() -> void:
 	check(retained_colors,"Old paint retains its pigment through color switches (batch readback verified in native rendering)")
 	check(not trace.mathematical and trace.get_child_count()==0 and trace._ink.emission_operator==BaseMaterial3D.EMISSION_OP_MULTIPLY,"Paint uses one smooth batch with pigment-preserving emission and no equation decoration")
 	check(w.paintbrush_settings!=w.equation_trace_settings and is_equal_approx(w.paintbrush_settings.damage,30) and is_equal_approx(w.equation_trace_settings.damage,30),"Brush tuning is independent of Manuscript tuning and starts at balanced 30 damage")
+	check(is_equal_approx(trace.settings.contact_interval,.3) and is_equal_approx(w.equation_trace_settings.contact_interval,.5),"Paint contacts use 0.3 seconds while Manuscript contacts retain 0.5 seconds")
 	var saved: Dictionary = p.inventory.serialize()
 	check(p.inventory.restore(saved) and p.inventory.equipped_item(&"down").item_type_id==&"paintbrush_ember","Existing inventory persistence restores the exact equipped brush color")
 	await frames(hz/2,true)
 	brush = w.rig.models[&"paintbrush_ember"].right
 	check(brush.get_parent()==w.rig.left_hand and brush.get_node("BrushTip").global_position.distance_to(w.rig.left_hand.to_global(BrushMoves.TIP))<.001,"Physical brush and tip attach to anatomical right hand")
 	check(w.rig.models[&"paintbrush_ember"].left.get_child_count()==0 and not w.rig.models.has(&"eturnull_manuscript"),"Empty offhand contains no book or floating quill")
-	check(w.rig.left_hand.global_basis.y.normalized().dot(Vector3.UP)>.999 and w.rig.right_hand.global_position.y<w.rig.left_hand.global_position.y-.1,"Ready brush stays upright with its empty supporting hand lowered")
+	var bristles: Vector3 = w.rig.left_hand.global_basis.y.normalized()
+	check(is_equal_approx(bristles.dot(Vector3.UP),cos(PI/4)) and is_equal_approx(bristles.dot(p.visual.global_basis.z),sin(PI/4)) and w.rig.right_hand.global_position.y<w.rig.left_hand.global_position.y-.1,"Ready brush leans 45 degrees forward with its empty supporting hand lowered")
 	check(w.body.phase_label=="paintbrush-ready" and p.visual.chest.global_basis.y.dot(p.visual.global_basis.z)>.06,"Forward-leaning martial ready stance is distinct from the Scribe rear-foot stance")
 	trace.clear()
 	rt(1)
@@ -112,7 +114,14 @@ func run() -> void:
 		trace.resolve_contacts()
 		check(is_equal_approx(target.total_damage-before,30),"A real target takes 30 from the suspended light stroke")
 		trace.resolve_contacts()
-		check(is_equal_approx(target.total_damage-before,30),"Overlapping light-stroke segments share the half-second victim cooldown")
+		check(is_equal_approx(target.total_damage-before,30),"Overlapping light-stroke segments share the 0.3-second victim cooldown")
+		var hit_time: float = trace.time
+		trace.time = hit_time+.29
+		trace.resolve_contacts()
+		check(is_equal_approx(target.total_damage-before,30),"Paint cannot damage the same victim again before 0.3 seconds")
+		trace.time = hit_time+.3
+		trace.resolve_contacts()
+		check(is_equal_approx(target.total_damage-before,60),"Paint deals the next 30 damage at 0.3 seconds without overlap stacking")
 		target.position = Vector3(40,0,40)
 	check(slopes[0]*slopes[1]<0,"LB and RB paint genuinely opposing diagonal strokes")
 	for index in range(4):

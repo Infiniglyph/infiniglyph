@@ -731,7 +731,7 @@ cyan, violet, gold, mint, pink, blue, silver and ember palette. Each brush's pai
 matches its pigment, including redirected paint; already drawn strokes retain
 their color when switching brushes. All editions share the same handling.
 
-The anatomical right hand holds an upright, physical calligraphy brush. The
+The anatomical right hand holds a physical calligraphy brush tilted 45° forward. The
 empty left hand stays low and forward, with a forward-leaning martial stance.
 Sheathing uses the normal back mount. There is no book or floating quill.
 
@@ -762,7 +762,7 @@ Brush-only tuning in `scripts/paintbrush_settings.gd` defaults to **30 damage**
 for lights and trails, **0.34 s** light duration, **1.1 m** light stroke length,
 **0.55/0.50/0.25/0.35 s** square/triangle/cross/circle periods, **0.30 m** pattern
 radius, **0.025 m** tap radius, **0.04 m** contact thickness, **3 s** lifetime,
-**0.6 s** fade, **0.5 s** victim cooldown and **9 m/s** reflection speed. Geometry
+**0.6 s** fade, **0.3 s** victim cooldown and **9 m/s** reflection speed. Geometry
 is capped at **192 sections / 4,096 strokes** in one batch, with no per-stroke
 scene or physics nodes. Brush guard power is 60%. Its tuning resource is separate
 from the Manuscript, so balancing paint does not alter equation traces.
@@ -772,7 +772,7 @@ colors, live movement/Sky Jump, persistent hits, defenses, reflection and cleanu
 `tests/paintbrush_equipment.gd` covers real purchases, the catalog, previews,
 inventory and checkpoint restoration. `tests/capture_paintbrush.gd` captures all
 four arts and an eight-color palette in the native Compatibility renderer.
-All 84 combat checks pass at 30/60/120 Hz; the equipment suite passes 39 checks.
+All 89 combat checks pass at 30/60/120 Hz; the equipment suite passes 47 checks.
 The Manuscript's 55 tracing checks also pass at all three rates. Catalog,
 Scribe equipment, weapons, combat input, shield shortcuts, vehicle/pyramid and
 parry regressions pass. Native readback confirms all eight paint pigments.

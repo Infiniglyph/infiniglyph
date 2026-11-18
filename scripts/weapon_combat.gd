@@ -244,7 +244,7 @@ func ensure_paint_trace() -> MultiMeshInstance3D:
 func paint_brush_basis() -> Basis:
 	var roll := 0.0
 	if not active_move.is_empty() and active_move.get("weapon_family")=="paintbrush": roll = -.28 if active_move.side<0 else .28
-	return Basis(Vector3.UP,actor.visual.rotation.y)*Basis(Vector3.FORWARD,roll)
+	return PaintMoves.brush_basis(actor.visual.rotation.y,roll)
 
 func is_writing_stance() -> bool:
 	var writing: bool = tracing_active() if is_paintbrush() else uses_equation_trace(&"special_rt_x") and actor.controls.has_method("special_modified") and actor.controls.special_modified()
