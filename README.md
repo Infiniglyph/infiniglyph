@@ -41,17 +41,26 @@ packages are required to play.
 
 ## Gameplay HUD
 
-The permanent HUD contains a cyan HP bar in the top left, a thin orange
-exhaustion bar directly beneath it, and the Health Glyph count at bottom left.
-Both bars use the actual combat maximum/current
+The permanent HUD contains a cyan HP bar in the top left, a numbered blue
+shield bar beneath it when protection is equipped, a thin orange exhaustion
+bar below that, a small grid address below the bars, and
+the Health Glyph count at bottom left. The grid uses 16-metre cells centered on
+the central district origin: latitude increases north (-Z), longitude increases
+east (+X). For example, `GRID  LAT 054N  LON 032E` identifies the cell containing
+world position (512, -864). These are local grid indices. Height and camera
+rotation do not change the address; movement, teleports and respawns update it.
+The bars use the actual combat maximum/current
 values; exhaustion fills as strain accumulates and empties during recovery.
 The phase title, weapon/debug panel, control sheet, move/guard text, momentum
 readout and permanent objective text are removed. Controls and weapon arts
 remain documented here; equipment and item arts remain available in inventory.
 
 Nearby interaction prompts, short notices/dialogue and encounter health appear
-only in their relevant context. Lost gear produces a short notice rather than
-persistent world coordinates; its physical pickup and ownership markers remain.
+only in their relevant context. Unclaimed death losses keep a bottom-screen
+`LOST GEAR` readout showing the nearest item's distance, LAT/LON grid address,
+altitude and the total unclaimed count. It survives short notifications and
+respawns, restores from checkpoints and clears when the gear is recovered or
+removed. The readout moves above resident dialogue while someone is speaking.
 Start, Settings and inventory continue to run the world without pausing.
 
 ## Window glow and stars
@@ -103,8 +112,9 @@ and a country lookout at `(0,0,-1048)`. The side and country road loops connect
 back into the city. A normal fast run from the north gate to the lookout takes
 about 95 seconds at the unchanged 10.2 m/s speed.
 
-Added geometry includes **209 urban buildings, 322 homes, 33 farm buildings,
-673 geometric trees, 34 rock outcrops and three solid ravine bridges**. The
+Added geometry includes **209 urban buildings, 317 homes, 33 farm buildings,
+666 geometric trees, 34 rock outcrops and three solid ravine bridges**, alongside
+the authored Kyren homestead and pyramid. The
 new neighborhoods have sealed facades, solid gabled/flat roofs and open streets;
 they do not yet have enterable household interiors. The existing 100 residents
 retain their Central District routines and building visits. The regional life
@@ -125,7 +135,7 @@ collision; the original hub's expansion rim uses four narrow physics bodies
 instead of making every hub NPC query a surrounding terrain mesh. Engine
 frustum culling handles the meshes using their real local bounds. No custom
 world-memory visibility toggles, unloading collision, or rebuilding map meshes
-while moving are used. The 107 new orange fixtures have real local spotlights
+while moving are used. The 106 new orange fixtures have real local spotlights
 with engine distance fading; their geometry remains solid and visible.
 
 Set `world.wider_world_enabled = false` only for isolated baseline profiling.
@@ -293,6 +303,75 @@ swept route beside the vehicle; a solid wall can still block a dismount.
 Entering and leaving keeps the camera attached and restores the player's
 original capsule settings.
 
+**L3 / Ctrl** toggles a driving boost, increasing forward top speed to 1.65×
+with stronger acceleration. Braking, reverse, steering and swept body collision
+retain their existing behavior. **R3 / Tab** toggles a vivid light wall matching
+the vehicle's color, emitted from the rear of any driven car, motorcycle or
+truck. R3 returns to target lock
+after dismounting. A bottom-left driving readout shows speed and both toggles.
+
+The wall is 1.2 m high, lasts up to four seconds and contains at most 128
+segments. It deals 750 combat damage per target every 0.5 seconds of contact.
+Swept contact catches fast crossings between physics samples; overlapping
+panels share a cooldown. The source vehicle and its driver are immune. Turning
+the emitter off or dismounting stops new panels while existing ones fade.
+Relocation clears the path instead of drawing a line across the world.
+Vehicles have 1,000 HP (car), 650 HP (motorcycle) or 1,600 HP (truck). Destroyed
+vehicles stop, extinguish their lamps, display a red wreck marker and cannot
+be driven; their physical bodies remain. Damage survives distance streaming
+within the current world session. Vehicle condition is not a new disk-save
+system. Light-wall rendering uses two mesh surfaces and no per-panel nodes.
+
+### Shield Glyphs
+
+The Tower Exchange's Items / Glyphs category offers **Light Shield Glyphs
+(250 points)**, **Medium Shield Glyphs (500)** and **Heavy Shield Glyphs (1,000)**.
+**Hold RT and press A**, or **hold V and press Space**, to use the strongest
+owned Shield Glyph: **heavy, then medium, then light**. This chord does not jump
+or trigger nearby interactions. The blue **Shield Glyphs** count above Health
+Glyphs shows the total owned across all three tiers and updates on use, pickup,
+purchase and save/load. Driving status sits above both counters.
+You can also open Inventory, select a glyph and choose **Use Shield Glyph**.
+Each consumes one owned item and establishes that tier's protection. Shields absorb combat
+damage after normal guard mitigation, before HP; excess damage spills into HP.
+Parries and dodge invulnerability consume no shield. Falls retain their existing
+direct HP damage. Shields do not regenerate or stack, and a glyph is not
+consumed when current protection is already at least its offered amount.
+Respawning clears protection. The optional shield state in version-one
+inventory checkpoints preserves tier and remaining points; older saves start
+without a shield. These consumables do not reintroduce retired shield cosmetics.
+
+**Void Soul Greaves** add eight color editions to the Tower Exchange / Equipment
+Archive's Armour / Legs catalog: cyan, violet, gold, mint, pink, blue, silver and
+ember. Their original design combines a clasped waist belt, four long split
+cloth folds, two layered scale aprons, wrapped greaves and enclosed boots.
+The description remembers a gift from the void to a weary traveler. All colors
+share the same cut and use existing cloth motion, vehicle folding, equipment
+previews and save/load. They remain cosmetic Legs equipment.
+Sideways cloth flow blends gently through direction changes, with reduced
+lateral inertia and bounded hem roll. Raised Sky Jump knees use a stable
+downward reference, so skirts and the Scribe robe cannot flip their folds as
+a thigh crosses above its hip. Forward trailing and vehicle folds remain active.
+
+`tests/gameplay_tweaks.gd` exercises real inventory use, shield spillover,
+save/load, parry/dodge, weapon carry, boost, wall contacts and expiry, wrecks,
+fast crossings, dismount input and uninterrupted pyramid facing. Use
+`-- --hz=30`, `-- --hz=60` or `-- --hz=120`; add `--capture` for native review.
+All 49 checks pass at 30/60/120 Hz and in the native 60 Hz Compatibility/ANGLE
+capture run. The 9-check garment audit confirms distinct authored cuts and
+bounded geometry; the eight Void Soul color editions share one cut.
+Existing inventory/startup, shop,
+equipment preview, cloth, defensive combat, driving, moving exit, terrain,
+input, HUD and 92-check dungeon foundation suites also pass.
+
+New implementation files are `scripts/shield_glyphs.gd`,
+`scripts/vehicle_light_wave.gd`, `scripts/garment_variants.gd`,
+`tests/gameplay_tweaks.gd` and `tests/garment_variety.gd`, with UID sidecars.
+They integrate through the existing inventory/loot authority, weapon combat,
+garment renderer, vehicle, input, world actions, shop/preview and HUD scripts.
+Native review captures are `captures/garment_variety.png` and
+`captures/tweaks_{dagger,fist,twin_blades,shield_heavy,vehicle_wave}.png`.
+
 `tests/moving_vehicle_exit.gd` passes 92 checks at each of 30/60/120 Hz for all
 three vehicle types, reverse/top speeds, coasting, airborne exits, blocked-door
 alternatives, collision-enclosed exits and attachment restoration. The updated
@@ -342,11 +421,22 @@ anger readout accompanies their remarks. Further thefts can build on existing
 anger, which cools after the incident. Reentering the same stolen vehicle does
 not generate another theft, and residents cannot perceive theft through walls.
 
-At **100 anger**, a resident shouts before starting normal combat. Up to **three**
-street opponents fight simultaneously using the same 1000 HP, weapon arts,
+Attacking a civilian uses the same personal anger system. Each landed attack
+adds **22% of that resident's vehicle-owner theft gain**, with temperament still
+affecting the buildup. An overhead amber-to-red meter progresses through
+**Annoyed, Irritated, Furious and Hostile**, accompanied by escalating trash talk.
+Fresh gestures can raise anger; extra damage pulses from the same move do not
+multiply the anger gain. Whiffs and hits blocked by architecture add none.
+Talking to an annoyed citizen repeats its current taunt. Leaving it alone allows
+anger to cool and the meter to disappear.
+
+At **100 anger**, a resident shouts before starting normal combat. Every provoked
+street opponent can join the fight; there is no three-fighter cap. They use the same 1000 HP, weapon arts,
 momentum damage, chip, parries, one-second parry stagger, exhaustion, dodges and
 Sky Jumps as the player/Ember. Their existing identity, color and body silhouette
-remain. Once hostile, they can damage the player and be killed. Red/orange damage
+remain. Civilians take real damage before fighting, and their remaining health
+carries into the combat adapter. Lethal civilian hits use the same respawn flow.
+Once hostile, they can damage the player. Red/orange damage
 sparks and normal damage numbers come from the shared hit pipeline. Physical
 vehicles stop weapon hits. There is no new player stamina cost or global police
 system. Street fights yield to Ember/Greefer encounters; distant pursuers give
@@ -354,10 +444,33 @@ up after a short grace period.
 
 A defeated resident reappears at its own spawn after **six seconds**, with anger
 reset and the same identity/memories. A blocked spawn waits for safe clearance.
+NPC death clears that resident's anger, taunts, warning timers and meter. Player
+death or respawn ends all civilian fights and pending retaliation, including
+unloaded regional identities. Surviving residents resume their routines with
+their current health; defeated residents keep their normal safe respawn delay.
+Old attack buffers and deferred defeat callbacks cannot carry hostility into
+the next life. A new theft or assault starts a fresh annoyance buildup.
 Hub building schedules reserve the fighter's civilian slot so combat and respawn
 cannot duplicate an NPC. These reactions/respawns are current-session state.
 Balance values are exported on `TheftReactions`: `enrage_threshold`,
-`anger_recovery`, `respawn_delay` and `max_fighters`.
+`anger_recovery`, `assault_anger_scale`, `respawn_delay` and `max_fighters`.
+The final warning lasts 0.8 seconds and cannot be delayed indefinitely by
+continued hits. Calm civilians retain their existing lightweight physical bodies;
+only enraged residents construct a full combat rig. Hub-only worlds also support
+these reactions. Protected encounters and the current single-player authority
+boundary remain in force.
+
+`tests/assault_reactions.gd` passes **27 checks at 30/60/120 Hz**, including real
+melee and Scribe geometry contacts, escalating taunts, cooldown, injury carryover,
+retaliatory damage, regional rematerialization, blocked respawn, and protection
+against through-wall or missed-hit provocation. Native captures show the stages
+under `captures/assault_*`.
+
+`tests/npc_hostility_reset.gd` passes 22 checks at 60/120 Hz. It covers lethal
+civilian/fighter hits, actual player
+death and fall respawn, same-frame deaths, stale taunts and warning timers,
+safe blocked respawns, identity rematerialization, target/collision cleanup,
+preserved injuries and fresh provocation after reset.
 
 Nearby activity is bounded to **28 regional pedestrians and 22 vehicles**,
 in addition to the original hub population. Distant traffic retains lightweight
@@ -379,7 +492,8 @@ collectible three-glyph stack is available near the arrival court. Consumption,
 ownership and quantities use the existing checkpoint/loot transaction pipeline.
 Invalid checkpoints still fail closed without a starter regrant.
 
-Bare **RT interactions resolve on release**. RT+B exclusively heals, B alone
+Bare **RT interactions resolve on release**. RT+A uses a Shield Glyph and A alone
+jumps; RT+B exclusively heals, B alone
 still dodges, and RT+X/Y still use the existing modified charged arts. Held or
 repeated button-down events cannot consume multiple glyphs, and returning from
 menus/focus changes requires neutral triggers. Menus never pause traffic or the
@@ -434,8 +548,24 @@ physical contact checks at 60 Hz.
 
 ## Equipment library
 
-The [equipment library](docs/EQUIPMENT.md) contains 2,909 new definitions, including
-**1,716 named weapons**, 1,064 cosmetics and 129 rings. The original four starter
+Ready daggers and twin blades now point forward; fist weapons point down.
+Authored attacks and guards retain their existing grip curves. The pyramid's
+deconstruction/reconstruction maps character facing and camera orbit through the
+doorway frame, so entering faces into the corridor without changing their relative angle.
+
+All 371 tailored catalog armor pieces now have distinct rendered geometry,
+including 85 hand and 90 leg items. Eight stable construction families combine
+flared cuffs, fitted palms, individual knuckle plates, spiral wraps, lapped
+bracers, articulated greaves, shaped knees and varied closed boots. Body
+contours, collars, capes, tabards and helmet crests also vary by item identity.
+`garment_variants.gd` supplies stable dimensions to the same renderer used by
+worn equipment and previews. IDs, ownership, slots and combat values are kept.
+`tests/garment_variety.gd` hashes actual mesh vertices, verifies uniqueness and
+bounded geometry, checks foot restoration, and can capture all eight hand/leg
+styles with `-- --capture`.
+
+The [equipment library](docs/EQUIPMENT.md) contains 2,193 additional definitions, including
+**1,690 named weapons**, 374 cosmetics and 129 rings. The original four starter
 weapons remain available. At the central bipyramid, Tower Exchange now opens
 separate **Weapons**, **Items** and **Armour** departments. Search, filter, preview
 and acquire items for free. Armour previews wear the actual garment on our rig.
@@ -494,6 +624,705 @@ The guide records architecture, reference coverage, source-rig assumptions,
 bounded caches, regeneration and remaining visual limits. Native captures also
 review eight garment cuts and all three shop departments. Existing source
 checkpoints remain available alongside this milestone.
+
+## Eturnull equipment and Scribe combat
+
+**Eturnull Hat** is a separate Head cosmetic in Tower Exchange > Armour. Its dark
+conical brim and silver-blue ribs match the Eternal Scribe robes. The hat sits
+13 cm lower, with its brim below eye level and its crown clear of the head.
+Forty-four pooled glyphs in the robes' silver-blue, violet, silver, gold and cyan fall from
+the brim; three staggered groups assemble recognizable equations, hold, then fade.
+Sixteen additional flat symbols emerge from the crown's center and flow outward
+over its sloping top, cycling cached mathematical shapes in the same five colors.
+They stay above the opaque fabric so they remain visible from overhead.
+Motion trails stay bounded, and offscreen/distant effects skip pose updates.
+The robe retains its existing inscriptions and effects;
+equipping headwear hides its overlapping hood. Existing crowns remain available.
+
+**Eturnull Manuscript** introduces the **Scribe** weapon family, available through
+Tower Exchange > Weapons > Scribe and assignable to any weapon direction. The
+character's anatomical left hand supports an open procedural Grimoire while its
+right hand conducts a floating feather quill adapted from the Infinite Library's Scriptorus design.
+Individual pages turn and flutter, with stronger reactions for heavy attacks,
+charging and the existing parry window. Sheathing dives the quill into the book,
+then closes and stows it on the anatomical left hip; drawing reverses the sequence.
+Both the sheathed Manuscript and the robe's belt tome sit flat against the hip,
+with page edges facing forward and broad covers visible from the side.
+The ready stance rests over the rear left foot with a softened front knee and
+the right arm hanging relaxed with a nearly straight elbow. Its lower-body pose
+yields to travel and air motion. The idle quill floats independently about one
+metre to the anatomical right, with its tip just above shoulder height. Its small
+velocity-based trail follows forward, backward and lateral travel, capped at
+30 cm (10 cm vertically) to stay attached during Sky Jump and fast movement.
+Nine distinct conducting curves adapt existing Fractured Moon, Event Horizon and
+Last Argument gestures, with separate flick, cross, overhead, circular and
+finishing silhouettes. The left book arm remains supported through them.
+
+Right basic attack cycles Quick Inscription, Crossed Expression, Descending Proof
+and Circular Derivation. Left basic attack uses Final Statement. The four arts
+are Theorem, Integral Closure, Crossed Axiom and Circular Proof. Existing hold and
+release charging, momentum damage, guard strain, timed parry, dodge and Sky Jump
+remain in force. The Manuscript's block power is 72%. All four light stages match
+the starter twin blades: 0.34-second duration, 0.10-second windup and 0.14-second
+contact. Base damage is now **30** for Final Statement (previously 52); light
+stages deal 13/16/18/17 and the four arts deal 28/24/23/25 per pulse. Grounded
+and aerial variants share this reduction; normal charge and momentum bonuses
+still apply. The heavy uses a 0.395-second named twin-blade tempo; the four arts use
+the starter twin-blade timings. Written strokes extend from the near caster to
+7 m, matching the spear's Prism Skewer; normal full charging extends this to 9.1 m.
+
+The quill tip follows the actual progressively revealed equation strokes. Contact
+pulses query capsules along those same visible segments, then use the shared
+wall, ownership, guard, parry and damage resolver. Being inside a generic reach
+sphere alone cannot cause a Scribe hit. Writing is one fixed 160-instance mesh
+pool; cancellation, sheathing and weapon switching clear it. These are local
+written strokes, with no new projectile or resource system.
+
+Cosmetic shields (693 entries), talismans (eight), bows (twelve), and crossbows
+(eight) are retired, for 721 historical IDs.
+The cosmetic Shield slot and shop filter are removed. The starter Longsword +
+Shield retains its functional shield. Exact historical IDs validate and migrate
+old saves: retired items, assignments, drops and their markers are removed while
+other ownership survives. Personal saves are untouched by test fixtures.
+
+`tests/scribe_equipment.gd` covers the real player rig, equation assembly, bounded
+pools, writing contacts, cancellation, movement, defense, save migration,
+sheathing and previews. Run with `-- --hz=30`, `60` or `120`; add `--capture` on a
+native display for outfit, overhead hat, conducting and hip-stow images under `captures/`.
+The movement/visual pass recorded **101 checks with zero failures at 30/60/120 Hz**, including
+a native 60 Hz capture run. Catalog, reference equipment quality, equipment
+integration, inventory model/UI, starter weapons, charged sparring, parry/stagger,
+Scribe robes and performance-budget regressions also pass at 60 Hz. The older
+RT fixture now models bare-trigger release and menu-neutral rearming explicitly.
+The subsequent damage tuning passes **103 Scribe checks at 60 Hz**, including
+all reduced grounded/aerial values and an actual 30-damage heavy contact.
+Controller feel and visual density still benefit from a normal gameplay session;
+these checks do not establish a release-build performance guarantee.
+
+## Pyramid dungeon exterior
+
+The first dungeon's overworld landmark is centred at **LAT 047N / LON 005W**
+(`-80, 0, -752`). Its square base is **128 metres** wide and its apex rises
+**82 metres** above the base: a full-scale monument in the existing dark-surface,
+neon-edge style, with warm gold contours and staggered masonry courses.
+
+The four sloping faces are one convex solid. A foundation meets a levelled
+terrain pad, and procedural scenery lots under and immediately around the
+base are reserved so houses, trees and farm props cannot intersect it. The main
+country road, ravine bridge and Kyren's neighbouring home retain their routes
+and elevations. A shallow approach from the road leads into a recessed,
+human-scale entrance with pillars, a stone gable and a sealed door.
+
+`scripts/pyramid_exterior.gd` provides `DungeonEntrance` and `ExteriorArrival`
+markers. The landmark adds two immutable mesh surfaces, ten collision volumes
+and no processing loop, imported assets or realtime lights. Its exterior mesh,
+terrain fit and collision are unchanged by the Phase 1 interior below.
+
+`tests/pyramid_exterior.gd` checks exact site/scale, surface and door collision,
+terrain fit, reserved plots, road and Kyren clearance, a real walk to/from the
+vestibule, jumping, Sky Jump and phase-dodge collision. Add `-- --capture` for
+`captures/pyramid_exterior.png` and `captures/pyramid_entrance.png`; `--hz=120`
+selects the alternate simulation rate.
+
+All 22 pyramid checks pass at 60/120 Hz and in a native 60 Hz capture run.
+The existing outer-world traversal suite passes 18 checks and Kyren's homestead
+passes 17 checks at 60 Hz after the site is added.
+
+## Pyramid dungeon foundation — Phase 1
+
+Walk into the existing recessed doorway and press **G / tap RT** to enter.
+Approaching alone does not activate it. Inside, the front-door portal uses the
+same interaction to leave; its short cooldown prevents the activating press
+from immediately returning. Bare RT retains its existing release-to-interact
+behavior, including RT combat combinations. Nearby loot keeps pickup priority.
+
+The fixed labyrinth has eight-metre passages, seven-metre ceilings, branching
+routes, dead ends and papyrus-like pillars. Ankh, Eye of Horus, lotus, water,
+feather and scarab motifs form turquoise and gold wall bands. Architecture and
+symbols share four static geometry batches; symbols add no individual nodes or
+per-frame generation. This phase contains no guardians, bosses, traps, treasure,
+activated checkpoints or procedural reshuffling.
+
+`scripts/dungeon_travel.gd` prepares the bounded interior once during world
+construction. The outdoor scene and `pyramid/<owner_id>` interior each retain
+their own `World3D`, beneath non-rendering SubViewports. The main viewport
+switches between them while the same player, controller, equipment, camera and
+UI stay in place. Inactive scenery is hidden and its scripts stop processing;
+static support remains available for saved-drop validation in that location.
+Only the main viewport renders. Menus continue to leave the scene tree running.
+
+The transition adapts the staged floor/structure manifestation in Infinite
+Library's `scripts/library_room_manifestation.gd`: coarse geometric cells and
+height bands disappear, then new outlines assemble around the intact character.
+`environment_manifest.gd` temporarily applies a shared shader to environment
+meshes and restores their original materials afterwards. It never dissolves
+the player or scales physics. Movement, attacks and damage are gated for the
+brief transition, with no loading splash or progress bar.
+
+`scripts/respawn_context.gd` resolves the existing death pipeline's destination.
+Without placed glyphs, outdoor deaths use `TemporaryHomeSpawn` at the original
+city spawn and dungeon deaths use `DungeonFrontDoorSpawn`. Placed Respawn Glyphs
+add a choice of destinations to this same death/equipment-drop pipeline, as
+described below.
+
+All unclaimed drops keep their original identities and location across travel,
+multiple deaths and checkpoint reloads. The bottom-screen recovery guide follows
+the latest outstanding loss, advances to the preceding one after recovery, and
+names the other location when it requires doorway travel. Cross-world pickup
+and targeting are rejected. Version-one saves add optional `location_context`
+and per-drop `location_id` fields; legacy outdoor saves retain their defaults.
+
+Solo instances are prepared locally. Networked/live sessions gate doorway travel
+until party-aware authority and replication exist. Future integration belongs
+at `DungeonTravel.interact`, the location-to-scene registry and
+`LootAuthority.location_roots`: the host must authorize party membership, select
+an instance identity, route actors/replication to its World3D, and reset encounter
+state after a party wipe while retaining drops. Full party instancing and wipes
+are deliberately outside Phase 1.
+
+`tests/dungeon_foundation.gd` exercises G entry, RT exit, character continuity,
+transition input/damage safety, maze connectivity/collision, sprint, Sky Jump,
+dodge, location-dependent death, repeated losses/recovery, checkpoint reload,
+fresh startup and repeated cycles without growing node count. Run with
+`-- --hz=120` for the alternate physics rate or `-- --capture` in a native run
+for `captures/dungeon_deconstruction.png` and `captures/dungeon_interior.png`.
+
+Phase 1 validation: all 92 dungeon checks pass at 60/120 Hz and in a native
+60 Hz capture run on Intel HD 620 / ANGLE. Inventory loot (47), inventory
+startup (21), lost-gear HUD (22), Tower Exchange (36), Start/recovery (29),
+Kyren encounter (53), Greefer encounter (48), outer-world traversal (18) and
+pyramid exterior (22) and defensive interaction (48) checks pass at 60 Hz.
+Combat input and the isolated
+baseline movement suite also pass. The original movement test's free-air
+fixture disables the wider countryside because its old flight path now meets
+solid country buildings; production movement is unchanged. Repeated-travel
+checks establish stable node count and released transition materials, rather
+than a release-build performance guarantee.
+
+## Pyramid entry enemies and returning discs
+
+The entrance labyrinth now contains six **Restless Skeletons**, two **Jackal
+Guardians**, and an **Exalted Jackal Guardian**, using original procedural
+models inspired by the supplied gold/cyan concepts. The arrival corridor stays
+clear. Skeletons approach in small groups; guardians carry hooked khopeshes and
+use the shared guard/parry system. Maze-cell paths keep pursuit out of walls,
+only two enemies commit attacks simultaneously, and distant/other-floor actors
+sleep. Leaving the instance stops its simulation; menus keep active combat live.
+Player death or leaving the dungeon resets the entire encounter: defeated
+enemies return, and survivors return home at full health without hostility.
+Death cancels enemy attacks immediately while the live respawn-choice menu is
+open; rosters repopulate after reconstruction, including at a dungeon glyph.
+Changing floors keeps the current run's clears. Checkpoints saved inside retain
+that run's progress; outdoor saves omit clears, and older outdoor checkpoints
+discard their stale defeat records. Dropped loot remains available after resets.
+
+Defeated monsters lose collision immediately, erode into light fragments and
+leave **gear copies plus a remnant glyph**. Skeleton glyphs are smaller cyan
+Common materials; guardian glyphs are larger violet Uncommon materials; the
+exalted guardian leaves a large gold Rare glyph. Skeletons also drop Bone
+Shards. These collectibles and gear use normal pickup, ownership, drop and
+save/load rules in the correct dungeon World3D. The upper temples and B1-B7
+now have their own floor-owned rosters; B8 uses its dedicated Ahkmet/Lorai encounter.
+
+**Vector Disc** and **Twin Vector Discs** are available in the Tower Exchange /
+Equipment Archive. RB/LB use rapid dagger-style cuts; the existing four weapon
+art inputs throw spinning discs roughly **seven meters**, then return them to
+the moving bearer along broad circular arcs. Ready discs point downward with
+their faces turned sideways to clear the character; stowed
+discs sit between the shoulder blades, with the single disc centered. RT+X and
+RT+Y (V+Q / V+R) use a cartwheel and a turning vault with scissoring legs and
+different release angles. Their curved outbound paths converge on a locked
+target. Full-body poses remain cosmetic and preserve running/air movement.
+Real swept flight contacts honor walls, block, dodge and
+parry. Charge strengthens a single flight. Switching, sheathing, dodge/animation
+cancellation and defeat remove the flight hitboxes and restore held models.
+Whips now use a curved, tapered flexible lash instead of the rigid segmented
+rod, and collision follows the actual visible cord.
+
+Implementation: `pyramid_encounters.gd`, `pyramid_enemy.gd`,
+`pyramid_enemy_brain.gd`, `pyramid_enemy_visual.gd`, `monster_dissolve.gd`,
+`whip_presentation.gd`, `disc_moves.gd`, `returning_disc.gd`, plus equipment,
+loot, checkpoint and travel integration. Focused fixtures are
+`tests/whip_discs.gd` and `tests/pyramid_enemies.gd`; native procedural design
+captures come from `tests/capture_pyramid_arsenal.gd`.
+
+## B2 Falcon Sentinels
+
+The two courts on **B2** contain two **Falcon Sentinels**, one **Exalted Falcon
+Sentinel**, three **Winged Skeletons**, and two **Skeletal Archers**. This roster
+is created on the first visit to B2. Each enemy belongs to its floor's scene;
+other-floor AI sleeps, and pursuit routes through the real central portal.
+
+Sentinels wear hooked falcon masks, cyan eyes, feather mantles and layered
+tassets. Their wings fold at rest and unfold during aerial approach and wing
+slashes. Shared feather meshes use six surfaces per pair, animated through two
+wing roots; garment panels are also batched once during construction.
+
+The aerial guard uses the player's actual jumping, Sky Jump impulses and
+collision movement to pursue observed targets. Air Step Combo, the feathered
+Wing Slash and the telegraphed Sunfall Dive use normal timed strike volumes.
+Archers draw enemy-only bows and release visible, non-homing swept arrows.
+Architecture stops projectiles; weapon guard, dodge invulnerability and the
+existing zero-damage parry/one-second attacker stun remain intact. Player bows
+and crossbows remain retired. Movement and menus retain their existing rules.
+
+Falcons can drop **Horuswing Blades**, **Sentinel Spear**, **Falcon Sentinel
+Mantle**, **Skyguard Tassets**, or **Eye of Horus Seal**. These original items
+also appear in Tower Exchange / Equipment Archive. Their wearable copies share
+the NPC geometry; tassets include closed greaves that hide the original feet.
+The seal remains a cosmetic accessory, consistent with existing ring behavior.
+Defeated flyers dissolve and leave equipment plus a difficulty-sized remnant
+glyph on supported ground. The elite leaves a Rare glyph; ordinary Sentinels
+leave Uncommon glyphs. B2 follows the same death/exit reset rules as the hub.
+Current-run clears persist in checkpoints saved inside, while pickups remain
+persistent both inside and outside the pyramid.
+
+`tests/dungeon_enemy_respawn.gd` covers both floor rosters, lethal damage with
+and without respawn glyphs, B2/Home reconstruction, direct fall recovery,
+projectile/dissolve cleanup, full health/home resets, repeated exits and re-entry,
+retained loot without duplicate rewards, and inside/legacy-outside checkpoints.
+All 32 checks pass at 30, 60 and 120 Hz.
+
+`tests/pyramid_b2.gd` checks actual flight and strikes, arrow defense, floor
+isolation, loot ownership and checkpoint restoration. Native visual captures
+come from `tests/capture_falcon_sentinels.gd`; sideways disc views use
+`tests/disc_refinement.gd -- --capture --poses-only`.
+
+Validation: B2's **38 checks** and the sideways-disc fixture's **22 checks** pass
+at **30/60/120 Hz**. Existing entry enemies (28), equipment integration (54),
+catalog (14) and motion/garment quality (15) checks pass. Native captures reviewed
+the three enemy designs, folded/deployed Sentinel wings, wearable copies and
+sideways discs. These checks cover behavior and bounded geometry, not a release
+performance benchmark for the full dungeon.
+
+## Furnished pyramid and the deeper encounters
+
+All 17 storeys now have floor-owned temple dressing: gold/cyan inscriptions,
+processional columns, braziers, animal reliefs, statues, archive lecterns and
+burial furniture. B3 has animated shallow-water channels and fountains; B7 has
+soft purple mist over clearly marked venom areas. Static furnishings use a
+two-surface batch per floor. Existing columns receive glyph inlays, while new
+solid props avoid stair apertures, their approach lanes and safe arrival points.
+The original physical stairs and unrestricted movement remain available.
+
+The complete roster contains **100 enemies across 16 populated storeys**:
+the entry hub has nine, B1 has six, B2 has eight, U1-U7 have three each and U8
+has one. **B8 hosts Ahkmet the Vile and Lorai**, a separate two-phase boss
+encounter described below. The supplied deeper-floor
+references are implemented as these encounters:
+
+| Floor | Population and identity | Combat and environment |
+| --- | --- | --- |
+| B3 | 10 Crocodile Wardens, Drowned/Riverbound Skeletons and Tomb Scorpions | Deliberate cleaves, shield charges, accepted-hit tosses, tail sweeps and telegraphed flood surges around shallow channels |
+| B4 | 10 Ibis Scribes, Acolytes, Glyph Constructs, Skeletal Scribes and guard remnants | Swept glyph volleys, warned pulse fields, brief bind strikes, temporary wards and nearby ally chants in an archive |
+| B5 | 16 Tomb Walkers, Fighters, Burial Guards, spear-wielding Mummies and Cursed Wardens | Burial ambushes, shield support, close-range draining strikes and one vulnerable reassembly attempt per Cursed Warden |
+| B6 | Renu the Huntress, Tefet the Dancer and Sakhra the Warden | Pounce, multi-hit blade dance and spear control; two pressure while one flanks, with periodic warned convergence fields and stronger survivors |
+| B7 | 16 Snake Charmers, Asps, Cobras, Horned Vipers, Burial Serpents and destructible Charm Obelisks | Bites, physical venom spits, poison clouds, bounded serpent revival waves and nearby support |
+
+Enemy techniques use the shared damage, block, dodge, parry and one-second
+attacker-recoil systems. Ordinary light attacks still cannot stun. Glyph fields
+show their actual footprint before becoming active; opaque architecture stops
+projectiles and field contacts. Venom refreshes a four-second status rather than
+stacking indefinitely, and mist permits a brief exposure before poisoning.
+Cursed Wardens remain vulnerable at one HP during their two-second reassembly;
+finishing them prevents their recovery and produces the final drop once.
+
+The three champions each drop their own gear and a Rare remnant. Defeating all
+three grants one additional **Sekhmet's Sigil** and Rare glyph at their reliquary.
+Charmers and obelisks can each revive at most two defeated serpents once per run.
+These budgets, reassembly flags and defeated IDs survive inside checkpoints;
+death or leaving resets them with the rest of the encounter. Existing loot stays
+available. The checkpoint limit now accommodates the full roster.
+
+Only the hub and two recent encounter floors retain full enemy rigs. Other
+floors keep primitive health/position snapshots until revisited; support and
+reassembly timers account for time spent away. AI sleeps off-floor. Temporary
+glyph fields are capped, and floor ambience uses at most 96 batched motes.
+
+**22 original equipment copies** join the catalog and Tower Exchange: six
+weapons, eleven clothing pieces and five cosmetic keepsakes. NPCs and player
+copies share the same native geometry, including closed greaves. **Venom Fang**
+is a stackable material. The established player Scribe remains available; the
+reference sheet's class-unlock proposal does not replace its mathematical
+Grimoire/quill combat. Enemy bulwarks do not restore retired player shield slots.
+
+Implementation is in `pyramid_furnishings.gd`, `pyramid_bestiary.gd`,
+`pyramid_depth_brain.gd`, `pyramid_depth_combat.gd`, `pyramid_depth_moves.gd`,
+`pyramid_field.gd`, `pyramid_depth_visual.gd` and `pyramid_regalia.gd`, integrated
+with the existing encounter, equipment, loot, preview and checkpoint services.
+`tools/build_pyramid_depth_equipment.py` rebuilds the authored loot definitions.
+
+`tests/pyramid_depths.gd` exercises all floor rosters and safe spawn volumes,
+actual AI attacks, shared parries, glyph projectiles and fields, support,
+ambush/reassembly, champion rewards, bounded revival, venom, streaming,
+expanded checkpoints and every new wearable/weapon preview. Its **66 checks**
+pass at **30/60/120 Hz**. The full architecture traversal passes **129 checks**
+at 60 Hz, walking **6,023.5 metres** through both branches and back. Native views
+come from `tests/capture_pyramid_depths.gd`, including the B8 chamber.
+
+## B8 — Ahkmet the Vile & Lorai
+
+The **Throne of the Vile Pharaoh** contains a royal platform, inscribed 22-metre
+columns, serpent carvings and a gold/violet ceremonial battle circle. Its boundary
+is visual: movement, Sky Jump and the existing stair route remain available.
+Approaching within 38 metres or landing a hit begins the encounter. Its health
+bar renders in the player's viewport, while the boss stays in the dungeon's
+isolated World3D. The existing collision-aware camera widens during combat and
+uses an upper-body lock focus; the saved follow distance and collision mask are
+restored on completion, floor departure, death and exit.
+
+Ahkmet stands directly on Lorai's animated head. The same serpent, health pool,
+head and golden staff persist through both phases. The default health is 2,400;
+`lorai.gd` exposes the union threshold (default 52%). A large Phase 1 hit stops at
+that threshold and begins an 8.4-second, non-damaging ceremony. Ahkmet lowers the
+staff, opens his arms, steps willingly into Lorai's waiting jaws, and disappears
+as union glyphs illuminate. Lorai rises, grows two muscular arms and receives
+Ahkmet's original staff. There is no second health refill, transition kill or
+transition loot. Player movement and inputs remain available throughout.
+
+| Phase | Techniques |
+| --- | --- |
+| The Serpent Throne | Serpent Lunge, Venom Spit, Serpent Sweep, Radiant Judgment, Pharaoh's Command |
+| The Serpent Ascendant | Cataclysmic Coil, Venom Storm, Serpent Grasp, Radiant Annihilation, Judgment Bite, Inherited Pharaoh's Command |
+
+One controller selects techniques from observed distance/elevation and commits
+to the observed aim point. It does not read player inputs. Distinct windups,
+active contacts, cooldowns and recoveries use the established combat resolver.
+Animated mouth, arm and staff volumes produce actual damage; shared projectiles
+and warned venom fields handle ranged pressure. Cataclysmic Coil creates an
+expanding ground annulus which airborne feet can clear. Blocks, dodges, weapon
+art stagger and the existing one-second parry recoil all apply. Basic light
+attacks still cannot stunlock the boss. A grasp toss requires an accepted hit
+and uses the existing Warden convention without locking controls.
+
+The first victory drops **Ahkmet's Scepter**, **Lorai's Fangblade**, four
+**Pharaoh of the Vile** cosmetic pieces, **Serpent Crown of Union**, an
+**Apep–Lorai Catalyst** and a Rare remnant glyph. Later victories drop one fresh
+gear copy, a catalyst and a Rare glyph. The first-clear bundle commits atomically
+through the loot authority; a failed factory cannot leave a partial bundle or
+claim the entitlement. The owner inventory stores the first-clear claim with the
+checkpoint and world drops. Cosmetic equipment grants no new stats. The scepter
+uses the existing **staff** class; it does not replace the Grimoire/quill Scribe.
+The catalyst is a collectible material with no unimplemented crafting power.
+
+Death or leaving resets the fight while preserving earned loot and the
+first-clear entitlement. Moving between floors retains primitive health/phase
+state. Inside checkpoints resume the same remaining health; saving during the
+union resumes in stable Phase 2. A completed fight stays cleared for that run.
+The boss uses 26 cached body links, 27 compound hurtboxes, bounded contact
+samples, at most eight projectiles and four fields, and no unrestricted serpent
+physics. No unrelated enemy floor is loaded for the fight.
+
+`ahkmet_encounter.gd` owns lifecycle, rewards and UI; `lorai.gd` owns the shared
+actor and AI. `lorai_combat.gd`, `lorai_moves.gd`, `lorai_visual.gd` and
+`lorai_wave.gd` provide the combat adapter, timed techniques, procedural rig and
+expanding annulus. `ahkmet_regalia.gd` shares royal clothing with player copies.
+
+`tests/ahkmet_boss.gd -- --hz=30|60|120` runs **58 checks**, covering live AI,
+real attacks, defenses, aerial
+avoidance, mounted attachment, willing union, streaming, checkpoints, reset,
+reward failure rollback, repeat clears and equipment previews. Native reviews
+use `tests/capture_ahkmet.gd` and `tests/ahkmet_boss.gd -- --capture` for the
+actual player camera and HUD. Captures/logs are ignored local QA artifacts;
+these are bounded-runtime checks, not a release performance benchmark.
+
+## Reusable respawn glyphs
+
+**Respawn Glyph** and **Home Respawn Glyph** are available in Tower Exchange's
+Items department. Select one in Inventory and choose **PLACE RESPAWN GLYPH HERE**
+while standing on clear, solid ground. Placement uses one inventory item and
+binds a reusable marker. Each player can keep one personal marker and one Home
+marker; placing another of the same kind replaces only that destination.
+
+On death, choose the personal glyph, Home, or the current area's default spawn.
+Both placed glyphs remain reusable after every death. Use D-pad/left stick and
+A on controller, or W/S/arrow keys and Enter/Space on keyboard; mouse selection
+also works. The menu keeps the world running and closes other local menus.
+Without any placed glyph, the existing immediate default respawn remains.
+
+Markers retain their location, facing and camera view in version-one saves.
+Personal and Home choices can cross between the city and the player's pyramid
+instance, restoring the correct floor. Unsafe or obstructed anchors are omitted
+from the choices. Older checkpoints load with no glyph destinations.
+`tests/respawn_glyphs.gd`, `tests/disc_refinement.gd` and
+`tests/doorway_heading.gd` cover ownership, repeated deaths, checkpoint recovery,
+cross-world travel, flight arcs, gymnastic movement and doorway-relative facing.
+
+Validation for this pass: respawn glyphs **24 checks**, refined discs **19 checks**
+and doorway heading **11 checks**, each passing at **30/60/120 Hz**. At 60 Hz the
+existing theft combat (27), hostility reset (22), whip/disc combat (24), equipment
+integration (54), Kyren (56), Greefer (48), dungeon foundation (92) and gameplay
+tweaks (53) suites also pass. Native captures reviewed both glyph markers, the
+death-choice menu, single/twin ready and stowed discs, and both gymnastic throws.
+Godot's headless editor import reports no script errors. The full native disc
+simulation exceeded its first capture run's time budget; the dedicated native
+pose capture completed, and timed combat checks passed headlessly.
+
+## Pyramid architecture — sixteen floors
+
+The existing entrance maze is the **unnumbered entry hub**. Facing into the
+pyramid from its door, its **back-left** dead end now opens to the B1–B8
+descending stairwell, and the **back-right** opens to U1–U8. The exterior,
+RT/G entry/exit and environment manifestation use the existing Phase 1 systems.
+
+This is one pyramid, extending the same outward slope below ground. Every
+sloping structural panel follows `half_width(y) = 64 * (1 - y / 82)`, centred
+on the same interior axis. Upper floors stand at Y=8, 16, …, 64 m; their widths
+decrease from about 115.5 m at U1 to 28.1 m at U8. The interior closes beneath
+the existing 82 m apex. B1–B7 stand at Y=-16, -32, …, -112 m. B8 stands at
+Y=-144 m, providing a roughly 352.8 m base and 32 m of arena headroom.
+Basement widths increase with depth; there is no second or inverted pyramid.
+
+`scripts/pyramid_interior.gd` assembles the seventeen storey containers
+(sixteen numbered floors plus hub) from deterministic definitions.
+`scripts/pyramid_floor.gd` reuses slab, sloping-wall, portal, pillar, ledge
+and glyph components. Upper galleries include protected shafts and ledges;
+lower halls vary between colonnades, divided courts, hypostyle galleries and
+the open B8 arena. U8 contains an empty summit dais. B8's monumental supports
+sit around the perimeter, leaving its centre clear for Ahkmet and Lorai.
+The entry hub and the populated numbered floors are described above.
+
+`scripts/pyramid_stair.gd` joins every adjacent pair with a two-flight stair:
+visible treads, smooth ramp collision, a turning landing, full-width arrival
+landings and protective rails. Flights have a 1:2 rise/run ratio. Upper
+connectors move inward as the pyramid narrows. Floor and ceiling openings are
+cut from the same stair footprints; room partitions also respect those openings
+so they cannot cross a flight. Return routes require no jumping or teleporting.
+The original hub corridors remain eight metres wide.
+
+Successive stairwells now alternate between opposing corners, so reaching the
+next flight requires crossing the floor. The hub retains back-left descent and
+back-right ascent. A full-height wall joins the central maze wall to the sloping
+rear perimeter, dividing the former shared vestibule: crossing between the two
+hub stairs now requires returning through the labyrinth. Pillars and ledges
+clear relocated stair footprints; the summit dais stands opposite its landing.
+
+Each floor has a `FutureContent` container with `CentralSpace`,
+`WestGallery` and `EastGallery` marker sockets. These are empty attachment
+points for later content, not a new encounter framework or navigation system.
+Future NPC content will need its own navigation and encounter authoring.
+
+All static geometry is prepared once before entry. Each new floor and stair
+uses a batched mesh, reusing the existing dark and wire materials. Only the
+current storey and its immediate neighbors render, with adjacent stairs.
+Collision remains loaded for Sky Jump, dodge, save validation and recovery.
+Dropped items inherit their floor's visibility. Hidden floors are omitted from
+manifestation material capture; no floor geometry is rebuilt during travel.
+
+Version-one checkpoints gain optional `location_state` containing floor ID,
+position and camera yaw. Restarts restore a supported position on the saved
+floor. A position without a floor ID is inferred from its elevation and real
+collision. Invalid/outdated positions use a safe anchor on that floor; older
+Phase 1 saves without position data fall back to the hub. Dungeon death still
+respawns at the front door, while outdoor death returns home. The existing
+equipment transaction and loss-ordering system is retained; recovery guidance
+now includes U/B floor labels. The void-respawn limit is location-aware so
+legitimate basement movement is never mistaken for falling out of the world.
+
+`tests/pyramid_architecture.gd` walks both branches and their return routes
+using the real player controller, verifies profile/collision and safe anchors,
+checks floor culling and solid-floor Sky Jump containment, and exercises deep
+save/restart, invalid-position fallback, cross-floor deaths, drops and recovery.
+Use `-- --hz=120` for the alternate physics rate. For a native visual pass,
+use `-- --geometry-only --capture`; it skips the long walking tour and writes
+`captures/pyramid_upper_gallery.png`, `pyramid_summit.png` and
+`pyramid_deep_arena.png`, plus `pyramid_hub_divider.png`. Native capture checks are separate from the full
+headless controller traversal. Neither run is a release-build FPS benchmark.
+
+The architecture suite verifies opposing stair footprints, the sealed rear
+shortcut, and safe restoration of older saves inside the new divider. The
+complete tour covers approximately 6 km through every connection in both
+directions, including the hub labyrinth between its two stair approaches.
+
+Changed files:
+
+- New: `scripts/pyramid_floor.gd`, `scripts/pyramid_stair.gd` and
+  `tests/pyramid_architecture.gd`, with Godot UID sidecars. Railing updates add
+  `scripts/rail_barrier.gd` and `tests/railing_traversal.gd`.
+- Assembly/rendering: `scripts/pyramid_interior.gd`, `dungeon_glyphs.gd`,
+  `dungeon_travel.gd`, `environment_manifest.gd` and this README.
+- Existing state integration: `scripts/inventory_store.gd`,
+  `inventory_session.gd`, `loot_authority.gd`, `respawn_context.gd`,
+  `player.gd` and `combat_hud.gd`.
+
+Manual review:
+
+1. Enter with G / tap RT, find the rear signs, and walk up right/down left.
+2. Cross each floor to the next flight, reach the summit and arena, then return.
+   Check that the rear hub wall requires the maze route between stairs.
+3. Save on an upper or lower floor, quit and restart; verify floor, position
+   and equipment. Try Sky Jump and dodge near ceilings, rails and stair turns.
+4. Die on two floors, recover the newest item and follow guidance to the older
+   loss; exit and verify outdoor death still uses home.
+
+### Railing collision
+
+City skyways and countryside bridges keep their open posts and bars visually,
+but use continuous, bevel-ended collision panels instead of separate post and
+midrail colliders. This removes the gaps that could catch the player capsule.
+City staircase stringers are visual details rather than obstacles inside the
+walking lane. Dungeon stair, shaft, approach and lookout rails use the same
+continuous panel geometry, including vertical sides on sloping stair flights.
+The rails still guard drops and can be jumped over normally.
+
+`scripts/rail_barrier.gd` builds the shared convex geometry at construction
+time. `tests/railing_traversal.gd` probes guard spans at low, middle and top
+heights, presses the real controller along city/bridge/dungeon rails in both
+directions, releases away from contact, and checks connected curved joints.
+It supports `-- --hz=60` and `-- --hz=120`. The existing skyway route suite
+also checks full flights, junctions and exposed-edge coverage.
+
+Validation after the structural changes: the full dungeon walking tour passes
+at 60 and 120 Hz (about 6 km each), including save/load and death/drop recovery.
+All 39 railing checks pass at both rates, including 7,260 guard probes per run.
+The native Compatibility/ANGLE visual pass passes 95 non-tour checks and captures
+the gallery, summit, arena and hub divider. The 33-check skyway route suite,
+13-check city collision audit, 92-check dungeon foundation suite, 29-check
+menu/recovery suite and baseline movement tests also pass.
+
+## Kyren's home
+
+Kyren rests beneath a cherry blossom tree at **LAT 047N / LON 003E**, centered
+on world X=48, Z=-752 beside the northern country road. The small house has an
+open front doorway, walkable porch, bare interior and solid pitched roof. Its
+clearing blends into the existing terrain; the country road stays in place.
+
+Kyren uses the ordinary resident body at twice its size, colored gold, in a
+breathing cross-legged rest pose. His named katana rests visibly in its crimson
+saya at his left hip, transferring to his combat skeleton when he stands. His
+deep red woven conical hat uses the Eturnull silhouette and sheds falling orange
+embers. The hat contains no mathematical symbols. His dark red scarf stays
+attached at the neck and continually curls through changing wind directions
+while stationary. During movement it smoothly streams behind his actual world
+velocity, including strafing, reversals and aerial travel, preserving three
+metres of cloth. The player's scarf copy uses the same behavior and follows
+vehicle velocity while riding. Teleport displacement never becomes false wind.
+The tree has pink five-petal blossoms and
+drifting, tumbling fallen petals. **G / tap RT** opens an optional challenge;
+attacking him also starts the encounter. Controller A accepts and B declines.
+Start/Settings offers **Leave Kyren encounter** during a fight. The world stays
+live in every menu. His fight has no arena boundary; leaving sight and pursuit
+range ends the confrontation after twelve seconds. Once combat ends through a
+win, loss or disengagement, he teleports directly beneath his tree with gold
+phase effects and a full combat/movement reset. After losing, he recovers at home
+for three seconds before accepting another challenge. There is no walk-home AI
+or return path to get stuck on; an active encounter cannot trigger this reset.
+
+His fighting form uses the existing player skeleton, input contract, physics,
+Sky Jump, phase dodge, guard, parry, exhaustion and hit resolver. His named
+**Kyren's Katana** derives its ten techniques from the existing Uchigatana-based
+Luminous Contour Longcurve motions: two three-cut chains and four broad arts.
+**Silent Contour** drives a 28 m/s draw strike through ordinary capsule collision,
+then finishes with a sheathing gesture. Charged release aligns its contact and
+dash windows. His three items also appear in Tower Exchange and Equipment Archive.
+
+Every Kyren defeat drops **one fresh copy**, selected uniformly from **Kyren's
+Straw Hat**, **Kyren's Scarf** and **Kyren's Katana**. The normal world pickup
+stays where he was defeated while he teleports home; if the defeat has no safe
+ground, the reward falls back to his clearing. Collect it with **G / RT**.
+Duplicate defeat callbacks cannot produce another reward, and his victories or
+disengagements award nothing. Copies have independent item identities; Kyren
+keeps his original gear. Unclaimed pickups and collected copies use the existing
+inventory/world-drop save system, with normal trading and dropping rules.
+
+The hat equips in **Head**, with the same crimson weave and 36 falling embers.
+The scarf equips in **Body**, replacing that slot's current cosmetic, with the
+same three-metre wind-driven cloth. Both use Kyren's original geometry/effect
+implementations and player-size skeleton attachments. The copies hide during
+phase dodge and return cleanly afterward. Their previews show the real costume,
+and the scarf preview frames the full tail. Neither cosmetic grants combat stats.
+
+`scripts/kyren_salt.gd` exposes the event gains, cooldown, decay and thresholds.
+Salt starts at 10%, stays between 0–100%, and advances through smug, annoyed,
+salty and meltdown. Actual resolved hits, vulnerable dodge hits, parries, charged
+interruptions, aerial momentum and HP thresholds drive it. Duplicate contacts
+and repeated bonuses are guarded. Pressure and technique preferences change
+between actions; defense keeps a real reaction delay and reads visible actions,
+never buffered player input. Defeats leave a small persistent frustration floor.
+
+The 153 editable entries in `data/dialogue/kyren.json` preserve the supplied
+dialogue and add contextual state/counter reactions. Weighted selection uses
+per-line cooldowns, a 3.8-second global cooldown, priorities, occasional silence
+and a single subtitle channel. Long lines wait for openings. House/tree lines
+require actual collision-ray contact; mailbox lines remain dormant because the
+site has no mailbox. Rare reactions use genuine perfect/starter wins, parry
+streaks, three consecutive defeats and a later Kyren victory. The third-defeat
+exchange is remembered once per owner, with a pause between its two lines.
+
+Kyren's challenge count, player wins/losses, previous tactics, salt and rare-line
+history share `user://encounters_v1.json` with Greefer. Writes merge the latest
+journal and preserve its existing owner, backup and atomic replacement policy.
+Test runs use isolated profiles and disable automatic persistence. In a debug
+build, explicitly add `-- --kyren-debug` or enable `World.kyren_debug_enabled`
+for the developer panel: salt/state, HP, history, combat event, subtitle cooldown,
+selected line and AI state, with set-salt, event, preview and history-reset tools.
+
+Static house/branches/crowns use the existing opaque world batches and matching
+collision. Blossoms share one 240-instance mesh; falling petals and hat embers
+use fixed pools of 96 and 36. The scarf uses 24 cloth sections and 48 trim
+segments, with nearby animation limited to 30 Hz and distant effects skipped.
+No imported assets, rigs, external libraries or additional realtime lights are
+required. The original Greefer progression and road gates remain in force.
+
+`tests/kyren_homestead.gd` checks the exact grid location, ordinary NPC proportions,
+resting state, terrain support, roof/walls, real player entry through the door,
+constant scarf length and all wind quadrants, attachment stability and effect
+pool limits. Native rendering additionally verifies the actual doubled head and
+falling petal/ember transforms. Add `-- --capture` for
+`captures/kyren_home.png`, `kyren_resting.png` and `kyren_wind.png`; `--hz=30`
+or `--hz=120` selects an alternate physics rate. The wider-world regression also
+checks existing terrain, roads, collision and gate progression.
+
+`tests/kyren_scarf_movement.gd` checks both actual wearers, world-space trailing
+despite chest turns/leans, walking/sprinting and aerial directions, eased
+reversals, stationary wind, neck attachment, constant cloth length, teleport
+stability, fixed mesh pools and mounted vehicle velocity.
+
+Verification: 17 logic checks pass at 30/120 Hz; the native 60 Hz run passes
+20 checks including rendered head and particle buffers. The existing wider-world
+suite passes 18 checks and Scribe equipment passes 103 at 60 Hz. The shared
+cancellation cleanup now checks for a weapon rig before accessing its selected
+equipment, so Greefer's natural-weapon visual remains compatible.
+
+`tests/kyren_salt.gd` covers event calculations, thresholds, deduplication,
+dialogue priority/cooldowns, rare sequences and journal validation.
+`tests/kyren_encounter.gd` exercises real controller invitations, shared guard,
+parry/stun, iframe dodge, named techniques, dash/wall collision, Sky Jump,
+100%-salt AI, post-fight home teleports, defeat cleanup and merged persistence. Use
+`-- --hz=30` or `--hz=120` for simulation-rate checks; a native run with
+`-- --capture` writes `captures/kyren_master_stance.png`, `kyren_draw_strike.png`
+and `kyren_sheathing.png`. Balance remains configurable and needs playtesting
+against different player loadouts; automated checks establish mechanics rather
+than subjective boss difficulty.
+
+`tests/kyren_loot.gd` checks each of the three actual defeat drops, exactly-once
+awarding, independent identity, original NPC gear retention, ownership/pickup,
+unclaimed and equipped save/load, hat/cloth attachments and pools, phase cleanup,
+real previews, host authority, failed spawning and void-defeat fallback. Its 53
+checks pass at 60/120 Hz, including collection beside Kyren after his rematch
+prompt returns. A native 60 Hz visual run also passed its 50 checks. Add
+`-- --capture` to review the player wearing the copies
+in `captures/kyren_loot_equipped.png`. Loot, catalog, exchange and encounter
+regressions also remain covered by their existing fixtures.
+
+Kyren implementation files are `scripts/kyren.gd`, `kyren_combat.gd`,
+`kyren_brain.gd`, `kyren_encounter.gd`, `kyren_salt.gd`, `kyren_dialogue.gd`,
+`kyren_progress.gd` and `kyren_debug.gd`, with authored equipment/dialogue in
+`data/equipment/kyren_equipment.json` and `data/dialogue/kyren.json`.
+`kyren_hat.gd` shares the hat with the NPC; `kyren_cosmetic.gd` attaches wearable
+copies, while `loot_authority.gd` creates host-authored fresh world rewards.
+Shared combat emits resolved contact and action events; normal player/weapon
+behavior still uses the original resolver. Limb reach, phase presentation and
+two-handed grips now preserve a fighter's configured visual scale.
+
+Verification: 53 encounter checks, including actual lethal-hit and post-fight
+teleport/reset cases, pass at 30, 60 and 120 Hz. The earlier native 60 Hz visual
+capture passed 47 checks; 44 salt/dialogue/journal checks also pass. Regression
+results: catalog 14, equipment quality 15, equipment integration 52, parry 36,
+responsive dodge 68, Scribe 103, Greefer 48, named-motion rig 46, leg integrity 17
+and Start/Settings/recovery 29 checks, all passing. Native review ran through the
+Compatibility renderer on Intel HD Graphics 620; this is functional verification
+and does not establish a release-build FPS or difficulty guarantee.
 
 ## Canonical narrative reference
 
@@ -589,11 +1418,15 @@ your controller playtest; automated checks do not judge those subjective parts.
 | Move / walk | WASD | Left stick, partial deflection |
 | Run | Hold Shift | Left stick, full deflection |
 | Fast run | Press Ctrl | Click L3 / left stick |
+| Driving boost | Press Ctrl while driving | Click L3 while driving |
+| Vehicle light wall on/off | Press Tab while driving | Click R3 while driving |
 | Look | Mouse | Right stick |
 | Lock / unlock opponent | Press Tab | Click R3 / right stick |
 | Switch locked opponent | I / J / K / L (up / left / down / right) | Flick right stick up / left / down / right |
 | Jump / repeatable sky step | Press Space | Press A / bottom face button |
 | Phase dodge | Press E | Press B / right face button |
+| Use Health Glyph | Press H | Hold RT, press B |
+| Use strongest Shield Glyph | Hold V, press Space | Hold RT, press A |
 | Left-side attack | Left mouse button | LB |
 | Right-side attack | Right mouse button | RB |
 | Block / timed parry | Hold F / press just before impact | Hold LT / press just before impact |
@@ -844,8 +1677,9 @@ eligible. Death tokens and the player death gate prevent repeated rolls; respawn
 does not remint lost gear. Nonlethal Ember rounds never apply this penalty.
 
 `LostItemMarkers.for_owner(owner_id)` supplies marker dictionaries with pickup ID,
-item identity and world position for a future map. A brief notice reports newly unclaimed
-gear; its physical pickup remains in the city. Markers disappear when anyone collects the
+item identity and world position for a future map. A persistent bottom-screen
+readout locates the nearest unclaimed loss using the same grid as the main HUD;
+a brief notice also reports new losses. Markers disappear when anyone collects the
 item or it is legitimately removed. Trading drops create no loss marker; acquired
 items belong to their new possessor and are not permanently tracked.
 
@@ -1102,8 +1936,12 @@ resolver and existing meter. Movement, attacks, sprinting, Sky Jumps and dodging
 have no exhaustion cost. The thin exhaustion bar beneath HP displays this existing strain meter;
 there is no stamina or MP resource.
 
-Clean hits always apply health damage. Authored move strength is compared with
-the defender's effective fortitude. Weapon choice, attack phase, heavy techniques
+Clean RB/LB light hits apply health damage without hit stun, including all combo
+stages and aerial variants. They preserve the defender's attack, charge, buffered
+input and movement, with only a brief visual impact response. Guard strain and
+successful parries retain their existing rules and one-second attacker opening.
+Weapon arts compare authored move strength with the defender's effective
+fortitude. Weapon choice, attack phase, heavy techniques
 and charging contribute to resistance. Meeting/exceeding fortitude interrupts
 offense and produces directional hit stagger (about 0.2?0.65 seconds according to
 move and charge). Resisted hits preserve attack/cancel continuity and add a small
@@ -1217,7 +2055,7 @@ Combat inputs now reach `player.combat`, which emits
 `weapon_slot_selected(slot)`. Available action identifiers are `attack_left`,
 `attack_right`, `special_x`, `special_y`, `special_rt_x` and `special_rt_y`.
 `player.weapon_combat` executes those commands using `weapon_library.gd`'s
-authored timing, reach, arc, damage and visual profiles. The compact HUD displays current health and exhaustion; the weapon model
+authored timing, reach, arc, damage and visual profiles. The compact HUD displays current health, exhaustion and grid address; the weapon model
 and inventory show the selected equipment.
 
 LT/F is a held state. Analog triggers activate at 55% and release at 40% to avoid
@@ -1315,8 +2153,9 @@ three-jump limit remain separate Library systems.
 
 Press **B** on the controller or **E** on the keyboard for a short phase teleport.
 Movement input selects a camera-relative horizontal direction; neutral input
-uses camera forward. Diagonals are normalized, and camera pitch does not change
-the blink's height. Direction is fixed at the moment of the press.
+uses camera forward. Diagonals are normalized, and direction is fixed at the
+moment of the press. Grounded dodges follow walkable slopes; airborne dodges
+keep their existing height. Camera pitch has no effect on the chosen direction.
 
 The dodge adapts `../infinite-library/scripts/traveler.gd`'s phase-dash range,
 timing, central collapse and departure/arrival rings. Actual carried horizontal
@@ -1340,12 +2179,18 @@ carried momentum. The collision capsule remains enabled; invincibility cannot
 bypass walls, posts or ceilings. Cancellation, completion, respawn and rejected
 dodges cannot leave immunity active.
 
-The upright capsule stays enabled throughout. Full-volume sweeps shorten the
-blink before solid walls, posts or low overhangs. A second sweep when committing
+The upright capsule stays enabled throughout. Supported ground paths use short
+full-volume sweeps along walkable floor planes, including terrain triangle seams,
+so uphill ground cannot reject a valid B/E press. Leaving a roof or cliff ends
+ground following. Full-volume sweeps shorten the blink before solid walls, posts
+or low overhangs. A second sweep when committing
 also catches blockers added during the fade. Less than 0.35 m of available travel
 rejects the dodge. Camera angles and current drop-height history survive the
 blink. A local alpha material makes the fade work in the Compatibility renderer;
-it restores the original body material on exit. Cyan
+it restores the original body material on exit. The Eturnull Hat and Scribe book/
+quill keep their local poses during a phase: glyph inks cannot overwrite the
+shared fade, and world-space attachment updates cannot undo the body's collapse.
+Their animation resumes on arrival. Cyan
 rings expire after 0.28 s. The Library's source files remain unchanged and are
 not required to run this component.
 
@@ -1354,6 +2199,12 @@ real B/E press/release events across varied intervals, same-frame bursts and
 rapid chains with all four weapons and the fitted robe. It checks swept travel,
 momentum, hidden-only immunity, late blockers, original material restoration,
 RT+B healing and input cleanup through menus, focus changes and respawn.
+`tests/dodge_terrain.gd` passes **35 checks at each of 30/60/120 Hz**, using real
+countryside collision triangles and B events with the complete Scribe outfit.
+It covers uphill/downhill travel, triangle seams, rapid sprint chains with
+uphill momentum, late walls, low ceilings, quill bounds and the exact hidden
+alpha interval. Native `--capture` images under `captures/dodge_terrain_*` verify
+departure, full absence, arrival and the restored equipment without light streaks.
 Existing dodge, defense, fall-damage, lock/momentum and limb-integrity fixtures
 also pass at 60 Hz.
 
@@ -1418,7 +2269,7 @@ drive the movement calculations.
   radial stick deadzone, separate move/look intents, held triggers and ordered
   combat/weapon-slot requests.
 - `scripts/combat_intent.gd`: ordered commands, guard, draw/sheathe state and
-  four directional loadouts. `scripts/combat_hud.gd` displays HP and exhaustion.
+  four directional loadouts. `scripts/combat_hud.gd` displays HP, exhaustion and grid address.
 - `scripts/weapon_library.gd`, `scripts/weapon_combat.gd`: four authored movesets,
   timed physics hit checks, impact-speed damage, terrain occlusion, health,
   guard and two-handed IK.
@@ -1560,10 +2411,18 @@ flow remain covered by their existing suites.
 the city overview, suburbs, rural bridge, farmland, countryside and lookout
 under `captures/world_*.png`; these images were visually reviewed.
 
-`tests/hud.gd`: 14 layout/state checks cover the two permanent bars, full and
-partial values, recovery/respawn, live menus and viewport bounds at 800x600,
+`tests/hud.gd`: **29 checks** cover the bars and grid marker, full and partial values,
+recovery/respawn, grid boundaries and all four directions, countryside positions,
+height/facing independence, live menus and viewport bounds at 800x600,
 1280x720 and 1920x1080. Run without `--headless` and add `-- --capture` for
 the rendered full/partial HUD screenshots in `captures/hud_*.png`.
+
+`tests/lost_gear_hud.gd`: **22 checks** cover real death/respawn, persistent
+recovery locations, notice expiry, multiple losses, live distance/nearest-item
+updates, dialogue and viewport layout, recovery/removal, owner filtering and
+checkpoint restoration. Add `-- --capture` for `captures/lost_gear_*.png`.
+`tests/inventory_startup.gd` also verifies the restored location for an outer-city
+loss during deferred startup loading.
 
 Greefer: **48 checks at 30/60/120 Hz** in `tests/greefer_encounter.gd` exercise the real boss/player resolver,
 solid tower perch, automatic detection, continuous arrival/landing, shared chip,

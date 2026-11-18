@@ -72,6 +72,10 @@ func run() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	p.position = Vector3(0,.1,8)
 	await frames(hz/2)
+	# Measure authored combo timing against the explicit practice target below.
+	# Ambient civilian hits now legitimately cause hitstop and retaliation;
+	# those interactions have their own assault/theft integration fixtures.
+	for resident: CharacterBody3D in world.population.active_residents.duplicate(): resident.deactivate()
 	camera = Camera3D.new()
 	world.add_child(camera)
 	camera.global_position = p.position+Vector3(2.8,1.9,3.2)
@@ -139,7 +143,7 @@ func run() -> void:
 	p.velocity = Vector3.ZERO
 	target.queue_free()
 	check(own(&"eternal_scribe_robes",&"body")!=null,"Existing Scribe robe remains an owned Body cosmetic")
-	for family: String in ["head","hands","legs","shield","ring"]:
+	for family: String in ["head","hands","legs","ring"]:
 		var slot := StringName("ring1" if family=="ring" else family)
 		for entry: Dictionary in Database.all():
 			if entry.family!=family: continue
@@ -157,7 +161,7 @@ func run() -> void:
 	await frames(hz/2)
 	shop.open_menu()
 	shop.open_browser()
-	check(shop.is_open and shop.browser.ids.size()==1720 and shop.browser.buttons.size()<=9 and not paused,"The Weapons department includes all named weapons and the four starters, with bounded rows")
+	check(shop.is_open and shop.browser.ids.size()==1708 and shop.browser.buttons.size()<=9 and not paused,"The Weapons department includes all named weapons and the four starters, with bounded rows")
 	await frames(3)
 	check(root.get_visible_rect().encloses(shop.browser.buttons[-1].get_global_rect()),"A complete browser page fits the viewport")
 	shop.browser.query.text = "The Fractured Moon"
@@ -184,7 +188,7 @@ func run() -> void:
 	for category: String in ["weapons","items","armour"]:
 		var previous_model: Node3D = shop.browser.model
 		shop.open_browser(category)
-		var expected: Dictionary = {"weapons":1720,"items":130,"armour":1065}
+		var expected: Dictionary = {"weapons":1708,"items":142,"armour":403}
 		var isolated: bool = shop.browser.ids.size()==expected[category]
 		for id: StringName in shop.browser.ids:
 			isolated = isolated and not visited.has(id)
@@ -196,6 +200,13 @@ func run() -> void:
 			shop.browser.buttons[0].grab_focus()
 			shop._accept()
 			check(p.inventory.count_type(&"health_glyph")==glyphs+1,"Items department acquires exactly one Health Glyph per confirm")
+			shop.browser.filter.select(1)
+			shop.browser.refresh()
+			check(shop.browser.ids.size()==6 and shop.browser.ids.has(&"shield_glyph_heavy") and shop.browser.ids.has(&"home_respawn_glyph"),"Glyph filter includes health, shields, and both placeable respawn glyphs")
+			shop.browser.show_item(&"shield_glyph_heavy")
+			check(shop.browser.model.get_child_count()==3 and shop.buy(&"shield_glyph_heavy"),"Heavy Shield Glyph has a three-layer shield preview and can be purchased")
+			shop.browser.filter.select(0)
+			shop.browser.refresh()
 		if category=="armour":
 			shop.browser.show_item(&"eq_a_1121eea8")
 			await frames(4)
@@ -206,7 +217,7 @@ func run() -> void:
 	var ui: CanvasLayer = world.inventory_session.ui
 	ui.open_menu()
 	ui.select_tab(1)
-	check(ui.equipment_buttons.size()==11 and not paused,"The live inventory exposes cosmetic and ring slots alongside all four directions")
+	check(ui.equipment_buttons.size()==10 and not paused,"The live inventory exposes cosmetic and ring slots alongside all four directions")
 	await frames(3)
 	check(ui._help.global_position.y+ui._help.size.y<=695,"Equipment scrolling keeps the footer within the 720p viewport")
 	await shot("inventory")

@@ -2,6 +2,7 @@ extends Node3D
 ## Shared contextual actions. Seats use the Library's claim/anchor/exit pattern.
 const Neon = preload("res://scripts/neon.gd")
 const MountedPose = preload("res://scripts/mounted_rider_pose.gd")
+const Shields = preload("res://scripts/shield_glyphs.gd")
 const SEATED_HIP_LIFT := 0.08
 const SEATED_FORWARD_OFFSET := 0.12
 var actor: CharacterBody3D
@@ -11,6 +12,8 @@ var seats: Array[Dictionary] = []
 var seat: Dictionary = {}
 var vehicle: CharacterBody3D
 var glyph_count: Label
+var shield_glyph_count: Label
+var vehicle_status: Label
 var _layer := 1
 var _mask := 5
 var _attachment_pose: Dictionary = {}
@@ -33,12 +36,34 @@ func _ready() -> void:
 	glyph_count.add_theme_constant_override("outline_size",4)
 	glyph_count.add_theme_font_size_override("font_size",18)
 	overlay.add_child(glyph_count)
+	shield_glyph_count=glyph_count.duplicate()
+	shield_glyph_count.name="ShieldGlyphCount"
+	shield_glyph_count.position.y=-78
+	shield_glyph_count.add_theme_color_override("font_color",Color(.45,.65,1))
+	overlay.add_child(shield_glyph_count)
+	vehicle_status=Label.new()
+	vehicle_status.name="VehicleStatus"
+	vehicle_status.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
+	vehicle_status.position=Vector2(24,-106)
+	vehicle_status.size=Vector2(650,24)
+	vehicle_status.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	vehicle_status.add_theme_font_size_override("font_size",14)
+	vehicle_status.add_theme_color_override("font_color",Color(.25,.85,1))
+	overlay.add_child(vehicle_status)
 	actor.inventory.changed.connect(refresh_count)
 	refresh_count()
 	call_deferred("register_seats")
 
 func refresh_count() -> void:
 	glyph_count.text = "Health Glyphs  %d" % actor.inventory.count_type(&"health_glyph")
+	var shields:=0
+	for type_id in Shields.PRIORITY: shields+=actor.inventory.count_type(type_id)
+	shield_glyph_count.text="Shield Glyphs  %d" % shields
+
+func _process(_delta: float) -> void:
+	vehicle_status.visible=is_instance_valid(vehicle)
+	if vehicle_status.visible:
+		vehicle_status.text="%.0f m/s  |  BOOST %s  |  LIGHT WAVE %s" % [absf(vehicle.signed_speed),"ON" if actor.controls.boost else "OFF","ON" if vehicle.wave_enabled else "OFF"]
 
 func register_seats() -> void:
 	var metro: Node3D = get_parent().find_child("Metropolis",true,false)
@@ -84,7 +109,7 @@ func nearest() -> Dictionary:
 	if is_instance_valid(life):
 		for candidate: CharacterBody3D in life.vehicles.values():
 			var d := actor.global_position.distance_to(candidate.global_position)
-			if d<best and absf(candidate.signed_speed)<2.5 and visible_between(actor.combat_point(),candidate.global_position+Vector3.UP):
+			if candidate.health>0 and d<best and absf(candidate.signed_speed)<2.5 and visible_between(actor.combat_point(),candidate.global_position+Vector3.UP):
 				best = d
 				result = {"kind":"vehicle","target":candidate,"label":("take " if candidate.has_driver else "drive ")+candidate.kind}
 	for candidate: Dictionary in seats:
@@ -138,6 +163,7 @@ func begin_attachment() -> void:
 	actor.fall_damage.reset()
 
 func board(candidate: CharacterBody3D) -> bool:
+	if not is_instance_valid(candidate) or candidate.health<=0: return false
 	if attached() or not allowed() or not is_instance_valid(candidate) or actor.global_position.distance_to(candidate.global_position)>3 or absf(candidate.signed_speed)>=2.5: return false
 	var theft: bool = not candidate.record.get("taken",false)
 	var displaced: CharacterBody3D
@@ -152,6 +178,7 @@ func board(candidate: CharacterBody3D) -> bool:
 	vehicle.has_driver = false
 	vehicle.record.taken = true
 	begin_attachment()
+	if actor.controls.has_method("set_vehicle_mode"): actor.controls.set_vehicle_mode(true)
 	actor.camera_rig.arm.add_excluded_object(vehicle.get_rid())
 	actor.camera_rig.set_vehicle_mode(true)
 	# Start behind the +Z-facing vehicle, then leave orbit entirely to look input.
@@ -225,11 +252,13 @@ func detach(carry_momentum: bool = false) -> void:
 	seat = {}
 	if is_instance_valid(vehicle):
 		if carry_momentum: inherited = vehicle.velocity
+		vehicle.set_wave_enabled(false)
 		vehicle.player_driver = null
 		if not carry_momentum: vehicle.signed_speed = 0
 		vehicle.record.taken = true
 		actor.camera_rig.arm.remove_excluded_object(vehicle.get_rid())
 	vehicle = null
+	if actor.controls.has_method("set_vehicle_mode"): actor.controls.set_vehicle_mode(false)
 	actor.camera_rig.set_vehicle_mode(false)
 	actor.collision_layer = _layer
 	actor.collision_mask = _mask
@@ -264,7 +293,10 @@ func step(_delta: float) -> bool:
 	actor.controls.consume_dodge()
 	actor.controls.consume_combat_requests()
 	actor.controls.consume_lock_requests()
-	actor.controls.boost = false
+	if is_instance_valid(vehicle):
+		if actor.controls.has_method("consume_vehicle_wave_requests"):
+			for i in range(actor.controls.consume_vehicle_wave_requests()): vehicle.set_wave_enabled(not vehicle.wave_enabled)
+	else: actor.controls.boost = false
 	anchor()
 	return true
 

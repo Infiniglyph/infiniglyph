@@ -1,0 +1,1023 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "id": "vector_disc",
+      "name": "Vector Disc",
+      "description": "A balanced ring of hard light. Its edge writes a brief orbit through the air before returning to its bearer.\n\nBumper attacks cut at close range. Weapon arts send the disc seven meters out and bring it home.",
+      "category": "weapons",
+      "kind": "named",
+      "family": "disc",
+      "slot": "down",
+      "combat_kind": "disc",
+      "rarity": "Rare",
+      "value": 90,
+      "acquisition": "Tower Exchange / Equipment Archive",
+      "geometry": {
+        "family": "disc",
+        "length": 0.52,
+        "width": 0.28,
+        "depth": 0.04,
+        "tint": "6ceeff"
+      },
+      "effects": [],
+      "motion_set": {
+        "cut": "knife",
+        "basic": [
+          "c874d8de3d8f5",
+          "c4a1c7099a56b",
+          "cb0034bd308b3",
+          "c230cdf353040",
+          "c7c9b9d9d623f",
+          "c795653c930b6"
+        ],
+        "arts": [
+          "c9f0c4ce722e5",
+          "cf0b19955da2c",
+          "c9f0c4ce722e5",
+          "cf0b19955da2c"
+        ],
+        "leverage": 1.0692,
+        "tempo": 0.79,
+        "stance": 0.17,
+        "grip": -0.01669,
+        "weight": 0.85
+      },
+      "attachment": {
+        "primary_hand": "right",
+        "offhand": "free",
+        "stow": "back",
+        "model_axis": "+Y"
+      },
+      "guard": 0.56
+    },
+    {
+      "id": "twin_vector_discs",
+      "name": "Twin Vector Discs",
+      "description": "A balanced ring of hard light. Its edge writes a brief orbit through the air before returning to its bearer.\n\nBumper attacks cut at close range. Weapon arts send the disc seven meters out and bring it home.",
+      "category": "weapons",
+      "kind": "named",
+      "family": "dual_disc",
+      "slot": "up",
+      "combat_kind": "dual_disc",
+      "rarity": "Rare",
+      "value": 90,
+      "acquisition": "Tower Exchange / Equipment Archive",
+      "geometry": {
+        "family": "dual_disc",
+        "length": 0.52,
+        "width": 0.28,
+        "depth": 0.04,
+        "tint": "ff71de"
+      },
+      "effects": [],
+      "motion_set": {
+        "cut": "paired",
+        "basic": [
+          "ca745d34a3856",
+          "c89752296f20f",
+          "c5275576304e5",
+          "c09daa6edbb19",
+          "ca10f1e6b9280",
+          "c28fb5aaaa086"
+        ],
+        "arts": [
+          "c8fb879f5f5b8",
+          "c23dea33515a2",
+          "cbda113bf080b",
+          "cbc82130f95ea"
+        ],
+        "leverage": 1.05128,
+        "tempo": 0.79,
+        "stance": 0.17,
+        "grip": -0.01669,
+        "weight": 0.85
+      },
+      "attachment": {
+        "primary_hand": "right",
+        "offhand": "left",
+        "stow": "back",
+        "model_axis": "+Y"
+      },
+      "guard": 0.48
+    },
+    {
+      "id": "warden_khopesh",
+      "name": "Khopesh of the Warden",
+      "description": "A hooked blade carried by the pyramid's jackal sentries. The bright inner edge catches an intruder's guard, while the curved tip finishes the answer.",
+      "category": "weapons",
+      "kind": "named",
+      "family": "curved_sword",
+      "slot": "down",
+      "combat_kind": "sword_shield",
+      "rarity": "Rare",
+      "value": 90,
+      "acquisition": "Tower Exchange / Equipment Archive / Pyramid loot",
+      "geometry": {
+        "family": "curved_sword",
+        "length": 1.15,
+        "width": 0.143,
+        "depth": 0.045,
+        "curve": 0.105,
+        "guard": 0.416,
+        "detail": 5,
+        "paired": false,
+        "tint": "ffc65e",
+        "style": "plate",
+        "bulk": 0.22,
+        "outline": [
+          [
+            -0.035,
+            -0.23
+          ],
+          [
+            0.035,
+            -0.23
+          ],
+          [
+            0.04,
+            0.3
+          ],
+          [
+            0.18,
+            0.5
+          ],
+          [
+            0.34,
+            0.66
+          ],
+          [
+            0.38,
+            0.91
+          ],
+          [
+            0.27,
+            1.15
+          ],
+          [
+            0.35,
+            0.98
+          ],
+          [
+            0.24,
+            0.81
+          ],
+          [
+            0.08,
+            0.68
+          ],
+          [
+            -0.04,
+            0.45
+          ]
+        ]
+      },
+      "effects": [],
+      "motion_set": {
+        "cut": "crescent",
+        "basic": [
+          "c1b4f4f24c6ba",
+          "c0696891ae860",
+          "c9e0de1091ebe",
+          "c879c8e75b1ab",
+          "c7260c87920f7",
+          "c0cf5e2029f2d"
+        ],
+        "arts": [
+          "c6a166bc6a638",
+          "c670fc773741f",
+          "c32749b83cf9d",
+          "c7d913bf13460"
+        ],
+        "leverage": 1.03714,
+        "tempo": 0.79,
+        "stance": 0.17,
+        "grip": -0.01669,
+        "weight": 0.85
+      },
+      "attachment": {
+        "primary_hand": "right",
+        "offhand": "free",
+        "stow": "back",
+        "model_axis": "+Y"
+      }
+    },
+    {
+      "id": "tomb_blade",
+      "name": "Tomb Blade",
+      "description": "A worn funerary blade, still warm with the restless light of its last bearer. Its edge has survived longer than the hands that first held it.",
+      "category": "weapons",
+      "kind": "named",
+      "family": "sword",
+      "slot": "down",
+      "combat_kind": "sword_shield",
+      "rarity": "Rare",
+      "value": 90,
+      "acquisition": "Tower Exchange / Equipment Archive / Pyramid loot",
+      "geometry": {
+        "family": "sword",
+        "length": 0.939,
+        "width": 0.143,
+        "depth": 0.05,
+        "curve": 0,
+        "guard": 0.368,
+        "detail": 5,
+        "paired": false,
+        "tint": "ffe2a2",
+        "style": "plate",
+        "bulk": 0.071,
+        "outline": [
+          [
+            -0.0339,
+            -0.1832
+          ],
+          [
+            -0.031,
+            -0.1374
+          ],
+          [
+            -0.0143,
+            -0.0916
+          ],
+          [
+            -0.017,
+            -0.0458
+          ],
+          [
+            -0.0192,
+            0.0
+          ],
+          [
+            -0.0217,
+            0.0458
+          ],
+          [
+            -0.0228,
+            0.0916
+          ],
+          [
+            -0.0985,
+            0.1374
+          ],
+          [
+            -0.0678,
+            0.1832
+          ],
+          [
+            -0.0224,
+            0.229
+          ],
+          [
+            -0.0233,
+            0.2748
+          ],
+          [
+            -0.0231,
+            0.3206
+          ],
+          [
+            -0.0227,
+            0.3664
+          ],
+          [
+            -0.0226,
+            0.4122
+          ],
+          [
+            -0.0222,
+            0.458
+          ],
+          [
+            -0.022,
+            0.5039
+          ],
+          [
+            -0.0222,
+            0.5497
+          ],
+          [
+            -0.0216,
+            0.5955
+          ],
+          [
+            -0.0213,
+            0.6413
+          ],
+          [
+            -0.0215,
+            0.6871
+          ],
+          [
+            -0.0211,
+            0.7329
+          ],
+          [
+            -0.0207,
+            0.7787
+          ],
+          [
+            -0.0205,
+            0.8245
+          ],
+          [
+            -0.02,
+            0.8703
+          ],
+          [
+            -0.019,
+            0.9161
+          ],
+          [
+            0.0191,
+            0.9161
+          ],
+          [
+            0.0198,
+            0.8703
+          ],
+          [
+            0.0203,
+            0.8245
+          ],
+          [
+            0.0205,
+            0.7787
+          ],
+          [
+            0.0207,
+            0.7329
+          ],
+          [
+            0.0213,
+            0.6871
+          ],
+          [
+            0.0214,
+            0.6413
+          ],
+          [
+            0.0217,
+            0.5955
+          ],
+          [
+            0.0219,
+            0.5497
+          ],
+          [
+            0.0223,
+            0.5039
+          ],
+          [
+            0.0227,
+            0.458
+          ],
+          [
+            0.023,
+            0.4122
+          ],
+          [
+            0.0231,
+            0.3664
+          ],
+          [
+            0.0234,
+            0.3206
+          ],
+          [
+            0.0235,
+            0.2748
+          ],
+          [
+            0.0231,
+            0.229
+          ],
+          [
+            0.0721,
+            0.1832
+          ],
+          [
+            0.1018,
+            0.1374
+          ],
+          [
+            0.023,
+            0.0916
+          ],
+          [
+            0.0223,
+            0.0458
+          ],
+          [
+            0.0197,
+            0.0
+          ],
+          [
+            0.0172,
+            -0.0458
+          ],
+          [
+            0.0151,
+            -0.0916
+          ],
+          [
+            0.0312,
+            -0.1374
+          ],
+          [
+            0.0317,
+            -0.1832
+          ]
+        ]
+      },
+      "effects": [],
+      "motion_set": {
+        "cut": "edge",
+        "basic": [
+          "cc9b1c207fbe3",
+          "c76c80d7a25b9",
+          "cf0ad0d33be16",
+          "c362efdeee4cd",
+          "cecd864be87e8",
+          "c4481754b7d21"
+        ],
+        "arts": [
+          "ce31ee7512ed3",
+          "cb6fc91e2188a",
+          "c9134acdd2a68",
+          "c2a6f1f770699"
+        ],
+        "leverage": 1.04827,
+        "tempo": 0.7137,
+        "stance": 0.17,
+        "grip": -0.01669,
+        "weight": 0.85
+      },
+      "attachment": {
+        "primary_hand": "right",
+        "offhand": "free",
+        "stow": "back",
+        "model_axis": "+Y"
+      }
+    },
+    {
+      "id": "warden_wraps",
+      "name": "Warden's Wraps",
+      "description": "Gold-edged linen and a turquoise collar worn by the jackal guardians. Every fold is kept with the same care as a sharpened blade.",
+      "category": "cosmetics",
+      "kind": "cosmetic",
+      "family": "body",
+      "slot": "body",
+      "combat_kind": "sword_shield",
+      "rarity": "Uncommon",
+      "value": 35,
+      "acquisition": "Pyramid loot / Tower Exchange / Equipment Archive",
+      "geometry": {
+        "family": "body",
+        "length": 0.752,
+        "width": 0.161,
+        "depth": 0.05,
+        "curve": 0,
+        "guard": 0.344,
+        "detail": 3,
+        "paired": false,
+        "tint": "66eeeb",
+        "style": "cloth",
+        "bulk": 0.557,
+        "tailoring": {
+          "cut": "cloth",
+          "waist": 0.205,
+          "chest": 0.24,
+          "depth": 0.15,
+          "shoulder": 0.09,
+          "layers": 2,
+          "ornate": false,
+          "bare": false,
+          "hem": 0.44,
+          "cape": 0,
+          "mantle": true,
+          "asymmetric": false,
+          "ragged": true,
+          "ridge": false,
+          "crest": false,
+          "horns": false,
+          "visor": true,
+          "hat": false,
+          "hood": false,
+          "crown": false,
+          "mask": false,
+          "mimic": false,
+          "scarf": false,
+          "contour": [
+            1.0,
+            0.9787,
+            0.955,
+            0.8468,
+            1.0721
+          ],
+          "fabric": "10191b",
+          "tabard": 0.44
+        }
+      },
+      "effects": []
+    },
+    {
+      "id": "linen_bindings",
+      "name": "Linen Bindings",
+      "description": "Frayed linen recovered from a restless tomb guardian. A faint golden seam keeps its last few threads together.",
+      "category": "cosmetics",
+      "kind": "cosmetic",
+      "family": "hands",
+      "slot": "hands",
+      "combat_kind": "sword_shield",
+      "rarity": "Uncommon",
+      "value": 35,
+      "acquisition": "Pyramid loot / Tower Exchange / Equipment Archive",
+      "geometry": {
+        "family": "hands",
+        "length": 0.792,
+        "width": 0.161,
+        "depth": 0.05,
+        "curve": 0,
+        "guard": 0.248,
+        "detail": 3,
+        "paired": false,
+        "tint": "ffe2a2",
+        "style": "cloth",
+        "bulk": 0.295,
+        "tailoring": {
+          "cut": "cloth",
+          "waist": 0.165,
+          "chest": 0.2303,
+          "depth": 0.152,
+          "shoulder": 0.12,
+          "layers": 3,
+          "ornate": false,
+          "bare": false,
+          "hem": 0.78,
+          "cape": 0,
+          "mantle": false,
+          "asymmetric": true,
+          "ragged": true,
+          "ridge": false,
+          "crest": false,
+          "horns": false,
+          "visor": true,
+          "hat": false,
+          "hood": false,
+          "crown": false,
+          "mask": false,
+          "mimic": false,
+          "contour": [
+            1.0,
+            1.1304,
+            0.923,
+            0.8025,
+            0.8
+          ],
+          "fabric": "10191b",
+          "scarf": false
+        }
+      },
+      "effects": []
+    },
+    {
+      "id": "jackal_pendant",
+      "name": "Jackal Pendant",
+      "description": "A small jackal-marked token of the pyramid watch. Its surface remembers the warmth of a living hand. A cosmetic keepsake.",
+      "category": "misc",
+      "kind": "ring",
+      "family": "ring",
+      "slot": "ring",
+      "combat_kind": "sword_shield",
+      "rarity": "Uncommon",
+      "value": 35,
+      "acquisition": "Pyramid loot / Tower Exchange / Equipment Archive",
+      "geometry": {
+        "family": "ring",
+        "length": 0.808,
+        "width": 0.08,
+        "depth": 0.05,
+        "curve": 0,
+        "guard": 0.344,
+        "detail": 3,
+        "paired": false,
+        "tint": "ffe2a2",
+        "style": "plate",
+        "bulk": 0.593
+      },
+      "effects": []
+    },
+    {
+      "id": "horuswing_blades",
+      "name": "Horuswing Blades",
+      "description": "Curved ceremonial blades of the sky-wardens. Each edge follows the feather beside it; together they close around the space an intruder meant to escape through.",
+      "category": "weapons",
+      "kind": "named",
+      "family": "twin_blades",
+      "slot": "up",
+      "combat_kind": "twin_blades",
+      "rarity": "Uncommon",
+      "value": 100,
+      "acquisition": "Pyramid B2 / Tower Exchange / Equipment Archive",
+      "geometry": {
+        "family": "twin_blades",
+        "length": 0.92,
+        "width": 0.125,
+        "depth": 0.035,
+        "curve": 0,
+        "guard": 0.392,
+        "detail": 2,
+        "paired": true,
+        "tint": "ffd170",
+        "style": "plate",
+        "bulk": 0.136,
+        "outline": [
+          [
+            -0.04,
+            -0.14
+          ],
+          [
+            0.04,
+            -0.14
+          ],
+          [
+            0.05,
+            0.16
+          ],
+          [
+            0.11,
+            0.4
+          ],
+          [
+            0.23,
+            0.64
+          ],
+          [
+            0.3,
+            0.84
+          ],
+          [
+            0.23,
+            0.78
+          ],
+          [
+            0.1,
+            0.64
+          ],
+          [
+            0.015,
+            0.38
+          ],
+          [
+            -0.035,
+            0.15
+          ]
+        ]
+      },
+      "effects": [],
+      "motion_set": {
+        "cut": "paired",
+        "basic": [
+          "ca745d34a3856",
+          "c89752296f20f",
+          "c5275576304e5",
+          "c09daa6edbb19",
+          "ca10f1e6b9280",
+          "c28fb5aaaa086"
+        ],
+        "arts": [
+          "c8fb879f5f5b8",
+          "c23dea33515a2",
+          "cbda113bf080b",
+          "cbc82130f95ea"
+        ],
+        "leverage": 1.05128,
+        "tempo": 0.88,
+        "stance": 0.17,
+        "grip": -0.024,
+        "weight": 0.85
+      },
+      "attachment": {
+        "primary_hand": "right",
+        "offhand": "left",
+        "stow": "back",
+        "model_axis": "+Y"
+      }
+    },
+    {
+      "id": "sentinel_spear",
+      "name": "Sentinel Spear",
+      "description": "A long reach weapon carried through the pyramid courts by the aerial guard. Its narrow point gives a distant landing the same finality as a step taken at arm's length.",
+      "category": "weapons",
+      "kind": "named",
+      "family": "spear",
+      "slot": "left",
+      "combat_kind": "spear",
+      "rarity": "Uncommon",
+      "value": 100,
+      "acquisition": "Pyramid B2 / Tower Exchange / Equipment Archive",
+      "geometry": {
+        "family": "spear",
+        "length": 1.9,
+        "width": 0.15,
+        "depth": 0.04,
+        "curve": 0,
+        "guard": 0.32,
+        "detail": 1,
+        "paired": false,
+        "tint": "ffd170",
+        "style": "plate",
+        "bulk": 0.094,
+        "outline": [
+          [
+            0.0088,
+            -0.4449
+          ],
+          [
+            0.0076,
+            -0.3337
+          ],
+          [
+            0.0058,
+            -0.2224
+          ],
+          [
+            -0.0372,
+            -0.1112
+          ],
+          [
+            -0.1566,
+            0.0
+          ],
+          [
+            -0.1706,
+            0.1112
+          ],
+          [
+            -0.143,
+            0.2224
+          ],
+          [
+            -0.104,
+            0.3337
+          ],
+          [
+            -0.0761,
+            0.4449
+          ],
+          [
+            -0.0424,
+            0.5561
+          ],
+          [
+            -0.0288,
+            0.6673
+          ],
+          [
+            -0.0521,
+            0.7785
+          ],
+          [
+            -0.0508,
+            0.8898
+          ],
+          [
+            -0.0376,
+            1.001
+          ],
+          [
+            -0.0273,
+            1.1122
+          ],
+          [
+            -0.023,
+            1.2234
+          ],
+          [
+            -0.0208,
+            1.3346
+          ],
+          [
+            -0.0628,
+            1.4459
+          ],
+          [
+            -0.0877,
+            1.5571
+          ],
+          [
+            -0.0837,
+            1.6683
+          ],
+          [
+            -0.0779,
+            1.7795
+          ],
+          [
+            -0.0716,
+            1.8907
+          ],
+          [
+            -0.0641,
+            2.002
+          ],
+          [
+            -0.055,
+            2.1132
+          ],
+          [
+            -0.0402,
+            2.2244
+          ],
+          [
+            0.0221,
+            2.2244
+          ],
+          [
+            0.0412,
+            2.1132
+          ],
+          [
+            0.0532,
+            2.002
+          ],
+          [
+            0.0644,
+            1.8907
+          ],
+          [
+            0.0749,
+            1.7795
+          ],
+          [
+            0.0837,
+            1.6683
+          ],
+          [
+            0.0924,
+            1.5571
+          ],
+          [
+            0.068,
+            1.4459
+          ],
+          [
+            0.0344,
+            1.3346
+          ],
+          [
+            0.0404,
+            1.2234
+          ],
+          [
+            0.0499,
+            1.1122
+          ],
+          [
+            0.066,
+            1.001
+          ],
+          [
+            0.0897,
+            0.8898
+          ],
+          [
+            0.0875,
+            0.7785
+          ],
+          [
+            0.0703,
+            0.6673
+          ],
+          [
+            0.0851,
+            0.5561
+          ],
+          [
+            0.0722,
+            0.4449
+          ],
+          [
+            0.062,
+            0.3337
+          ],
+          [
+            0.0611,
+            0.2224
+          ],
+          [
+            0.0625,
+            0.1112
+          ],
+          [
+            0.0694,
+            0.0
+          ],
+          [
+            0.0746,
+            -0.1112
+          ],
+          [
+            0.076,
+            -0.2224
+          ],
+          [
+            0.0792,
+            -0.3337
+          ],
+          [
+            0.0805,
+            -0.4449
+          ]
+        ],
+        "ring_head": true
+      },
+      "effects": [],
+      "motion_set": {
+        "cut": "lance",
+        "basic": [
+          "c66ecb7e574bf",
+          "cf7c967a370e4",
+          "c801412565fe1",
+          "c7376eb8ecf5a",
+          "c5c6cae497452",
+          "c01c7cb0d4328"
+        ],
+        "arts": [
+          "c7f9dab931c08",
+          "c7cbc9e285edb",
+          "c9252696b00ef",
+          "c35198c0c6a2b"
+        ],
+        "leverage": 1.15,
+        "tempo": 0.94,
+        "stance": 0.21,
+        "grip": 0.018,
+        "weight": 1.08
+      },
+      "attachment": {
+        "primary_hand": "right",
+        "offhand": "support",
+        "stow": "back",
+        "model_axis": "+Y"
+      }
+    },
+    {
+      "id": "falcon_sentinel_mantle",
+      "name": "Falcon Sentinel Mantle",
+      "description": "Layered feathered armor edged with the sky-wardens' cyan inscriptions. The mantle settles like a folded pair of wings, remembering the height from which its bearer once watched the courts.",
+      "category": "cosmetics",
+      "kind": "counterpart",
+      "family": "body",
+      "slot": "body",
+      "combat_kind": "none",
+      "rarity": "Uncommon",
+      "value": 75,
+      "acquisition": "Pyramid B2 / Tower Exchange / Equipment Archive",
+      "geometry": {
+        "family": "body",
+        "tint": "ffd170",
+        "renderer": "falcon_mantle"
+      },
+      "effects": []
+    },
+    {
+      "id": "skyguard_tassets",
+      "name": "Skyguard Tassets",
+      "description": "Light overlapping plates and a hieroglyphic waistcloth, made for a guard who trusts the next foothold to appear in open air. Their gilded feathers promise movement rather than weight.",
+      "category": "cosmetics",
+      "kind": "counterpart",
+      "family": "legs",
+      "slot": "legs",
+      "combat_kind": "none",
+      "rarity": "Uncommon",
+      "value": 75,
+      "acquisition": "Pyramid B2 / Tower Exchange / Equipment Archive",
+      "geometry": {
+        "family": "legs",
+        "tint": "ffd170",
+        "renderer": "falcon_tassets"
+      },
+      "effects": []
+    },
+    {
+      "id": "eye_of_horus_seal",
+      "name": "Eye of Horus Seal",
+      "description": "A sentinel's small watchful seal. The eye remained open through every ascent and every fall. Its remembered vigilance lives in every luminous line.",
+      "category": "misc",
+      "kind": "counterpart",
+      "family": "ring",
+      "slot": "ring",
+      "combat_kind": "none",
+      "rarity": "Uncommon",
+      "value": 75,
+      "acquisition": "Pyramid B2 / Tower Exchange / Equipment Archive",
+      "geometry": {
+        "family": "ring",
+        "tint": "ffd170",
+        "renderer": "falcon_seal"
+      },
+      "effects": []
+    }
+  ]
+}

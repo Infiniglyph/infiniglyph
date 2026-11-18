@@ -19,9 +19,13 @@ func _initialize() -> void: call_deferred("run")
 
 func run() -> void:
 	world = load("res://scenes/main.tscn").instantiate()
+	world.inventory_persistence_enabled = false
+	world.world_memory_enabled = false
+	world.district_life_enabled = false
+	world.boss_encounters_enabled = false
 	root.add_child(world)
 	world.player.visual.retrieval.enabled = false
-	city = world.get_node("CentralDistrict/Metropolis")
+	city = world.dungeon_travel.outside_root.get_node("CentralDistrict/Metropolis")
 	await frames(15)
 	check(city.solids.size()>650,"The new district contains real architectural volumes, not background silhouettes")
 	check(city.render_batches<city.solids.size()/4,"Static architecture is batched into spatial cells")
@@ -104,7 +108,7 @@ func run() -> void:
 	omnis.append(world.sparring_partner.light)
 	var max_spots := 0
 	var max_omnis := 0
-	for surface: MeshInstance3D in world.get_node("CentralDistrict").find_children("*","MeshInstance3D",true,false):
+	for surface: MeshInstance3D in world.dungeon_travel.outside_root.get_node("CentralDistrict").find_children("*","MeshInstance3D",true,false):
 		var material: Material = surface.material_override if surface.material_override != null else surface.mesh.surface_get_material(0)
 		if not material is StandardMaterial3D or material.shading_mode != BaseMaterial3D.SHADING_MODE_PER_PIXEL: continue
 		var bounds: AABB = surface.global_transform*surface.get_aabb()

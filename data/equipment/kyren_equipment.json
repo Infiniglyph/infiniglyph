@@ -1,0 +1,433 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "id": "kyren_katana",
+      "name": "Kyren's Katana",
+      "description": "A crimson-bound longcurve patterned after Kyren's blade. Its Silent Contour technique closes the distance in a blinding draw, then returns the steel to its sheath with a master's precision.\n\nKyren has practiced ending a fight in a single motion. He is still learning how to let one go.",
+      "category": "weapons",
+      "kind": "named",
+      "family": "katana",
+      "slot": "right",
+      "combat_kind": "katana",
+      "rarity": "Named",
+      "value": 180,
+      "acquisition": "Tower Exchange / Equipment Archive",
+      "geometry": {
+        "family": "katana",
+        "length": 1.3,
+        "width": 0.052,
+        "depth": 0.05,
+        "curve": 0.105,
+        "guard": 0.392,
+        "detail": 0,
+        "paired": false,
+        "tint": "ffb454",
+        "style": "plate",
+        "bulk": 0.049,
+        "outline": [
+          [
+            -0.0176,
+            -0.2537
+          ],
+          [
+            -0.0204,
+            -0.1902
+          ],
+          [
+            -0.0225,
+            -0.1268
+          ],
+          [
+            -0.0242,
+            -0.0634
+          ],
+          [
+            -0.0255,
+            0.0
+          ],
+          [
+            -0.0268,
+            0.0634
+          ],
+          [
+            -0.0284,
+            0.1268
+          ],
+          [
+            -0.0286,
+            0.1902
+          ],
+          [
+            -0.0305,
+            0.2537
+          ],
+          [
+            -0.07,
+            0.3171
+          ],
+          [
+            -0.0284,
+            0.3805
+          ],
+          [
+            -0.0269,
+            0.4439
+          ],
+          [
+            -0.0268,
+            0.5073
+          ],
+          [
+            -0.0266,
+            0.5707
+          ],
+          [
+            -0.0261,
+            0.6341
+          ],
+          [
+            -0.0261,
+            0.6976
+          ],
+          [
+            -0.0253,
+            0.761
+          ],
+          [
+            -0.0246,
+            0.8244
+          ],
+          [
+            -0.0235,
+            0.8878
+          ],
+          [
+            -0.023,
+            0.9512
+          ],
+          [
+            -0.0218,
+            1.0146
+          ],
+          [
+            -0.0206,
+            1.078
+          ],
+          [
+            -0.0196,
+            1.1415
+          ],
+          [
+            -0.0175,
+            1.2049
+          ],
+          [
+            -0.0153,
+            1.2683
+          ],
+          [
+            0.0295,
+            1.2683
+          ],
+          [
+            0.0277,
+            1.2049
+          ],
+          [
+            0.026,
+            1.1415
+          ],
+          [
+            0.0245,
+            1.078
+          ],
+          [
+            0.0239,
+            1.0146
+          ],
+          [
+            0.0232,
+            0.9512
+          ],
+          [
+            0.0219,
+            0.8878
+          ],
+          [
+            0.021,
+            0.8244
+          ],
+          [
+            0.0203,
+            0.761
+          ],
+          [
+            0.0196,
+            0.6976
+          ],
+          [
+            0.0197,
+            0.6341
+          ],
+          [
+            0.0198,
+            0.5707
+          ],
+          [
+            0.0198,
+            0.5073
+          ],
+          [
+            0.02,
+            0.4439
+          ],
+          [
+            0.0209,
+            0.3805
+          ],
+          [
+            0.0727,
+            0.3171
+          ],
+          [
+            0.0289,
+            0.2537
+          ],
+          [
+            0.0244,
+            0.1902
+          ],
+          [
+            0.0225,
+            0.1268
+          ],
+          [
+            0.0245,
+            0.0634
+          ],
+          [
+            0.0257,
+            0.0
+          ],
+          [
+            0.0269,
+            -0.0634
+          ],
+          [
+            0.0273,
+            -0.1268
+          ],
+          [
+            0.0273,
+            -0.1902
+          ],
+          [
+            0.0372,
+            -0.2537
+          ]
+        ]
+      },
+      "effects": [],
+      "motion_set": {
+        "cut": "longcurve",
+        "basic": [
+          "c9de998bc3c79",
+          "cf5b5a3eb689b",
+          "cfdb430469546",
+          "cf31c532b6202",
+          "c0ab111115bf0",
+          "c2233f2f3f9df"
+        ],
+        "arts": [
+          "cb27fe239acdd",
+          "ca75a737251a1",
+          "c8064b350d4f7",
+          "cc364ca2169a7"
+        ],
+        "leverage": 1.023,
+        "tempo": 0.87,
+        "stance": 0.17,
+        "grip": -0.024,
+        "weight": 0.85
+      },
+      "attachment": {
+        "primary_hand": "right",
+        "offhand": "support",
+        "stow": "left_hip",
+        "model_axis": "+Y"
+      },
+      "guard": 0.72,
+      "handling": {
+        "attack_right": [
+          {
+            "name": "Measured Cut",
+            "damage": 29,
+            "reach": 3.8,
+            "arc": 170,
+            "hit_stun_level": 1.15
+          },
+          {
+            "name": "Returning Horizon",
+            "damage": 32,
+            "reach": 4.1499999999999995,
+            "arc": 180,
+            "hit_stun_level": 1.2999999999999998
+          },
+          {
+            "name": "Threefold Contour",
+            "damage": 35,
+            "reach": 4.5,
+            "arc": 190,
+            "hit_stun_level": 1.45
+          }
+        ],
+        "attack_left": [
+          {
+            "name": "Rooted Rising Cut",
+            "damage": 35,
+            "reach": 3.8,
+            "arc": 170,
+            "hit_stun_level": 1.15
+          },
+          {
+            "name": "Scarfwind Sweep",
+            "damage": 38,
+            "reach": 4.1499999999999995,
+            "arc": 180,
+            "hit_stun_level": 1.2999999999999998
+          },
+          {
+            "name": "Low Moon Return",
+            "damage": 41,
+            "reach": 4.5,
+            "arc": 190,
+            "hit_stun_level": 1.45
+          }
+        ],
+        "special_x": [
+          {
+            "name": "Crimson Horizon",
+            "duration": 0.95,
+            "windup": 0.22000000000000003,
+            "hits": [
+              0.34
+            ],
+            "damage": 44,
+            "reach": 7.0,
+            "arc": 210,
+            "profile": "crescent",
+            "hit_stun_level": 2.1,
+            "hit_stagger": 0.3
+          }
+        ],
+        "special_y": [
+          {
+            "name": "Rising Red Moon",
+            "duration": 1.15,
+            "windup": 0.3,
+            "hits": [
+              0.42,
+              0.72
+            ],
+            "damage": 32,
+            "reach": 6.5,
+            "arc": 240,
+            "profile": "cross",
+            "hit_stun_level": 2.1,
+            "hit_stagger": 0.3
+          }
+        ],
+        "special_rt_x": [
+          {
+            "name": "Scarfwind Circuit",
+            "duration": 1.2,
+            "windup": 0.26,
+            "hits": [
+              0.38,
+              0.66,
+              0.94
+            ],
+            "damage": 24,
+            "reach": 6.0,
+            "arc": 300,
+            "profile": "orbit",
+            "hit_stun_level": 2.1,
+            "hit_stagger": 0.3
+          }
+        ],
+        "special_rt_y": [
+          {
+            "name": "Silent Contour",
+            "duration": 1.35,
+            "windup": 0.21000000000000002,
+            "hits": [
+              0.33
+            ],
+            "damage": 56,
+            "reach": 4.6,
+            "arc": 150,
+            "profile": "crescent",
+            "hit_stun_level": 2.1,
+            "hit_stagger": 0.3,
+            "dash": {
+              "start": 0.2,
+              "end": 0.36,
+              "speed": 28.0
+            },
+            "auto_sheathe": true,
+            "sheath_start": 0.68
+          }
+        ]
+      }
+    },
+    {
+      "category": "cosmetics",
+      "kind": "cosmetic",
+      "combat_kind": "none",
+      "rarity": "Named",
+      "value": 120,
+      "acquisition": "Kyren defeat / Tower Exchange / Equipment Archive",
+      "effects": [],
+      "id": "kyren_hat",
+      "name": "Kyren's Straw Hat",
+      "description": "A deep crimson straw hat patterned after Kyren's own. Embers slip from its woven brim as quietly as petals fall around his resting place beneath the cherry tree.\n\nFrom a distance, its owner seems the very picture of patience. A few well-timed parries tend to spoil the illusion.",
+      "family": "head",
+      "slot": "head",
+      "geometry": {
+        "family": "head",
+        "renderer": "kyren_hat",
+        "style": "cloth",
+        "length": 0.6,
+        "width": 0.6,
+        "depth": 0.1,
+        "bulk": 0.05,
+        "tint": "ab130b"
+      }
+    },
+    {
+      "category": "cosmetics",
+      "kind": "cosmetic",
+      "combat_kind": "none",
+      "rarity": "Named",
+      "value": 120,
+      "acquisition": "Kyren defeat / Tower Exchange / Equipment Archive",
+      "effects": [],
+      "id": "kyren_scarf",
+      "name": "Kyren's Scarf",
+      "description": "A copy of Kyren's deep red scarf. Three metres of cloth follow a restless wind, even when he sits motionless beneath the cherry blossoms.\n\nIt trails every sweeping cut and sudden change of direction. Somehow, the scarf always regains its composure before Kyren does.",
+      "family": "body",
+      "slot": "body",
+      "geometry": {
+        "family": "body",
+        "renderer": "kyren_scarf",
+        "style": "cloth",
+        "length": 1.0,
+        "width": 0.4,
+        "depth": 0.1,
+        "bulk": 0.05,
+        "tint": "450204"
+      }
+    }
+  ]
+}

@@ -18,8 +18,20 @@ var _render_clock := 0.0
 var _render_duration := 0.2
 var _virtual_speed := 0.0
 var _virtual_yaw := 0.0
+var health: float:
+	get: return life.reactions.civilian_health(self) if is_instance_valid(life.reactions) else 1000.0
+
+func combat_point() -> Vector3:
+	return global_position+Vector3.UP*.95
+
+func receive_hit(amount: float, origin: Vector3, attacker: Node = null, incoming: Dictionary = {}) -> float:
+	return life.reactions.receive_assault(self,amount,origin,attacker,incoming) if is_instance_valid(life.reactions) else 0.0
+
+func receive_combat_hit(amount: float, origin: Vector3, attacker: Node, incoming: Dictionary = {}) -> float:
+	return receive_hit(amount,origin,attacker,incoming)
 
 func _ready() -> void:
+	add_to_group("vehicle_wave_targets")
 	global_position = record.point
 	profile = record.profile
 	wait = float(record.get("wait",0))
@@ -55,6 +67,7 @@ func _ready() -> void:
 	caption.outline_size = 7
 	add_child(caption)
 	set_process(false)
+	if is_instance_valid(life.reactions): life.reactions.bind_source(self)
 
 func set_virtualized(value: bool) -> bool:
 	if virtualized==value or record.get("combat",false): return true
@@ -110,6 +123,9 @@ func _process(delta: float) -> void:
 
 func talk() -> void:
 	record.meetings += 1
+	if is_instance_valid(life.reactions) and life.reactions.is_annoyed(self):
+		life.reactions.answer_annoyed(self)
+		return
 	caption.text = Profiles.GREETINGS[profile.attitude] if record.meetings==1 else Profiles.AGAIN[profile.attitude]
 	wait = 6
 	state = "talking"

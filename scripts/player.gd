@@ -9,6 +9,8 @@ const FallDamage = preload("res://scripts/fall_damage.gd")
 const Inventory = preload("res://scripts/inventory.gd")
 const Unstuck = preload("res://scripts/unstuck.gd")
 signal air_stepped(origin: Vector3, side: int)
+signal defeated
+signal respawned
 @export var walk_speed := 3.5
 @export var run_speed := 7.5
 @export var boost_speed := 10.2
@@ -23,6 +25,7 @@ signal air_stepped(origin: Vector3, side: int)
 @export var inventory_owner_id := ""
 var sparring_duel: Node
 var boss_encounter: Node
+var kyren_encounter: Node
 var health: float:
 	get: return weapon_combat.health if is_instance_valid(weapon_combat) else WeaponCombat.BASE_HEALTH
 var controls: Node
@@ -37,6 +40,9 @@ var inventory: Node
 var loot_authority: Node
 var unstuck: Node
 var world_actions: Node3D
+var respawn_context: Node
+var respawn_selector: Node
+var transition_locked := false
 var _death_serial := 0
 var _death_processing := false
 var _jump_after_dodge := false
@@ -45,6 +51,9 @@ var air_step_count := 0
 var last_sky_impulse := Vector3.ZERO
 var _glass_steps: Array[Node3D] = []
 var spawn := Vector3(0,0.05,6)
+
+func create_visual() -> Node3D: return Visual.new()
+func create_weapon_combat() -> Node: return WeaponCombat.new()
 
 func _ready() -> void:
 	name = "Player"
@@ -60,7 +69,7 @@ func _ready() -> void:
 	collider.shape = capsule
 	collider.position.y = 0.95
 	add_child(collider)
-	visual = Visual.new()
+	visual = create_visual()
 	visual.live_retrieval = live_motion_retrieval
 	add_child(visual)
 	dodge = PhaseDodge.new()
@@ -80,7 +89,7 @@ func _ready() -> void:
 	target_lock = TargetLock.new()
 	target_lock.actor = self
 	add_child(target_lock)
-	weapon_combat = WeaponCombat.new()
+	weapon_combat = create_weapon_combat()
 	weapon_combat.actor = self
 	add_child(weapon_combat)
 	inventory.equipment_changed.connect(combat.refresh_equipment)
@@ -98,6 +107,7 @@ func _ready() -> void:
 	add_child(unstuck)
 
 func _physics_process(delta: float) -> void:
+	if transition_locked: return
 	weapon_combat.advance_stagger(delta)
 	fall_damage.advance(delta)
 	controls.sample()
@@ -159,6 +169,9 @@ func _physics_process(delta: float) -> void:
 		else: velocity.y = jump_speed
 	# Step up only when grounded, obstructed, and a clear raised sweep exists.
 	# A downward sweep confirms support: no automatic ascent into open space.
+	var driven: Vector2 = weapon_combat.drive_velocity(Vector2(velocity.x,velocity.z))
+	velocity.x = driven.x
+	velocity.z = driven.y
 	var motion := Vector3(velocity.x,0,velocity.z)*delta
 	if is_on_floor() and velocity.y <= 0 and motion.length() > 0.001 and test_move(global_transform,motion):
 		var raised := global_transform.translated(Vector3.UP*0.29)
@@ -179,14 +192,22 @@ func _physics_process(delta: float) -> void:
 		visual.rotation.y = lerp_angle(visual.rotation.y,atan2(velocity.x,velocity.z),1-exp(-16*delta))
 	visual.animate(delta,velocity,is_on_floor(),boost_active,{"boost":float(controls.boost),"repetition":clampf(air_step_count/6.0,0,1),"reversal":reversal})
 	unstuck.remember_safe(delta)
-	if position.y < -12: respawn()
+	var minimum: float=respawn_context.minimum_height() if is_instance_valid(respawn_context) else -12.0
+	if global_position.y < minimum: respawn()
 
 func face_locked_target() -> void:
 	if target_lock.is_locked() and not weapon_combat.visual_frozen():
 		var facing: Vector3 = target_lock.facing()
 		visual.rotation.y = atan2(facing.x,facing.z)
 
+func request_respawn() -> void:
+	if is_instance_valid(respawn_selector) and respawn_selector.begin_choice(): return
+	respawn()
+
 func respawn() -> void:
+	if is_instance_valid(kyren_encounter) and kyren_encounter.active:
+		if global_position.y < -12: kyren_encounter.finish(false)
+		else: kyren_encounter.disengage()
 	if is_instance_valid(world_actions) and world_actions.attached(): world_actions.detach()
 	if is_instance_valid(sparring_duel) and sparring_duel.active: sparring_duel.finish(false)
 	dodge.cancel()
@@ -195,7 +216,7 @@ func respawn() -> void:
 	combat.reset()
 	weapon_combat.reset()
 	_jump_after_dodge = false
-	global_position = spawn
+	global_position = respawn_context.resolve_spawn(spawn) if is_instance_valid(respawn_context) else spawn
 	velocity = Vector3.ZERO
 	controls.boost = false
 	boost_active = false
@@ -208,6 +229,7 @@ func respawn() -> void:
 		if is_instance_valid(step): step.queue_free()
 	_glass_steps.clear()
 	camera_rig.reset_follow()
+	respawned.emit()
 
 func combat_point() -> Vector3:
 	return global_position+Vector3.UP*0.95
@@ -224,6 +246,7 @@ func body_impact_point(hurtbox_contact: Vector3) -> Vector3:
 	return center+(outward.normalized()*0.045 if not outward.is_zero_approx() else Vector3.ZERO)
 
 func receive_hit(amount: float, source: Vector3, attacker: Node = null, incoming: Dictionary = {}) -> float:
+	if transition_locked: return 0
 	if amount>0 and is_instance_valid(boss_encounter) and boss_encounter.active and attacker == boss_encounter.boss:
 		boss_encounter.register_contact()
 	return weapon_combat.receive_hit(amount,source,attacker,incoming)
@@ -235,20 +258,24 @@ func on_parried(source: Vector3) -> void:
 	weapon_combat.stagger(source)
 
 func can_attack_target(target: Node) -> bool:
+	if is_instance_valid(kyren_encounter) and kyren_encounter.active: return target == kyren_encounter.boss
 	if is_instance_valid(boss_encounter) and boss_encounter.active: return target == boss_encounter.boss
 	return not is_instance_valid(sparring_duel) or not sparring_duel.active or target == sparring_duel.partner
 
 func on_combat_defeat() -> void:
 	if _death_processing or weapon_combat.health>0: return
 	_death_processing = true
-	if is_instance_valid(boss_encounter) and boss_encounter.active:
+	defeated.emit()
+	if is_instance_valid(kyren_encounter) and kyren_encounter.active:
+		kyren_encounter.player_defeated()
+	elif is_instance_valid(boss_encounter) and boss_encounter.active:
 		boss_encounter.player_defeated()
 	elif is_instance_valid(sparring_duel) and sparring_duel.active:
 		sparring_duel.finish(false)
 	else:
 		_death_serial += 1
 		if is_instance_valid(loot_authority): loot_authority.resolve_death(inventory,str(get_instance_id())+":"+str(_death_serial),global_position)
-		respawn()
+		request_respawn()
 	_death_processing = false
 
 func _spawn_glass_step(side: int, impulse: Vector3) -> void:

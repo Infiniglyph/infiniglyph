@@ -263,10 +263,14 @@ func stair_top_path(side: int) -> PackedVector3Array:
 
 func run() -> void:
 	world = load("res://scenes/main.tscn").instantiate()
+	world.inventory_persistence_enabled = false
+	world.world_memory_enabled = false
+	world.district_life_enabled = false
+	world.boss_encounters_enabled = false
 	root.add_child(world)
 	actor = world.player
 	actor.visual.retrieval.enabled = false
-	city = world.get_node("CentralDistrict/Metropolis")
+	city = world.dungeon_travel.outside_root.get_node("CentralDistrict/Metropolis")
 	input = Intent.new()
 	root.add_child(input)
 	actor.controls = input

@@ -4,6 +4,8 @@ const Chunk = preload("res://scripts/world_chunk.gd")
 const Neon = preload("res://scripts/neon.gd")
 const PersonVisual = preload("res://scripts/resident_visual.gd")
 const MountedPose = preload("res://scripts/mounted_rider_pose.gd")
+const LightWave = preload("res://scripts/vehicle_light_wave.gd")
+const DamageNumber = preload("res://scripts/damage_number.gd")
 var life: Node3D
 var record: Dictionary
 var kind := "car"
@@ -13,6 +15,11 @@ var signed_speed := 0.0
 var seat_height := 0.69
 var seat_z := 0.05
 var top_speed := 19.0
+@export var boost_multiplier := 1.65
+var max_health := 1000.0
+var health := 1000.0
+var wave_enabled := false
+var light_wave: MeshInstance3D
 # Full-lock low-speed radius is about 4.5 m; bound yaw at speed so a sharp
 # parking/intersection turn does not become a twitchy high-speed spin.
 @export_range(0.01,0.5,0.01) var steering_turn_per_meter := 0.22
@@ -48,11 +55,13 @@ func _ready() -> void:
 	kind = record.kind
 	name = kind.capitalize()+"_"+str(record.id)
 	if kind=="motorcycle":
+		max_health=650
 		dimensions = Vector3(0.85,1.35,2.35)
 		seat_height = 0.98
 		seat_z = -0.10
 		top_speed = 23
 	elif kind=="truck":
+		max_health=1600
 		dimensions = Vector3(2.25,2.5,5.4)
 		seat_height = 1.02
 		seat_z = 1.35
@@ -68,12 +77,55 @@ func _ready() -> void:
 	shape.position.y = dimensions.y*0.5+0.06
 	add_child(shape)
 	build_visual()
+	health=clampf(float(record.get("health",max_health)),0,max_health)
+	add_to_group("vehicle_wave_targets")
+	light_wave=LightWave.new()
+	light_wave.vehicle=self
+	add_child(light_wave)
 	_probe.shape = _probe_box
 	_probe.collision_mask = 13
 	_probe.exclude = [get_rid()]
 	_sensor_clock = float(record.id%7)*0.014
-	has_driver = record.traffic and not record.taken
+	has_driver = record.traffic and not record.taken and health>0
 	driver_visual.visible = has_driver
+	if health<=0: _wreck()
+
+func set_wave_enabled(value: bool) -> void:
+	wave_enabled=value and health>0 and is_instance_valid(player_driver)
+	light_wave.set_enabled(wave_enabled)
+
+func combat_point() -> Vector3: return global_position+Vector3.UP*dimensions.y*.5
+
+func receive_combat_hit(amount: float, _origin: Vector3, _attacker: Node, _incoming: Dictionary = {}) -> float:
+	if health<=0 or amount<=0 or not is_finite(amount): return 0
+	var applied:=minf(health,amount)
+	health-=applied
+	record.health=health
+	DamageNumber.make_room(get_tree())
+	var number:=DamageNumber.new()
+	number.text="%.0f" % applied
+	get_parent().add_child(number)
+	number.global_position=global_position+Vector3.UP*(dimensions.y+.5)
+	if health<=0: _wreck()
+	return applied
+
+func _wreck() -> void:
+	record.health=0.0
+	record.taken=true
+	has_driver=false
+	signed_speed=0
+	wave_enabled=false
+	if is_instance_valid(light_wave): light_wave.set_enabled(false)
+	for lamp in lamps: lamp.visible=false
+	if is_instance_valid(driver_visual): driver_visual.hide()
+	if not has_node("WreckMarker"):
+		var marker:=Neon.lines(PackedVector3Array([Vector3(-.35,dimensions.y+.1,0),Vector3(.35,dimensions.y+.7,0),Vector3(.35,dimensions.y+.1,0),Vector3(-.35,dimensions.y+.7,0)]),Neon.shared_material(Color(1,.18,.08)))
+		marker.name="WreckMarker"
+		add_child(marker)
+	# A wreck remains a physical obstacle and cannot be boarded or accelerated.
+	if is_instance_valid(player_driver):
+		player_driver.controls.boost=false
+		player_driver.world_actions.leave()
 
 func rider_anchors() -> Dictionary:
 	# Vehicle-local +Z is forward. Contacts are shared by the player, the
@@ -287,7 +339,7 @@ func _physics_process(delta: float) -> void:
 		var controls: Node = player_driver.controls
 		throttle = -controls.move.y
 		steering = controls.move.x
-		desired = throttle*(top_speed if throttle>=0 else 6.0)
+		desired = throttle*(top_speed*(boost_multiplier if controls.boost else 1.0) if throttle>=0 else 6.0)
 		# The vehicle's nose is +Z. Its physical right is therefore -X:
 		# subtract yaw to steer right, reversing naturally when backing up.
 		# Camera yaw/look never participates in either throttle or steering.
@@ -322,7 +374,9 @@ func _physics_process(delta: float) -> void:
 			_blocked = not get_world_3d().direct_space_state.intersect_shape(_probe,1).is_empty()
 			sensor_checks += 1
 		if _blocked: desired = 0
-	var rate := 16.0 if desired*signed_speed<0 or absf(desired)<absf(signed_speed) else 7.0
+	if health<=0: desired=0
+	var accelerating: bool=is_instance_valid(player_driver) and player_driver.controls.boost
+	var rate := 16.0 if desired*signed_speed<0 or absf(desired)<absf(signed_speed) else (11.0 if accelerating else 7.0)
 	signed_speed = move_toward(signed_speed,desired,rate*delta)
 	velocity.x = global_basis.z.x*signed_speed
 	velocity.z = global_basis.z.z*signed_speed
@@ -353,5 +407,5 @@ func _physics_process(delta: float) -> void:
 		if absf(signed_speed)>0.01: update_wheels()
 		if has_driver and interval<INF: pose_driver()
 		_pose_clock = 0
-	for lamp: SpotLight3D in lamps: lamp.visible = global_position.distance_squared_to(life.actor.global_position)<6400
+	for lamp: SpotLight3D in lamps: lamp.visible = health>0 and global_position.distance_squared_to(life.actor.global_position)<6400
 	if is_instance_valid(player_driver): player_driver.world_actions.anchor()

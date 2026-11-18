@@ -283,7 +283,9 @@ func _build_belt_and_tome() -> void:
 	var tome := Node3D.new()
 	tome.name = "HipBoundTome"
 	tome.position = Vector3(0.235, -0.065, -0.055)
-	tome.rotation.z = -0.12
+	# This -Z garment's waist has a half-turn relative to the +Z figure.
+	# Keep the cover against the hip and the fore-edge toward the figure's front.
+	tome.rotation = Vector3(0.0, PI / 2.0, -0.12)
 	_waist.add_child(tome)
 	var cover := PackedVector3Array([
 		Vector3(-0.067, 0.092, -0.03), Vector3(0.067, 0.092, -0.03), Vector3(0.067, -0.092, -0.03),
@@ -328,10 +330,12 @@ func _fit_tails(delta: float) -> void:
 		var front: bool = tail.get_meta("front")
 		var leg: Node3D = _figure.joints.LeftLeg if side > 0.0 else _figure.joints.RightLeg
 		var thigh := source_basis.inverse() * (leg.global_basis * Vector3.DOWN)
-		var leg_pitch := atan2(-thigh.z, -thigh.y)
-		var pose_pitch := maxf(leg_pitch, 0.0) * 0.82 if front else minf(leg_pitch, 0.0) * 0.72
+		# Sky Jump can lift the thigh above its hip. Avoid the angle wrap that
+		# turned a small change in leg direction into an almost complete fold.
+		var leg_pitch := atan2(-thigh.z, maxf(-thigh.y, 0.20))
+		var pose_pitch := clampf(maxf(leg_pitch, 0.0) * 0.82 if front else minf(leg_pitch, 0.0) * 0.72, -0.65, 0.65)
 		var sway := sin(_elapsed * (2.0 + _flow_amount * 4.0) + float(index) * 1.7) * (0.008 + _flow_amount * 0.045)
-		var target := Vector3(pose_pitch - _flow_amount * (0.13 if front else 0.28) + sway, -_turn_amount * 0.45, side * (0.018 + _flow_amount * 0.045) + sway * 0.4)
+		var target := Vector3(pose_pitch - _flow_amount * (0.13 if front else 0.28) + sway, -_turn_amount * 0.30, side * (0.018 + _flow_amount * 0.025) + sway * 0.25)
 		if mounted:
 			# A sport-bike's rear-set pegs leave no room for hems beside the shins.
 			# Stream all four behind the saddle, above the rear wheel, even at rest.

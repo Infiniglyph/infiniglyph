@@ -54,6 +54,10 @@ func _initialize() -> void:
 
 func run() -> void:
 	world = load("res://scenes/main.tscn").instantiate()
+	# This suite measures free-air impulses beyond the original city edge.
+	# The wider countryside now has solid houses on that flight path; its
+	# traversal/collision is covered separately by world_regions and dungeon tests.
+	world.wider_world_enabled = false
 	root.add_child(world)
 	input = Intent.new()
 	world.add_child(input)

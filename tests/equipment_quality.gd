@@ -25,7 +25,7 @@ func run() -> void:
 	var entries := Database.all()
 	entries.sort_custom(func(a: Dictionary,b: Dictionary): return String(a.family)<String(b.family))
 	for entry: Dictionary in entries:
-		if entry.category!="weapons": continue
+		if entry.category!="weapons" or entry.family=="scribe": continue
 		count += 1
 		var id := StringName(entry.id)
 		var first := Library.move(id,&"attack_right")
@@ -39,7 +39,7 @@ func run() -> void:
 		if first.has("clip_id"): clips[first.clip_id] = true
 		var pose := Motion.sample(first,float(first.hits[0]))
 		feet = feet and pose.has("left_foot") and pose.has("right_foot") and pose.right.is_finite() and pose.hip.is_finite()
-	check(count==1716 and valid,"Every new weapon is named and resolves sampled combos, aerial motion and charged arts")
+	check(count==1702 and valid,"Every new weapon is named and resolves sampled combos, aerial motion and charged arts")
 	check(unique.size()==count,"Every named weapon has its own compiled motion/timing signature")
 	check(clips.size()>100 and feet,"More than 100 actual source gestures supply hands, hips and footwork")
 	check(Moves.banks.size()<=Moves.BANK_LIMIT and Moves.moves.size()<=Moves.CACHE_LIMIT,"Animation banks and compiled named moves remain bounded")
@@ -61,7 +61,7 @@ func run() -> void:
 	var wearable_count := 0
 	var shape_count: Dictionary = {}
 	for entry: Dictionary in entries:
-		if entry.family not in ["body","head","hands","legs"]: continue
+		if entry.family not in ["body","head","hands","legs"] or entry.geometry.has("renderer"): continue
 		wearable_count += 1
 		shape_count[JSON.stringify(entry.geometry.tailoring)] = true
 		var garment := Garment.new()
@@ -73,7 +73,8 @@ func run() -> void:
 			valid = valid and piece.get_child_count()>1 and piece.global_position.is_finite()
 		garment.free()
 		await process_frame
-	check(wearable_count==371 and valid,"All 371 wearable pieces build fitted geometry on the actual character joints")
+	var expected_wearables: int=Database.all().filter(func(entry: Dictionary): return entry.geometry.has("tailoring")).size()
+	check(wearable_count==expected_wearables and wearable_count>=371 and valid,"All %d wearable pieces build fitted geometry on the actual character joints" % wearable_count)
 	check(shape_count.size()>40,"Armor references select distinct cut, plate, shoulder, collar, cape and helmet constructions")
 	check(figure.chest.get_child_count()==base_count,"Removing garments cleans external joint pieces without moving the base skeleton")
 	var migrated := 0

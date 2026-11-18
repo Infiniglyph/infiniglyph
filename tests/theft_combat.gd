@@ -48,7 +48,7 @@ func run() -> void:
 	await frames(5)
 	life = world.district_life
 	reactions = world.theft_reactions
-	reactions.max_fighters = 0 # Observe the theft first, then explicitly test escalation.
+	reactions.retaliation_enabled = false # Observe the theft first, then explicitly test escalation.
 	life.set_physics_process(false)
 	world.population.set_physics_process(false)
 	for source: CharacterBody3D in world.population.active_residents.duplicate(): source.deactivate()
@@ -111,7 +111,7 @@ func run() -> void:
 	life.vehicles.clear()
 	await frames(3)
 	reactions.react(owner,true)
-	reactions.max_fighters = 3
+	reactions.retaliation_enabled = true
 	check(reactions.entries[key].anger==100 and reactions.begin_fighter(key),"Accumulated anger crosses a configurable threshold into combat")
 	var fighter: CharacterBody3D = reactions.fighters[key]
 	fighter.controls.stop()
@@ -199,7 +199,7 @@ func run() -> void:
 		reactions.react(source,true)
 		var id: String = reactions.key_for(source)
 		if reactions.begin_fighter(id): active.append(id)
-	check(active.size()==3 and reactions.fighters.size()==3,"Street hostility respects the simultaneous fighter budget")
+	check(active.size()==4 and reactions.fighters.size()==4,"Every provoked resident can join combat without a three-fighter cap")
 	actor.global_position = world.sparring_partner.home+Vector3(-2,0,0)
 	actor.velocity = Vector3.ZERO
 	world.sparring_duel.start()

@@ -67,10 +67,16 @@ func block(held: bool) -> void:
 	p.combat.poll(controls)
 
 func _initialize() -> void:
+	Engine.max_physics_steps_per_frame=1 # Assertions count physics frames, including under CI load.
 	call_deferred("run")
 
 func run() -> void:
 	world = load("res://scenes/main.tscn").instantiate()
+	world.inventory_persistence_enabled=false
+	world.world_memory_enabled=false
+	world.wider_world_enabled=false
+	world.district_life_enabled=false
+	world.boss_encounters_enabled=false
 	root.add_child(world)
 	p = world.player
 	w = p.weapon_combat

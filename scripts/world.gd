@@ -21,6 +21,10 @@ const TheftReactions = preload("res://scripts/theft_reactions.gd")
 const GraphicsSettings = preload("res://scripts/graphics_settings.gd")
 const Starfield = preload("res://scripts/starfield.gd")
 const WindowLights = preload("res://scripts/window_lights.gd")
+const RespawnGlyphs = preload("res://scripts/respawn_glyphs.gd")
+var respawn_glyphs: Node
+const DungeonTravel = preload("res://scripts/dungeon_travel.gd")
+var dungeon_travel: Node
 var graphics: Node
 var theft_reactions: Node3D
 var world_actions: Node3D
@@ -29,6 +33,8 @@ var district_life: Node3D
 var wider_world: Node3D
 var greefer: CharacterBody3D
 var boss_encounter: CanvasLayer
+var kyren_encounter: CanvasLayer
+@export var kyren_debug_enabled := false
 var sparring_partner: CharacterBody3D
 var sparring_duel: CanvasLayer
 var player: CharacterBody3D
@@ -44,10 +50,20 @@ var world_memory: Node3D
 @export var inventory_persistence_enabled := true
 @export var boss_encounters_enabled := true
 @export var wider_world_enabled := true
+@export var dungeon_enemies_enabled := true
 @export var static_batching_enabled := true
 @export_range(0,1,0.01) var death_drop_probability := 0.15
 
+func add_environment(node: Node) -> void:
+	if is_instance_valid(dungeon_travel): dungeon_travel.outside_root.add_child(node)
+	else: add_child(node)
+
 func _ready() -> void:
+	if wider_world_enabled:
+		dungeon_travel=DungeonTravel.new()
+		dungeon_travel.world=self
+		add_child(dungeon_travel)
+		dungeon_travel.create_worlds()
 	var environment := WorldEnvironment.new()
 	var settings := Environment.new()
 	settings.background_mode = Environment.BG_SKY
@@ -57,10 +73,10 @@ func _ready() -> void:
 	settings.ambient_light_color = Color(0.12,0.25,0.3)
 	settings.ambient_light_energy = 0.4
 	environment.environment = settings
-	add_child(environment)
+	add_environment(environment)
 	var district := District.new()
 	district.visual_batching_enabled = static_batching_enabled
-	add_child(district)
+	add_environment(district)
 	controls = Controls.new()
 	add_child(controls)
 	player = Player.new()
@@ -78,10 +94,10 @@ func _ready() -> void:
 		target.actor = player
 		target.counterattacks = index == 1
 		target.position = Vector3((index-1)*5,0,-35-(3 if index == 1 else 0))
-		add_child(target)
+		add_environment(target)
 	sparring_partner = SparringPartner.new()
 	sparring_partner.opponent = player
-	add_child(sparring_partner)
+	add_environment(sparring_partner)
 	sparring_duel = SparringDuel.new()
 	sparring_duel.player = player
 	sparring_duel.partner = sparring_partner
@@ -89,10 +105,10 @@ func _ready() -> void:
 	population = CityPopulation.new()
 	population.player = player
 	population.duel = sparring_duel
-	add_child(population)
+	add_environment(population)
 	loot = LootAuthority.new()
 	loot.death_drop_probability = death_drop_probability
-	add_child(loot)
+	add_environment(loot)
 	inventory_session = InventorySession.new()
 	inventory_session.actor = player
 	inventory_session.controls = controls
@@ -116,6 +132,7 @@ func _ready() -> void:
 	var hud := CanvasLayer.new()
 	add_child(hud)
 	var combat_hud := CombatHUD.new()
+	combat_hud.actor = player
 	combat_hud.weapons = player.weapon_combat
 	hud.add_child(combat_hud)
 	graphics = GraphicsSettings.new()
@@ -131,25 +148,29 @@ func _ready() -> void:
 		world_memory.population = population
 		world_memory.player = player
 		world_memory.retrieval = player.visual.retrieval
-		add_child(world_memory)
+		add_environment(world_memory)
 	if boss_encounters_enabled:
 		boss_encounter = TerritorialEncounter.new()
 		boss_encounter.player = player
+		boss_encounter.environment_root = dungeon_travel.outside_root if is_instance_valid(dungeon_travel) else self
 		boss_encounter.persistence_enabled = inventory_persistence_enabled
 		greefer = TerritorialBoss.new()
 		greefer.encounter = boss_encounter
 		boss_encounter.boss = greefer
-		add_child(greefer)
+		add_environment(greefer)
 		player.boss_encounter = boss_encounter
 		inventory_session.boss_encounter = boss_encounter
 		add_child(boss_encounter)
 	if wider_world_enabled:
 		wider_world = WorldRegions.new()
 		wider_world.encounter = boss_encounter
-		add_child(wider_world)
+		add_environment(wider_world)
+		if boss_encounters_enabled:
+			kyren_encounter=wider_world.kyren_home.configure_encounter(player,inventory_persistence_enabled,kyren_debug_enabled,self)
+			inventory_session.kyren_encounter=kyren_encounter
 		camera_rig.camera.far = 1800 # Keep the larger skyline/hills visible from Sky Jump height.
 	var windows := WindowLights.new()
-	add_child(windows)
+	add_environment(windows)
 	windows.build(district,wider_world)
 	world_actions = WorldActions.new()
 	world_actions.actor = player
@@ -160,10 +181,16 @@ func _ready() -> void:
 		district_life.actor = player
 		district_life.regions = wider_world
 		district_life.session = inventory_session
-		add_child(district_life)
+		add_environment(district_life)
 		world_actions.life = district_life
+	if not inventory_session.networked():
 		theft_reactions = TheftReactions.new()
 		theft_reactions.actor = player
 		theft_reactions.life = district_life
 		theft_reactions.population = population
-		add_child(theft_reactions)
+		add_environment(theft_reactions)
+	if is_instance_valid(dungeon_travel): dungeon_travel.configure()
+	if not inventory_session.networked():
+		respawn_glyphs=RespawnGlyphs.new()
+		respawn_glyphs.world=self
+		add_child(respawn_glyphs)

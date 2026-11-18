@@ -2,8 +2,11 @@ extends Node
 ## Event-driven owned data. Transfers are validated by the session loot service.
 const Catalog = preload("res://scripts/item_catalog.gd")
 const Instance = preload("res://scripts/item_instance.gd")
+const Equipment = preload("res://scripts/equipment_database.gd")
+const RespawnData = preload("res://scripts/respawn_glyph_data.gd")
+const Shields = preload("res://scripts/shield_glyphs.gd")
 const SLOTS: Array[StringName] = [&"down",&"left",&"right",&"up"]
-const EQUIPMENT_SLOTS: Array[StringName] = [&"down",&"left",&"right",&"up",&"body",&"head",&"hands",&"legs",&"shield",&"ring1",&"ring2"]
+const EQUIPMENT_SLOTS: Array[StringName] = [&"down",&"left",&"right",&"up",&"body",&"head",&"hands",&"legs",&"ring1",&"ring2"]
 const MAX_ITEMS := 4096
 signal changed
 signal equipment_changed
@@ -13,6 +16,15 @@ var items: Dictionary = {}
 var equipment: Dictionary = {}
 var _seeded := false
 var starter_glyphs_granted := false
+var shield_state: Dictionary = {}
+var respawn_points: Dictionary = {}
+var boss_reward_claims: Dictionary = {}
+
+static func valid_boss_claims(value: Variant) -> bool:
+	if not value is Dictionary or value.size()>1: return false
+	for key in value:
+		if key!="ahkmet_lorai" or not value[key] is bool or not value[key]: return false
+	return true
 
 func count_type(type: StringName) -> int:
 	var total := 0
@@ -45,7 +57,7 @@ func get_item(iid: String) -> Resource:
 
 func add_item(item: Resource) -> bool:
 	if item == null or not item.has_method("is_valid") or not item.is_valid() or not Instance.valid_text(owner_id): return false
-	if items.has(item.instance_id) or (not item.owner_id.is_empty() and item.owner_id != owner_id): return false
+	if Equipment.is_retired(item.item_type_id) or items.has(item.instance_id) or (not item.owner_id.is_empty() and item.owner_id != owner_id): return false
 	var definition: Resource = Catalog.get_definition(item.item_type_id)
 	var remaining: int = item.quantity
 	var merges: Array[Dictionary] = []
@@ -115,7 +127,7 @@ func unequip(slot: StringName) -> bool:
 
 static func fits_slot(definition: Resource, slot: StringName) -> bool:
 	if definition==null or not definition.is_equippable: return false
-	if slot in [&"body",&"head",&"hands",&"legs",&"shield"]: return definition.category==&"cosmetics" and definition.custom_properties.get("cosmetic_slot","")==String(slot)
+	if slot in [&"body",&"head",&"hands",&"legs"]: return definition.category==&"cosmetics" and definition.custom_properties.get("cosmetic_slot","")==String(slot)
 	if slot in [&"ring1",&"ring2"]: return definition.custom_properties.get("cosmetic_slot","")=="ring"
 	return slot in SLOTS and definition.category==&"weapons" and StringName(definition.custom_properties.get("weapon_slot","")) in SLOTS
 
@@ -146,12 +158,23 @@ func serialize() -> Dictionary:
 	var assignments: Dictionary = {}
 	for slot: StringName in equipment:
 		assignments[String(slot)] = equipment[slot]
-	return {"version":1,"owner_id":owner_id,"items":entries,"equipment":assignments,"starter_glyphs_granted":starter_glyphs_granted}
+	var result: Dictionary={"version":1,"owner_id":owner_id,"items":entries,"equipment":assignments,"starter_glyphs_granted":starter_glyphs_granted}
+	if not shield_state.is_empty(): result.shield_state=shield_state.duplicate()
+	if not RespawnData.valid(respawn_points): return {}
+	if not respawn_points.is_empty(): result.respawn_points=respawn_points.duplicate(true)
+	if not valid_boss_claims(boss_reward_claims): return {}
+	if not boss_reward_claims.is_empty(): result.boss_reward_claims=boss_reward_claims.duplicate()
+	return result
 
 func restore(data: Variant) -> bool:
 	if not data is Dictionary or not Instance.whole_number(data.get("version"),1,1): return false
 	if not Instance.valid_text(data.get("owner_id")) or not data.get("items") is Array or not data.get("equipment") is Dictionary or data.items.size()>MAX_ITEMS: return false
 	if data.has("starter_glyphs_granted") and not data.starter_glyphs_granted is bool: return false
+	if not Shields.valid(data.get("shield_state",{})): return false
+	if not RespawnData.valid(data.get("respawn_points",{})): return false
+	if not valid_boss_claims(data.get("boss_reward_claims",{})): return false
+	for record: Dictionary in data.get("respawn_points",{}).values():
+		if record.location!="overworld" and record.location!="pyramid/"+String(data.owner_id): return false
 	var restored: Dictionary = {}
 	for entry: Variant in data.items:
 		var item: Resource = Instance.from_dict(entry)
@@ -164,9 +187,14 @@ func restore(data: Variant) -> bool:
 		if not Instance.valid_text(key): return false
 		var slot := StringName(key)
 		var iid: Variant = data.equipment[key]
-		if not slot in EQUIPMENT_SLOTS or not Instance.valid_text(iid) or not restored.has(String(iid)) or assigned.has(String(iid)): return false
+		if not (slot in EQUIPMENT_SLOTS or slot==&"shield") or not Instance.valid_text(iid) or not restored.has(String(iid)) or assigned.has(String(iid)): return false
 		var item: Resource = restored[String(iid)]
 		var definition: Resource = Catalog.get_definition(item.item_type_id)
+		if Equipment.is_retired(item.item_type_id):
+			var family: String = Equipment.retired[String(item.item_type_id)]
+			if not ((family=="shield" and slot==&"shield") or (family in ["talisman","bow","crossbow"] and slot in SLOTS)): return false
+			assigned[String(iid)] = true
+			continue
 		if not fits_slot(definition,slot):
 			# Six portrait labels were previously classified as Body. Preserve
 			# their ownership when loading that checkpoint and move the worn piece
@@ -181,11 +209,16 @@ func restore(data: Variant) -> bool:
 		assigned[String(iid)] = true
 	for slot: StringName in corrected_slots:
 		if not assignments.has(slot): assignments[slot] = corrected_slots[slot]
+	for iid: String in restored.keys():
+		if Equipment.is_retired(restored[iid].item_type_id): restored.erase(iid)
 	owner_id = String(data.owner_id)
 	items = restored
 	equipment = assignments
 	_seeded = true
 	starter_glyphs_granted = data.get("starter_glyphs_granted",false)
+	shield_state = data.get("shield_state",{}).duplicate()
+	respawn_points = data.get("respawn_points",{}).duplicate(true)
+	boss_reward_claims = data.get("boss_reward_claims",{}).duplicate()
 	equipment_changed.emit()
 	changed.emit()
 	return true

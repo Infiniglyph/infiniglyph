@@ -205,6 +205,18 @@ func run() -> void:
 	controls.jump_requested = true
 	await frames(3)
 	check(p.air_step_count==1 and p.velocity.y>0 and attachments_safe() and finite_pose(),"A live Sky Jump keeps the fitted garment attached without restricting aerial movement")
+	var leg_poses: Dictionary={}
+	for side: String in ["LeftLeg","RightLeg"]: leg_poses[side]=p.visual.joints[side].transform
+	var calm_air:=true
+	for tilt: float in [-.001,.001]:
+		for side: String in ["LeftLeg","RightLeg"]: p.visual.joints[side].rotation=Vector3(PI+tilt,0,tilt)
+		for frame in range(hz/2): robe._fit_tails(1.0/hz)
+		for tail: Node3D in robe._tails:
+			var angles: Vector3=tail.get_meta("cloth_angles")
+			calm_air=calm_air and absf(angles.x)<1.05 and absf(angles.z)<.09
+	check(calm_air,"The Scribe robe cannot fold completely over when a Sky Jump knee passes above the hip")
+	for side: String in leg_poses: p.visual.joints[side].transform=leg_poses[side]
+	for frame in range(hz/2): robe._fit_tails(1.0/hz)
 	await shot("sky_step",Vector3(3.8,1.2,-2.0))
 	controls.move = Vector2.ZERO
 	controls.boost = false

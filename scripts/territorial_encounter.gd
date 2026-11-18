@@ -16,6 +16,7 @@ signal progression_changed
 @export var auto_trigger := true
 var player: CharacterBody3D
 var boss: CharacterBody3D
+var environment_root: Node3D
 var active := false
 var is_intro := true
 var participated := false
@@ -56,7 +57,8 @@ func _ready() -> void:
 	# automatic encounter explicitly. Normal launches always enable detection.
 	auto_trigger = auto_trigger and (not "--script" in OS.get_cmdline_args() or "--boss-encounters" in OS.get_cmdline_user_args())
 	if persistence_enabled: load_checkpoint()
-	_perch = Neon.block(get_parent(),Vector3(0,86.4,-64),Vector3(8,0.5,8))
+	var stage: Node3D=environment_root if is_instance_valid(environment_root) else get_parent()
+	_perch = Neon.block(stage,Vector3(0,86.4,-64),Vector3(8,0.5,8))
 	_perch.name = "CentralTowerPerch"
 	var points := PackedVector3Array()
 	for i in range(32):
@@ -65,7 +67,7 @@ func _ready() -> void:
 		points.append_array([Vector3(cos(a),0,sin(a))*1.05,Vector3(cos(b),0,sin(b))*1.05])
 	_beacon = Neon.lines(points,Neon.material(Color(0.85,0.06,1)))
 	_beacon.name = "GreeferChallengeSigil"
-	get_parent().add_child(_beacon)
+	stage.add_child(_beacon)
 	_beacon.position = challenge_point
 	var sign := Label3D.new()
 	sign.text = "GREEFER\nREMATCH  /  G or RT"
@@ -209,6 +211,7 @@ func _bar(at: Vector2, dimensions: Vector2, color: Color) -> ProgressBar:
 	return bar
 
 func can_challenge() -> bool:
+	if is_instance_valid(player.kyren_encounter) and (player.kyren_encounter.active or player.kyren_encounter.dialogue_open): return false
 	# A returning griffin can answer a challenge immediately; waiting for him to
 	# perch made retries disappear for the entire return flight.
 	if not has_authority() or active or not progress.intro_completed or boss.state == &"defeated" or player.health<=0: return false
@@ -218,6 +221,7 @@ func can_challenge() -> bool:
 	return player.get_world_3d().direct_space_state.intersect_ray(ray).is_empty()
 
 func start(aggression: bool = false) -> bool:
+	if is_instance_valid(player.kyren_encounter) and (player.kyren_encounter.active or player.kyren_encounter.dialogue_open): return false
 	if not has_authority() or active or boss.state == &"defeated" or player.health<=0: return false
 	if player.sparring_duel.active or player.sparring_duel.dialogue_open: return false
 	if not aggression and progress.intro_completed and not can_challenge(): return false
@@ -268,9 +272,7 @@ func finish(player_won: bool) -> void:
 func player_defeated() -> void:
 	if participated: finish(false)
 	else: disengage() # Falling before any confrontation cannot skip the intro.
-	player.respawn() # Existing defeat transition, never an arrival/cinematic warp.
-	player.weapon_combat.health = player.weapon_combat.max_health
-	player.weapon_combat.changed.emit()
+	player.request_respawn() # Shared default/glyph reconstruction after defeat.
 
 func disengage() -> void:
 	if not has_authority() or not active: return

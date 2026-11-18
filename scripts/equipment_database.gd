@@ -2,11 +2,14 @@ extends RefCounted
 ## Content-only registry. No ownership, input, physics, or external references.
 static var entries: Dictionary = {}
 static var _prepared := false
+static var retired: Dictionary = {}
 
 static func prepare() -> void:
 	if _prepared: return
 	_prepared = true
-	for path: String in ["res://data/equipment/catalog.json","res://data/equipment/named_weapons.json"]:
+	var retirement: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/equipment/retired.json"))
+	retired = retirement.get("items",{})
+	for path: String in ["res://data/equipment/catalog.json","res://data/equipment/named_weapons.json","res://data/equipment/scribe_equipment.json","res://data/equipment/kyren_equipment.json","res://data/equipment/void_soul_equipment.json","res://data/equipment/pyramid_equipment.json","res://data/equipment/pyramid_depth_equipment.json","res://data/equipment/ahkmet_equipment.json"]:
 		var document: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
 		if not document is Dictionary or document.get("version")!=1 or not document.get("items") is Array:
 			push_error("Invalid equipment content: "+path)
@@ -57,3 +60,7 @@ static func all() -> Array:
 static func is_weapon(id: StringName) -> bool:
 	var item := get_item(id)
 	return item.get("category")=="weapons"
+
+static func is_retired(id: StringName) -> bool:
+	prepare()
+	return retired.has(String(id))

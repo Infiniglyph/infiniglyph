@@ -1,6 +1,14 @@
 extends Node3D
-## Observed theft -> personal anger -> existing combat, never a global crime AI.
+## Personal theft/assault anger feeds the existing civilian combat adapter.
 const Fighter = preload("res://scripts/resident_fighter.gd")
+const Combat = preload("res://scripts/weapon_combat.gd")
+const DamageNumber = preload("res://scripts/damage_number.gd")
+const ASSAULT_LINES := [
+	["Watch your damn hands.","I'm not your training dummy, human.","Was that supposed to impress me?","Back off. You're getting on my nerves."],
+	["Keep swinging, genius. See where it gets you.","You really are a pain in the ass.","All that empty space in your skull, and you still chose this.","Cut that shit out, human."],
+	["Last warning. Swing again and you're going down.","You're one bad decision from the pavement.","I've had about enough of your shit.","Keep pushing. I dare you."],
+	["That's it. You wanted a fight? You've got one.","Enough. I'm putting you on the pavement.","Now you've pissed me off.","All right, human. Let's see you back that up."]
+]
 const WITNESS_LINES := [
 	"Humans. Always taking what someone else built.",
 	"Not your world. Not your ride, human.",
@@ -21,15 +29,141 @@ var fighters: Dictionary = {}
 @export_range(1,200,1) var enrage_threshold := 100.0
 @export_range(0,20,0.5) var anger_recovery := 5.0
 @export_range(0.5,60,0.5) var respawn_delay := 6.0
-@export_range(0,4,1) var max_fighters := 3
+@export var retaliation_enabled := true
+@export_range(0.05,0.5,0.01) var assault_anger_scale := 0.22
 var _owns_player_target := false
 var _clock := 0.0
 
 func _ready() -> void:
 	name = "TheftReactions"
-	life.reactions = self
+	if is_instance_valid(life): life.reactions = self
+	if is_instance_valid(population): population.reactions = self
+	actor.defeated.connect(reset_hostility)
+	actor.respawned.connect(reset_hostility)
+
+func _clear_anger(entry: Dictionary) -> void:
+	var provoked: bool = entry.anger>0 or entry.assault or not String(entry.line).is_empty()
+	entry.anger = 0.0
+	entry.hold = 0.0
+	entry.challenge = 0.0
+	entry.away = 0.0
+	entry.speech = 0.0
+	entry.line = ""
+	entry.assault = false
+	entry.last_attack = -1
+	entry.taunt_stage = -1
+	if is_instance_valid(entry.bubble):
+		entry.bubble.hide()
+		entry.bubble.queue_free()
+	entry.bubble = null
+	var source: CharacterBody3D = entry.source.get_ref()
+	if not is_instance_valid(source): return
+	if entry.regional: source.record.anger = 0.0
+	if not provoked: return
+	source.caption.text = ""
+	source.caption.hide()
+	source.wait = 0.0
+	if entry.regional:
+		source.record.wait = 0.0
+		source.state = "walking the neighborhood"
+	else:
+		source.speech_time = 0.0
+		source.reply_time = 0.0
+		source.reply = ""
+		source.state = "walking" if source.active else "indoors"
+
+func reset_hostility() -> void:
+	# Run synchronously at death, before health is restored at respawn. No live
+	# attacker or delayed warning may follow the player into the next life.
+	for key: String in fighters.keys(): finish_fighter(key)
+	for entry: Dictionary in entries.values(): _clear_anger(entry)
+	# Regional identities can be unloaded while their journey records survive.
+	if is_instance_valid(life):
+		for record: Dictionary in life.resident_records: record.anger = 0.0
+	_sync_player()
+
+func bind_source(source: CharacterBody3D) -> void:
+	var key := key_for(source)
+	if entries.has(key): entries[key].source = weakref(source)
+
+func civilian_health(source: CharacterBody3D) -> float:
+	var entry: Dictionary = entries.get(key_for(source),{})
+	return float(entry.get("health",Combat.BASE_HEALTH))
+
+func is_annoyed(source: CharacterBody3D) -> bool:
+	return float(entries.get(key_for(source),{}).get("anger",0))>0
+
+func answer_annoyed(source: CharacterBody3D) -> String:
+	var key := key_for(source)
+	var entry := _entry_for(source)
+	entry.speech = 5.5
+	source.caption.text = entry.line
+	source.wait = 2.5
+	_update_bubble(key,entry)
+	return source.profile.name+": "+entry.line
+
+func _entry_for(source: CharacterBody3D) -> Dictionary:
+	var key := key_for(source)
+	if not entries.has(key):
+		var spawn_point: Vector3 = source.record.get("spawn",source.record.route[0]) if source.get("record") is Dictionary else source.population.points.get(source.profile.home,source.global_position)
+		entries[key] = {"source":weakref(source),"regional":source.get("record") is Dictionary,"spawn":spawn_point,"anger":0.0,"health":Combat.BASE_HEALTH,"hold":0.0,"speech":0.0,"line":"","bubble":null,"respawn":0.0,"dead":false,"suspended":false,"away":0.0,"challenge":0.0,"assault":false,"last_attack":-1,"taunt_stage":-1}
+	entries[key].source = weakref(source)
+	return entries[key]
+
+func _theft_gain(source: CharacterBody3D, key: String, owner: bool) -> float:
+	var temperament: float = {"dismissive":70,"pragmatic":50,"indifferent":45,"curious":30,"friendly":20}.get(source.profile.attitude,45)
+	return temperament+(25 if owner else 0)+absi(key.hash())%35
+
+func _raise_anger(entry: Dictionary, gain: float) -> void:
+	var before: float = entry.anger
+	entry.anger = minf(enrage_threshold,before+gain)
+	if before<enrage_threshold and entry.anger>=enrage_threshold: entry.challenge = .8
+	entry.hold = 6
+
+func receive_assault(source: CharacterBody3D, amount: float, origin: Vector3, attacker: Node, incoming: Dictionary = {}) -> float:
+	if attacker!=actor or not can_fight() or not is_finite(amount) or amount<=0: return 0
+	if not source.is_visible_in_tree() or source.virtualized or source.collision_layer==0: return 0
+	var key := key_for(source)
+	var entry := _entry_for(source)
+	if entry.dead or entry.suspended or fighters.has(key): return 0
+	var applied := minf(amount,float(entry.health))
+	entry.health -= applied
+	var serial := int(incoming.get("attack_serial",-1))
+	if serial<0 or serial!=int(entry.last_attack):
+		entry.last_attack = serial
+		entry.assault = true
+		_raise_anger(entry,_theft_gain(source,key,true)*assault_anger_scale)
+		var ratio: float = entry.anger/enrage_threshold
+		var stage := 3 if ratio>=1 else 2 if ratio>=.7 else 1 if ratio>=.34 else 0
+		if stage!=entry.taunt_stage or entry.speech<3:
+			entry.taunt_stage = stage
+			var lines: Array = ASSAULT_LINES[stage]
+			entry.line = lines[absi(key.hash()+serial+stage)%lines.size()]
+			entry.speech = 5.5
+	if not is_instance_valid(entry.bubble): entry.bubble = make_bubble()
+	source.caption.hide()
+	source.wait = 2.5
+	source.state = "furious" if entry.anger>=enrage_threshold else "annoyed"
+	var facing := actor.global_position-source.global_position
+	if Vector2(facing.x,facing.z).length()>.05: source.visual.rotation.y = atan2(facing.x,facing.z)
+	if entry.regional: source.record.anger = entry.anger
+	var contact: Vector3 = incoming.get("contact",source.global_position+Vector3.UP*.95)
+	actor.weapon_combat.feedback.confirm("heavy" if float(incoming.get("hit_stun_level",0))>=1.5 else "hit",contact,contact-origin,actor,source,true,int(incoming.get("hurtbox_shape",-1)))
+	DamageNumber.make_room(get_tree())
+	var number := DamageNumber.new()
+	number.text = "%.1f" % applied
+	add_child(number)
+	number.global_position = source.global_position+Vector3.UP*1.5
+	if entry.health<=0:
+		_suspend_source(entry,source)
+		entry.dead = true
+		entry.respawn = respawn_delay
+		_clear_anger(entry)
+	_update_bubble(key,entry)
+	return applied
 
 func can_fight() -> bool:
+	if is_instance_valid(actor.kyren_encounter) and (actor.kyren_encounter.active or actor.kyren_encounter.dialogue_open): return false
 	if actor.health<=0: return false
 	if is_instance_valid(actor.sparring_duel) and (actor.sparring_duel.active or actor.sparring_duel.dialogue_open): return false
 	if is_instance_valid(actor.boss_encounter) and (actor.boss_encounter.active or actor.boss_encounter.dialogue_open): return false
@@ -52,6 +186,7 @@ func make_bubble() -> Label3D:
 	return bubble
 
 func observe_theft(vehicle: CharacterBody3D, owner: CharacterBody3D = null) -> void:
+	if not is_instance_valid(life): return
 	var witnesses: Array[CharacterBody3D] = []
 	if is_instance_valid(owner): witnesses.append(owner)
 	for source: CharacterBody3D in life.people.values():
@@ -74,18 +209,13 @@ func observe_theft(vehicle: CharacterBody3D, owner: CharacterBody3D = null) -> v
 func react(source: CharacterBody3D, owner: bool, tier: int = 0) -> void:
 	if not is_instance_valid(source) or not source.is_visible_in_tree(): return
 	var key := key_for(source)
-	if not entries.has(key):
-		var spawn_point: Vector3 = source.record.get("spawn",source.record.route[0]) if source.get("record") is Dictionary else source.population.points.get(source.profile.home,source.global_position)
-		entries[key] = {"source":weakref(source),"regional":source.get("record") is Dictionary,"spawn":spawn_point,"anger":0.0,"hold":0.0,"speech":0.0,"line":"","bubble":null,"respawn":0.0,"dead":false,"suspended":false,"away":0.0}
-	var entry: Dictionary = entries[key]
+	var entry := _entry_for(source)
 	if entry.dead: return
 	if not is_instance_valid(entry.bubble): entry.bubble = make_bubble()
 	source.caption.text = ""
 	entry.source = weakref(source)
 	entry.tier = tier
-	var temperament: float = {"dismissive":70,"pragmatic":50,"indifferent":45,"curious":30,"friendly":20}.get(source.profile.attitude,45)
-	entry.anger = minf(enrage_threshold,entry.anger+temperament+(25 if owner else 0)+absi(key.hash())%35)
-	entry.hold = 6
+	_raise_anger(entry,_theft_gain(source,key,owner))
 	entry.speech = 5.5
 	var lines: Array = OWNER_LINES if owner else WITNESS_LINES
 	entry.line = lines[absi(key.hash()+int(entry.anger))%lines.size()]
@@ -95,7 +225,7 @@ func react(source: CharacterBody3D, owner: bool, tier: int = 0) -> void:
 	else: source.wait = 2.5
 
 func begin_fighter(key: String) -> bool:
-	if not can_fight() or fighters.size()>=max_fighters or fighters.has(key) or not entries.has(key): return false
+	if not retaliation_enabled or not can_fight() or fighters.has(key) or not entries.has(key): return false
 	var entry: Dictionary = entries[key]
 	var source: CharacterBody3D = entry.source.get_ref()
 	if entry.dead or not is_instance_valid(source) or not source.is_visible_in_tree() or entry.anger<enrage_threshold: return false
@@ -105,6 +235,22 @@ func begin_fighter(key: String) -> bool:
 	if source.get("virtualized")==true and not source.set_virtualized(false): return false
 	var at := source.global_position
 	var yaw: float = source.visual.rotation.y
+	_suspend_source(entry,source)
+	var fighter := Fighter.new()
+	fighter.identity = key
+	fighter.profile = source.profile.duplicate(true)
+	fighter.opponent = actor
+	fighter.reactions = self
+	fighter.spawn = at
+	fighter.position = at
+	add_child(fighter)
+	fighter.weapon_combat.health = entry.health
+	fighter.visual.rotation.y = yaw
+	fighters[key] = fighter
+	_sync_player()
+	return true
+
+func _suspend_source(entry: Dictionary, source: CharacterBody3D) -> void:
 	if entry.regional:
 		source.record.combat = true
 		source.set_physics_process(false)
@@ -115,20 +261,8 @@ func begin_fighter(key: String) -> bool:
 		source.population.active_residents.erase(source)
 		source.population.reserved_outdoors += 1
 		source.deactivate()
-		source.indoor_left = INF # The lobby scheduler must not duplicate a fighter.
+		source.indoor_left = INF
 	entry.suspended = true
-	var fighter := Fighter.new()
-	fighter.identity = key
-	fighter.profile = source.profile.duplicate(true)
-	fighter.opponent = actor
-	fighter.reactions = self
-	fighter.spawn = at
-	fighter.position = at
-	add_child(fighter)
-	fighter.visual.rotation.y = yaw
-	fighters[key] = fighter
-	_sync_player()
-	return true
 
 func _sync_player() -> void:
 	var needed := not fighters.is_empty() and can_fight()
@@ -144,12 +278,17 @@ func _sync_player() -> void:
 	if is_instance_valid(actor.world_actions) and actor.world_actions.attached() and not protected:
 		actor.world_actions._layer = (actor.world_actions._layer|2) if needed else (actor.world_actions._layer&~2)
 
-func finish_fighter(key: String, defeated: bool = false) -> void:
+func finish_fighter(key: String, defeated: bool = false, expected: Node = null) -> void:
 	if not fighters.has(key): return
 	var fighter: CharacterBody3D = fighters[key]
+	if expected!=null and fighter!=expected: return
+	# A player death and an NPC's deferred lethal callback may share a frame.
+	# Preserve the NPC's death instead of restoring a zero-HP hostile civilian.
+	defeated = defeated or fighter.dead or fighter.health<=0
 	var entry: Dictionary = entries[key]
 	if actor.target_lock.opponent==fighter: actor.target_lock.clear()
 	entry.last_position = fighter.global_position
+	entry.health = fighter.health
 	fighters.erase(key)
 	fighter.controls.stop()
 	fighter.weapon_combat.cancel()
@@ -159,7 +298,8 @@ func finish_fighter(key: String, defeated: bool = false) -> void:
 	fighter.collision_layer = 0
 	fighter.hide()
 	fighter.queue_free()
-	entry.anger = 0.0 if defeated else 30.0
+	if defeated: _clear_anger(entry)
+	else: entry.anger = 30.0
 	entry.dead = defeated
 	entry.respawn = respawn_delay if defeated else 0.0
 	entry.speech = 0
@@ -201,6 +341,7 @@ func restore_source(entry: Dictionary, at_spawn: bool) -> bool:
 		source.wait = 2
 	entry.suspended = false
 	entry.dead = false
+	if at_spawn: entry.health = Combat.BASE_HEALTH
 	return true
 
 func _physics_process(delta: float) -> void:
@@ -214,6 +355,7 @@ func _physics_process(delta: float) -> void:
 		var source: CharacterBody3D = entry.source.get_ref()
 		entry.speech = maxf(0,entry.speech-elapsed)
 		entry.hold = maxf(0,entry.hold-elapsed)
+		entry.challenge = maxf(0,entry.challenge-elapsed)
 		if fighters.has(key):
 			var fighter: CharacterBody3D = fighters[key]
 			entry.away = entry.away+elapsed if fighter.global_position.distance_to(actor.global_position)>50 else 0.0
@@ -222,13 +364,24 @@ func _physics_process(delta: float) -> void:
 			entry.respawn = maxf(0,entry.respawn-elapsed)
 			if entry.respawn==0: restore_source(entry,entry.dead)
 		elif entry.hold==0: entry.anger = maxf(0,entry.anger-anger_recovery*elapsed)
-		elif entry.anger>=enrage_threshold and entry.speech<4.7: begin_fighter(key)
-		var focus: Node3D = fighters.get(key,source)
-		if entry.speech==0 and is_instance_valid(entry.bubble):
-			entry.bubble.queue_free()
-			entry.bubble = null
-		if not is_instance_valid(entry.bubble): continue
-		entry.bubble.visible = is_instance_valid(focus) and focus.global_position.distance_to(actor.global_position)<24
-		if entry.bubble.visible:
-			entry.bubble.global_position = focus.global_position+Vector3.UP*(2.9+0.65*entry.get("tier",0))
-			entry.bubble.text = entry.line+"\nANGER %d%%" % int(entry.anger/enrage_threshold*100)
+		elif entry.anger>=enrage_threshold and entry.challenge==0: begin_fighter(key)
+		if is_instance_valid(source) and entry.regional: source.record.anger = entry.anger
+		_update_bubble(key,entry)
+
+func _update_bubble(key: String, entry: Dictionary) -> void:
+	var source: Node3D = entry.source.get_ref()
+	var focus: Node3D = fighters.get(key,source)
+	if entry.speech==0 and entry.anger<=0 and is_instance_valid(entry.bubble):
+		entry.bubble.queue_free()
+		entry.bubble = null
+	if not is_instance_valid(entry.bubble): return
+	entry.bubble.visible = is_instance_valid(focus) and focus.is_visible_in_tree() and focus.global_position.distance_to(actor.global_position)<24
+	if entry.bubble.visible:
+		entry.bubble.global_position = focus.global_position+Vector3.UP*(2.9+0.65*entry.get("tier",0))
+		var ratio := clampf(float(entry.anger)/enrage_threshold,0,1)
+		var filled := ceili(ratio*8)
+		var stage := "HOSTILE" if fighters.has(key) or ratio>=1 else "FURIOUS" if ratio>=.7 else "IRRITATED" if ratio>=.34 else "ANNOYED"
+		var speech: String = entry.line+"\n" if entry.speech>0 else ""
+		entry.bubble.text = speech+(stage if entry.assault else "ANGER")+" ["+"|".repeat(filled)+"-".repeat(8-filled)+"] %d%%" % int(ratio*100)
+		entry.bubble.modulate = Color(1,.75,.3).lerp(Color(1,.2,.12),ratio)
+		if is_instance_valid(source) and entry.speech>0: source.caption.hide()

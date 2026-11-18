@@ -100,7 +100,7 @@ func receive_hit(amount: float, source: Vector3, attacker: Node = null, incoming
 		var number := DamageNumber.new()
 		number.text = "%.1f" % applied
 		get_parent().add_child(number)
-		number.global_position = combat_point()+Vector3.UP*1.75
+		number.global_position = combat_point()+Vector3.UP*.55
 	return applied
 
 func combat_name() -> String: return profile.name
@@ -117,7 +117,7 @@ func on_combat_defeat() -> void:
 	hide()
 	set_physics_process(false)
 	weapon_combat.set_physics_process(false)
-	reactions.call_deferred("finish_fighter",identity,true)
+	reactions.call_deferred("finish_fighter",identity,true,self)
 
 func respawn() -> void:
 	# A fall uses the same identity/spawn recovery as combat defeat.

@@ -1,5 +1,6 @@
 extends SceneTree
 ## Layout/render review against the real player combat state.
+const Regions = preload("res://scripts/world_regions.gd")
 var checks := 0
 var failures := 0
 
@@ -33,8 +34,9 @@ func run() -> void:
 	actor.visual.retrieval.enabled = false
 	await frames(4)
 	var hud: Control = world.find_child("CombatHUD",true,false)
-	check(hud.get_child_count() == 2 and hud.health_bar is ProgressBar and hud.exhaustion_bar is ProgressBar,"Permanent player HUD contains only two bars")
+	check(hud.health_bar is ProgressBar and hud.shield_bar is ProgressBar and hud.exhaustion_bar is ProgressBar and hud.grid_marker is Label,"Permanent player HUD contains health, shield, exhaustion and the compact grid marker")
 	check(hud.health_bar.value == 1000 and hud.exhaustion_bar.value == 0,"Fresh player shows full HP and empty accumulated exhaustion")
+	check(hud.grid_marker.text=="GRID  LAT 000N  LON 000E","Spawn is in the origin grid cell")
 	var old_text := false
 	for label: Label in world.find_children("*","Label",true,false):
 		if label.text.contains("WEAPON SLOTS") or label.text.contains("WASD move") or label.text.contains("PHASE 003") or label.text.contains("Momentum increases"): old_text = true
@@ -44,11 +46,31 @@ func run() -> void:
 		await frames(3)
 		var hp: Rect2 = hud.health_bar.get_global_rect()
 		var strain: Rect2 = hud.exhaustion_bar.get_global_rect()
-		check(root.get_visible_rect().encloses(hp) and root.get_visible_rect().encloses(strain),"Both bars fit viewport "+str(resolution))
+		var marker: Rect2 = hud.grid_marker.get_global_rect()
+		check(root.get_visible_rect().encloses(hp) and root.get_visible_rect().encloses(strain) and root.get_visible_rect().encloses(marker),"Bars and grid marker fit viewport "+str(resolution))
 		check(hp.position.x == 24 and hp.position.y == 24 and strain.position.y>hp.end.y and strain.size.y<hp.size.y,"HP remains top left with thinner exhaustion directly below at "+str(resolution))
+		check(marker.position.y>strain.end.y and marker.end.x<=hp.end.x and hud.grid_marker.get_minimum_size().x<=marker.size.x,"Small coordinate line sits below exhaustion without clipping at "+str(resolution))
 		await shot(str(resolution.x)+"_full")
 	root.size = Vector2i(1280,720)
 	actor.set_physics_process(false)
+	for sample: Dictionary in [
+		{"at":Vector3(7.99,0,-7.99),"text":"GRID  LAT 000N  LON 000E"},
+		{"at":Vector3(8,0,-8),"text":"GRID  LAT 001N  LON 001E"},
+		{"at":Vector3(-8.01,0,8.01),"text":"GRID  LAT 001S  LON 001W"},
+		{"at":Vector3(-512,0,-864),"text":"GRID  LAT 054N  LON 032W"},
+		{"at":Vector3(1152,0,1152),"text":"GRID  LAT 072S  LON 072E"},
+		{"at":Vector3(512,0,-864),"text":"GRID  LAT 054N  LON 032E"}]:
+		actor.global_position = sample.at
+		await frames(2)
+		check(hud.grid_marker.text==sample.text,"Live longitude/latitude follows actual position "+str(sample.at))
+	var grounded_label: String = hud.grid_marker.text
+	actor.global_position.y = 150
+	world.camera_rig.yaw += PI
+	await frames(2)
+	check(hud.grid_marker.text==grounded_label,"Sky Jump height and camera rotation leave the grid address unchanged")
+	check(Regions.grid_at(Vector3(-7.99,100,7.99))==Vector2i.ZERO and Regions.grid_at(Vector3(-8.01,0,8.01))==Vector2i(-1,-1),"Origin cell has consistent sixteen-metre boundaries in negative coordinates")
+	check(hud.mouse_filter==Control.MOUSE_FILTER_IGNORE and hud.grid_marker.mouse_filter==Control.MOUSE_FILTER_IGNORE,"Grid marker never captures gameplay inputs")
+	actor.global_position = actor.spawn
 	actor.weapon_combat.health = 542
 	actor.weapon_combat.psi_meter = 48
 	actor.weapon_combat._psi_delay = 10
@@ -64,9 +86,13 @@ func run() -> void:
 	actor.respawn()
 	await frames(2)
 	check(hud.health_bar.value == 1000 and hud.exhaustion_bar.value == 0,"Respawn restores both displayed combat resources")
+	check(hud.grid_marker.text=="GRID  LAT 000N  LON 000E","Respawn returns the live grid marker to the spawn cell")
 	world.start_menu.open_menu()
 	await frames(2)
 	check(world.start_menu.is_open and not paused,"System menu still overlays a live world")
+	actor.global_position = Vector3(-32,0,48)
+	await frames(2)
+	check(hud.grid_marker.text=="GRID  LAT 003S  LON 002W","Grid marker continues following the player while menus remain open")
 	world.start_menu.close_menu()
 	world.inventory_session.ui.open_menu()
 	await frames(2)

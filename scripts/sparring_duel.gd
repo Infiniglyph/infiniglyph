@@ -72,6 +72,7 @@ func _ready() -> void:
 	add_child(hint)
 
 func can_talk() -> bool:
+	if is_instance_valid(player.kyren_encounter) and (player.kyren_encounter.active or player.kyren_encounter.dialogue_open): return false
 	if is_instance_valid(player.boss_encounter) and player.boss_encounter.active: return false
 	if active or dialogue_open or player.dodge.active or not player.is_on_floor(): return false
 	if player.global_position.distance_to(partner.global_position)>TALK_RANGE: return false
@@ -103,6 +104,7 @@ func answer(accepted: bool) -> void:
 	if accepted: start()
 
 func start() -> void:
+	if is_instance_valid(player.kyren_encounter) and (player.kyren_encounter.active or player.kyren_encounter.dialogue_open): return
 	if is_instance_valid(player.boss_encounter) and player.boss_encounter.active: return
 	if active or player.global_position.distance_to(partner.global_position)>TALK_RANGE+0.5: return
 	active = true

@@ -38,6 +38,7 @@ func _initialize() -> void:
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--hz="): hz = int(arg.trim_prefix("--hz="))
 	Engine.physics_ticks_per_second = hz
+	Engine.max_physics_steps_per_frame = 1
 	call_deferred("run")
 
 func fixture() -> void:
@@ -170,7 +171,8 @@ func run() -> void:
 	await fixture()
 	var innocents: float = world.sparring_partner.health
 	check(not boss.can_attack_target(world.sparring_partner) and not boss.can_attack_target(world.population.residents[0]) and boss.can_attack_target(p),"Boss targets only its human opponent, protecting Ember and residents")
-	check(p.target_lock.living(boss) and not p.target_lock.living(world.get_node("CounterSentry")),"Lock-on honors the active encounter and excludes unrelated practice targets")
+	var sentry: Node=world.find_child("CounterSentry",true,false)
+	check(is_instance_valid(sentry) and p.target_lock.living(boss) and not p.target_lock.living(sentry),"Lock-on honors the active encounter and excludes unrelated practice targets")
 	w._begin(Moves.move(&"double"))
 	boss_pulse(0)
 	boss_pulse(0)

@@ -86,6 +86,7 @@ func run() -> void:
 	check(world.loot.pickups.size()==1 and world.loot.pickups.has(drop.pickup_id),"The lost katana restores exactly once at its saved outer-city position")
 	var restored: Node3D = world.loot.pickups.get(drop.pickup_id)
 	check(is_instance_valid(restored) and restored.item_instance.instance_id==lost.instance_id and restored.position.distance_to(Vector3(-1.719,0,-466.81))<0.002 and world.loot.markers.markers.size()==1,"The unclaimed weapon retains its identity, location and death marker")
+	check(session.loss_hint.visible and session.loss_hint.text.contains("LAT 029N  LON 000E"),"An outer-city loss restores its persistent bottom-screen location during startup")
 	check(world.controls.gameplay_enabled and world.player.visual.robe.is_equipped(),"Gameplay resumes with the restored wearable after startup")
 	check(session.save_checkpoint("",true) and Store.load_snapshot(path).inventory.items.size()==3,"Normal checkpoint saves work again after the deferred load")
 	var file_before := FileAccess.get_file_as_string(path)

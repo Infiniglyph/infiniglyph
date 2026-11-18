@@ -2,6 +2,8 @@ extends Node3D
 ## Scribe-derived fitted garments: shaped torso, joint sleeves, layered plate,
 ## split hems and mount-aware cloth. All geometry is built only on equip.
 const Surface = preload("res://scripts/garment_surface.gd")
+const Variants = preload("res://scripts/garment_variants.gd")
+const VoidSoul = preload("res://scripts/void_soul_weave.gd")
 var figure: Node3D
 var external: Array[Node3D] = []
 var tails: Array[Node3D] = []
@@ -11,12 +13,14 @@ var trim := Color("bcd8e1")
 var fabric := Color("0b111b")
 var _time := 0.0
 var _flow := 0.0
+var _lateral_flow := 0.0
 var _turn := 0.0
 var _inertia := Vector3.ZERO
 var _previous_velocity := Vector3.ZERO
 var _previous_yaw := 0.0
 var _motion_initialized := false
 var _mounted_kind := ""
+var _covered_feet: Array[MeshInstance3D] = []
 
 func node(parent: Node3D,label: String) -> Node3D:
 	var piece := Node3D.new()
@@ -30,7 +34,16 @@ func finish(builder: RefCounted,parent: Node3D,label: String,plate: bool = false
 
 func configure(visual: Node3D, entry: Dictionary) -> void:
 	figure = visual
-	profile = entry.geometry.tailoring
+	profile = entry.geometry.tailoring.duplicate(true)
+	profile.merge(Variants.for_item(entry))
+	# Vary actual contour and construction, rather than just recolouring a mesh.
+	profile.waist*=lerpf(.94,1.06,float(profile.design_a))
+	profile.chest*=lerpf(.96,1.06,float(profile.design_b))
+	profile.shoulder*=lerpf(.85,1.18,float(profile.design_a))
+	if entry.family=="body":
+		if profile.design==3: profile.mantle=true
+		if profile.design==4: profile.tabard=maxf(float(profile.get("tabard",0)),.40)
+		if profile.design==5: profile.cape=maxf(float(profile.cape),.50)
 	ink = Color(entry.geometry.tint)
 	fabric = Color(String(profile.get("fabric","0b111b")))
 	name = "Tailored_"+String(entry.id)
@@ -41,6 +54,7 @@ func configure(visual: Node3D, entry: Dictionary) -> void:
 		"legs": legs()
 	process_priority = 41
 	set_process(not tails.is_empty())
+	if profile.get("void_soul",false): _process(0)
 
 func body() -> void:
 	var root := node(figure.chest,"FittedChestAndLappedWaist")
@@ -75,6 +89,7 @@ func body() -> void:
 	if profile.ornate:
 		for side: float in [-1,1]:
 			b.line([Vector3(side*.14,.41,depth*.92),Vector3(side*.07,.32,depth*1.02),Vector3(side*.1,.23,depth*.98)],true)
+	design_inlay(b,Vector3(0,.30,depth*1.03),.07+.025*float(profile.design_b))
 	finish(b,root,"TailoredTorso",not cloth)
 	for side: String in ["Left","Right"]:
 		if profile.bare: continue
@@ -188,31 +203,100 @@ func head() -> void:
 		if profile.horns:
 			for side: float in [-1,1]:
 				b.quad(Vector3(side*.14,.87,0),Vector3(side*.21,.90,.04),Vector3(side*.28,1.10,-.08),Vector3(side*.18,.98,-.05),true)
+	if not hood and not profile.hat:
+		var crest_height: float=.035+.085*float(profile.design_a)
+		for i in range(1+int(profile.design)%3):
+			var x: float=(i-float(int(profile.design)%3)*.5)*.07
+			b.quad(Vector3(x-.025,.96,-.04),Vector3(x+.025,.96,-.04),Vector3(x+.014,1.01+crest_height,.02),Vector3(x-.014,1.01+crest_height,.02),true)
+	design_inlay(b,Vector3(0,.80,.16),.025+.012*float(profile.design_b))
 	finish(b,root,"ContouredHoodOrHelm",not hood)
+
+func design_inlay(b: RefCounted, at: Vector3, radius: float) -> void:
+	var count: int=3+int(profile.design)%5
+	var path: Array=[]
+	for i in range(count+1):
+		var angle:=i*TAU/count
+		path.append(at+Vector3(sin(angle)*radius,cos(angle)*radius,0))
+	b.line(path,true)
+	b.line([at+Vector3(-radius*.6,0,.002),at+Vector3(0,radius*.55,.002),at+Vector3(radius*.6,0,.002)],true)
 
 func hands() -> void:
 	for side: String in ["Left","Right"]:
 		var root := node(figure.joints[side+"Arm"].get_node("Hinge"),side+"LayeredGauntlet")
 		var b := Surface.new()
-		b.loft([Vector3(.09,-.055,.085),Vector3(.075,-.13,.073),Vector3(.057,-.27,.063)],0,Vector3.ZERO,4)
-		for i in range(int(profile.layers)):
-			var y := -.14-i*.045
-			b.loft([Vector3(.071,y,.076),Vector3(.065,y-.032,.068)],.5,Vector3.ZERO,1)
+		var style: int=profile.design
+		var width: float=profile.cuff_width
+		var top: float=-.29+float(profile.cuff_length)
+		var flared: bool=style in [1,5,7]
+		b.loft([Vector3(width*(1.28 if flared else 1),top,width),Vector3(width*.85,lerpf(top,-.265,.55),width*.85),Vector3(.058,-.27,.064)],0,Vector3.ZERO,2+style%4)
+		# A fitted palm/knuckle shell makes gloves read as hands, not bare cuffs.
+		b.loft([Vector3(.058,-.26,.062),Vector3(.066,-.30,.072),Vector3(.053,-.345,.06)],0,Vector3.ZERO,2)
+		if style in [0,1,5,7]:
+			for i in range(int(profile.bands)):
+				var y:=lerpf(top-.025,-.24,float(i)/maxi(1,int(profile.bands)-1))
+				var r:=lerpf(width,.065,inverse_lerp(top,-.27,y))+.007
+				b.loft([Vector3(r,y,r),Vector3(r*.92,y-.022,r*.94)],.42,Vector3.ZERO,1)
+		if style in [2,3,6]:
+			var wrap: Array=[]
+			for i in range(33):
+				var t:=i/32.0
+				var r:=lerpf(width,.062,t)+.004
+				wrap.append(Vector3(sin(t*TAU*(2+style%3))*r,lerpf(top,-.27,t),cos(t*TAU*(2+style%3))*r))
+			b.line(wrap,true)
+		if style in [1,4,7]:
+			var sign_value: float=-1 if side=="Left" else 1
+			b.quad(Vector3(sign_value*width,top,.025),Vector3(sign_value*(width+.045),top+.07,-.02),Vector3(sign_value*(width+.02),-.19,.055),Vector3(sign_value*.055,-.25,.04),true)
+		if style in [0,3,6,7]:
+			for digit in range(4):
+				var x: float=(digit-1.5)*.026
+				b.quad(Vector3(x-.011,-.291,.066),Vector3(x+.011,-.291,.066),Vector3(x+.009,-.34,.061),Vector3(x-.009,-.34,.061),true)
+		design_inlay(b,Vector3(0,lerpf(top,-.24,.45),width+.008),width*.42)
 		finish(b,root,"FittedCuffAndWrist",profile.cut!="cloth")
 
 func legs() -> void:
 	for side: String in ["Left","Right"]:
+		var foot: MeshInstance3D = figure.foot_meshes[side+"Leg"]
+		foot.hide()
+		_covered_feet.append(foot)
 		for part in range(2):
 			var joint: Node3D = figure.joints[side+"Leg"]
 			if part==1: joint=joint.get_node("Hinge")
 			var root := node(joint,side+"ArticulatedGreave"+str(part))
 			var b := Surface.new()
-			b.loft([Vector3(.10,0,.105),Vector3(.105,-.15,.10),Vector3(.075,-.40,.085)],0,Vector3.ZERO,4)
+			var style: int=profile.design
+			var radius: float=profile.thigh_width if part==0 else profile.calf_width
+			var cloth: bool=style in [2,3] or profile.cut=="cloth"
+			b.loft([Vector3(radius,0,radius*.95),Vector3(radius*(1.18 if cloth else 1.04),-.15,radius),Vector3(.075,-.40,.085)],0,Vector3.ZERO,2+style%5)
+			if style in [1,4,6,7]:
+				for i in range(int(profile.bands)):
+					var y: float=-.06-i*.24/maxi(1,int(profile.bands)-1)
+					var r:=lerpf(radius,.082,-y/.40)+.007
+					b.loft([Vector3(r,y,r),Vector3(r*.94,y-.035,r*.94)],.60,Vector3.ZERO,1)
+			if style in [0,5,7]:
+				b.quad(Vector3(-radius*.65,-.04,radius),Vector3(radius*.65,-.04,radius),Vector3(.045,-.33,.095),Vector3(-.045,-.33,.095),true)
+			if style in [2,3]:
+				var wrap: Array=[]
+				for i in range(33):
+					var t:=i/32.0
+					var r:=lerpf(radius,.08,t)+.005
+					wrap.append(Vector3(sin(t*TAU*3)*r,-.38*t,cos(t*TAU*3)*r))
+				b.line(wrap,true)
 			if part==1:
-				b.loft([Vector3(.09,.025,.095),Vector3(.115,-.04,.13),Vector3(.095,-.11,.105)],.7,Vector3.ZERO,2)
-				# Fitted sabot, raised toe and ankle; it ends above the floor.
-				b.loft([Vector3(.07,-.32,.08),Vector3(.075,-.405,.16),Vector3(.07,-.43,.17)],0,Vector3(0,0,.055),3)
+				var knee: float=radius*(1.4 if style in [4,5] else 1.12)
+				b.loft([Vector3(.09,.025,.095),Vector3(knee,-.04,knee*1.12),Vector3(.095,-.11,.105)],.7,Vector3.ZERO,2)
+				if style in [4,7]:
+					var sign_value: float=-1 if side=="Left" else 1
+					b.quad(Vector3(sign_value*knee,-.015,.02),Vector3(sign_value*(knee+.055),.065,-.015),Vector3(sign_value*(knee+.025),-.11,.04),Vector3(sign_value*.08,-.15,.07),true)
+				# Enclose the whole ankle/foot and close the sole, including views
+				# from below. The resting foot sphere ends at -.495 in this frame.
+				var sole := Vector3(profile.boot_width,-.494,profile.toe_length)
+				var center := Vector3(0,0,.055)
+				b.loft([Vector3(.075,-.27-.02*(style%3),.085),Vector3(sole.x,-.43,sole.z*.93),sole],0,center,2+style%4)
+				for i in range(16):
+					b.faces.append_array([Vector3(0,sole.y,center.z),b.point(sole,i*TAU/16,center),b.point(sole,(i+1)*TAU/16,center)])
+				design_inlay(b,Vector3(0,-.19,radius+.008),radius*.5)
 			finish(b,root,"ContouredLegPlate",profile.cut!="cloth")
+	if profile.get("void_soul",false): VoidSoul.build(self)
 
 func _process(delta: float) -> void:
 	if not is_instance_valid(figure): return
@@ -230,6 +314,7 @@ func _process(delta: float) -> void:
 		_previous_velocity = motion
 		_previous_yaw = yaw
 		_inertia = Vector3.ZERO
+		_lateral_flow = 0
 		_turn = 0
 		_motion_initialized = true
 	var local_motion := figure_basis.inverse()*motion
@@ -248,7 +333,8 @@ func _process(delta: float) -> void:
 	# Flow opposes travel, including backpedaling and strafing. The mounted
 	# saddle fold below intentionally remains rearward even while reversing.
 	var trail_forward := _flow*clampf(local_motion.z/maxf(speed,.1),-1,1)
-	var trail_side := _flow*clampf(local_motion.x/maxf(speed,.1),-1,1)
+	var target_side := _flow*clampf(local_motion.x/maxf(speed,.1),-1,1)
+	_lateral_flow=lerpf(_lateral_flow,target_side,1-exp(-4*delta))
 	for i in range(tails.size()):
 		var tail := tails[i]
 		var cape: bool = tail.get_meta("cape")
@@ -268,16 +354,19 @@ func _process(delta: float) -> void:
 		if not cape:
 			var leg: Node3D = figure.joints.RightLeg if seam.x>0 else figure.joints.LeftLeg
 			var thigh: Vector3 = origin.global_basis.inverse()*(leg.global_basis*Vector3.DOWN)
-			var pitch := atan2(-thigh.z,-thigh.y)
+			# A raised thigh can point upward during Sky Jump. Keep a downward
+			# reference so atan2 cannot wrap through +/-PI and flip the whole hem.
+			var down := maxf(-thigh.y,.20)
+			var pitch := atan2(-thigh.z,down)
 			var front: bool = cos(float(tail.get_meta("angle")))>=0
-			leg_pitch = (minf(pitch,0)*.82 if front else maxf(pitch,0)*.72)
-			leg_roll = atan2(thigh.x,-thigh.y)*.40
+			leg_pitch = clampf(minf(pitch,0)*.82 if front else maxf(pitch,0)*.72,-.65,.65)
+			leg_roll = clampf(atan2(thigh.x,down)*.20,-.10,.10)
 		var flutter := sin(_time*(3.3+_flow*5)+i*1.7)*_flow*.045 if flexible else 0.0
 		var flexibility := 1.0 if flexible else .12
 		var angles_target := Vector3(
 			leg_pitch+(trail_forward*(.34 if cape else .22)+_inertia.z*.09+flutter)*flexibility,
-			-_turn*(.65 if cape else .38)*flexibility,
-			leg_roll+(-trail_side*.14-_inertia.x*.09+flutter*.5)*flexibility)
+			-_turn*(.45 if cape else .26)*flexibility,
+			clampf(leg_roll+(-_lateral_flow*.065-_inertia.x*.035+flutter*.25)*flexibility,-.18,.18))
 		if mounted_kind=="motorcycle":
 			# Match the Scribe treatment: fold over the belt, then stream behind
 			# the saddle above the rear wheel, even when the bike is stationary.
@@ -297,7 +386,7 @@ func _process(delta: float) -> void:
 		tail.basis = orientation_basis*Basis.from_euler(angles).scaled(Vector3(1,clearance,1))
 		if flexible:
 			var bend: Node3D = tail.get_meta("bend")
-			var tip_target := Vector3(trail_forward*.25+_inertia.z*.16+flutter*1.7,-_turn*.4,-trail_side*.11-_inertia.x*.13+flutter*.7)
+			var tip_target := Vector3(trail_forward*.25+_inertia.z*.16+flutter*1.7,-_turn*.28,clampf(-_lateral_flow*.045-_inertia.x*.045+flutter*.3,-.08,.08))
 			if mounted_kind=="motorcycle": tip_target.x = .06+_flow*.04+flutter*.3
 			var bend_previous: Vector3 = tail.get_meta("bend_angles")
 			var bend_angles := tip_target if changed_mount else bend_previous.lerp(tip_target,1-exp(-7*delta))
@@ -305,5 +394,7 @@ func _process(delta: float) -> void:
 			bend.basis = Basis.from_euler(bend_angles)
 
 func _exit_tree() -> void:
+	for foot in _covered_feet:
+		if is_instance_valid(foot): foot.show()
 	for piece in external:
 		if is_instance_valid(piece) and piece.get_parent()!=self: piece.queue_free()

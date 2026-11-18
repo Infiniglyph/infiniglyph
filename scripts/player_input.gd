@@ -3,6 +3,7 @@ signal special_hold_cancelled(token: StringName)
 var gameplay_enabled := true
 var interaction_requested := false
 var heal_requested := false
+var shield_requested := false
 var _rt_used := false
 var _rt_pending := false
 var interaction_context: Node
@@ -21,6 +22,8 @@ var dodge_requested: bool:
 	set(value): _dodge_requests = maxi(1,_dodge_requests) if value else 0
 var sprint := false
 var boost := false
+var vehicle_mode := false
+var _vehicle_wave_requests := 0
 var _boost_had_movement := false
 var mouse_look := Vector2.ZERO
 @export var stick_deadzone := 0.18
@@ -57,16 +60,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_ESCAPE:
 			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED else Input.MOUSE_MODE_CAPTURED
-		if event.keycode == KEY_SPACE: jump_requested = true
 		if event.keycode == KEY_CTRL: toggle_boost()
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		var was_captured := Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 		if not was_captured: return
-	if event is InputEventJoypadButton and event.pressed and event.button_index == JOY_BUTTON_A:
-		jump_requested = true
-	if event is InputEventJoypadButton and event.pressed and event.button_index == JOY_BUTTON_LEFT_STICK:
-		toggle_boost()
 	_combat_input(event)
 
 func sample() -> void:
@@ -116,6 +114,18 @@ func toggle_boost() -> void:
 	boost = not boost
 	_boost_had_movement = false
 
+func set_vehicle_mode(enabled: bool) -> void:
+	vehicle_mode=enabled
+	boost=false
+	_boost_had_movement=false
+	_vehicle_wave_requests=0
+	reset_combat_input()
+
+func consume_vehicle_wave_requests() -> int:
+	var count:=_vehicle_wave_requests
+	_vehicle_wave_requests=0
+	return count
+
 func filtered(value: Vector2) -> Vector2:
 	var length := value.length()
 	if length < stick_deadzone: return Vector2.ZERO
@@ -152,7 +162,7 @@ func set_right_trigger(value: float) -> void:
 	var held := trigger_held(value,_pad_modifier)
 	var fresh := held and not _pad_modifier
 	if not held and _pad_modifier:
-		# Resolve a bare RT tap on release, so RT+B/X/Y cannot also interact.
+		# Resolve a bare RT tap on release, so RT+A/B/X/Y cannot also interact.
 		if _rt_pending and not _rt_used: interaction_requested = true
 		_rt_pending = false
 		_rt_interaction_latched = false
@@ -164,6 +174,11 @@ func set_right_trigger(value: float) -> void:
 func consume_heal() -> bool:
 	var result := heal_requested
 	heal_requested = false
+	return result
+
+func consume_shield() -> bool:
+	var result := shield_requested
+	shield_requested = false
 	return result
 
 func consume_combat_requests() -> Array[Dictionary]:
@@ -235,7 +250,7 @@ func update_combat_hold(delta: float) -> void:
 func _combat_input(event: InputEvent) -> void:
 	if event is InputEventKey:
 		var code: int = event.physical_keycode if event.physical_keycode != KEY_NONE else event.keycode
-		if code not in [KEY_E,KEY_F,KEY_V,KEY_Q,KEY_R,KEY_TAB,KEY_G,KEY_H] and not WEAPON_KEYS.has(code) and not TARGET_KEYS.has(code): return
+		if code not in [KEY_E,KEY_F,KEY_V,KEY_Q,KEY_R,KEY_TAB,KEY_G,KEY_H,KEY_SPACE] and not WEAPON_KEYS.has(code) and not TARGET_KEYS.has(code): return
 		if event.echo: return
 		var fresh: bool = event.pressed and not _combat_keys.has(code)
 		if event.pressed: _combat_keys[code] = true
@@ -251,12 +266,16 @@ func _combat_input(event: InputEvent) -> void:
 			return
 		if not fresh: return
 		if code == KEY_TAB:
-			_lock_requests.append({"direction":Vector2.ZERO,"device":-1})
+			if vehicle_mode: _vehicle_wave_requests+=1
+			else: _lock_requests.append({"direction":Vector2.ZERO,"device":-1})
 			_flick_armed = false
 		elif TARGET_KEYS.has(code): _lock_requests.append({"direction":TARGET_KEYS[code],"device":-1})
 		elif code == KEY_E: request_dodge()
 		elif code == KEY_G: interaction_requested = true
 		elif code == KEY_H: heal_requested = true
+		elif code == KEY_SPACE:
+			if _keyboard_modifier: shield_requested = true
+			else: jump_requested = true
 		elif WEAPON_KEYS.has(code):
 			_down_cancelled = true
 			_request(&"weapon",WEAPON_KEYS[code])
@@ -288,6 +307,14 @@ func _combat_input(event: InputEvent) -> void:
 			return
 		if not fresh: return
 		match event.button_index:
+			JOY_BUTTON_LEFT_STICK: toggle_boost()
+			JOY_BUTTON_A:
+				if _pad_modifier:
+					_rt_used = true
+					_rt_pending = false
+					shield_requested = true
+					interaction_requested = false
+				else: jump_requested = true
 			JOY_BUTTON_B:
 				if _pad_modifier:
 					_rt_used = true
@@ -296,7 +323,8 @@ func _combat_input(event: InputEvent) -> void:
 					interaction_requested = false
 				else: request_dodge()
 			JOY_BUTTON_RIGHT_STICK:
-				_lock_requests.append({"direction":Vector2.ZERO,"device":event.device})
+				if vehicle_mode: _vehicle_wave_requests+=1
+				else: _lock_requests.append({"direction":Vector2.ZERO,"device":event.device})
 				_flick_armed = false
 			JOY_BUTTON_RIGHT_SHOULDER: _request(&"action",&"attack_right",event.device)
 			JOY_BUTTON_LEFT_SHOULDER: _request(&"action",&"attack_left",event.device)
@@ -306,9 +334,12 @@ func _combat_input(event: InputEvent) -> void:
 					_request(&"weapon",WEAPON_BUTTONS[event.button_index],event.device)
 
 func reset_combat_input() -> void:
+	_vehicle_wave_requests=0
 	_rt_pending = false
 	_rt_used = false
 	heal_requested = false
+	shield_requested = false
+	jump_requested = false
 	interaction_requested = false
 	dodge_requested = false
 	_held_specials.clear()
@@ -335,6 +366,7 @@ func _on_joy_connection_changed(device: int, connected: bool) -> void:
 	_resume_triggers[JOY_AXIS_TRIGGER_RIGHT] = true
 	_rt_pending = false
 	heal_requested = false
+	shield_requested = false
 	dodge_requested = false
 	for token: StringName in _held_specials.keys():
 		if _held_specials[token] == device:

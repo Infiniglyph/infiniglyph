@@ -127,6 +127,12 @@ func capture_suite(rest: Dictionary) -> void:
 	actor.velocity=Vector3(0,0,9)
 	for frame in range(hz): cloth._process(1.0/hz)
 	await image_pose(camera,"walk",Vector3(3.4,1.55,3.8),Vector3(0,1.0,0))
+	figure.joints.RightLeg.rotation=Vector3(PI-.02,0,.001)
+	figure.joints.LeftLeg.rotation=Vector3(-1.1,0,-.1)
+	actor.velocity=Vector3(14,10,0)
+	for frame in range(hz): cloth._process(1.0/hz)
+	await image_pose(camera,"sky_strafe",Vector3(3.4,1.55,3.8),Vector3(0,1.0,0))
+	for key: String in rest: figure.joints[key].transform=rest[key]
 	var vehicle:=real_vehicle("motorcycle")
 	actor.velocity=Vector3.ZERO
 	rider_pose(vehicle)
@@ -199,7 +205,26 @@ func run() -> void:
 	check(front.get_meta("cloth_angles").x<-.10 and front.get_meta("bend_angles").x<-.10,"Backpedaling trails cloth toward character-front, opposing actual travel")
 	actor.velocity=Vector3(12,0,0)
 	tick(.8)
-	check(front.get_meta("cloth_angles").z<-.08 and front.get_meta("bend_angles").z<-.04,"Strafing trails both cloth bands away from lateral travel")
+	check(front.get_meta("cloth_angles").z<-.025 and front.get_meta("cloth_angles").z>-.10 and front.get_meta("bend_angles").z<-.012 and front.get_meta("bend_angles").z>-.06,"Strafing produces a restrained sideways trail in both cloth bands")
+	var before_reverse: Vector3=front.get_meta("cloth_angles")
+	actor.velocity=Vector3(-12,10,0)
+	tick(1.0/hz)
+	check(absf(front.get_meta("cloth_angles").z-before_reverse.z)<1.5/hz,"An aerial strafe reversal blends without a sudden sideways fold")
+	var bounded_air:=true
+	var stable_air:=true
+	for roll: float in [-.001,.001,-.001,.001]:
+		var previous_roll: float=front.get_meta("cloth_angles").z
+		figure.joints.RightLeg.rotation=Vector3(PI-.02,0,roll)
+		tick(1.0/hz)
+		stable_air=stable_air and absf(front.get_meta("cloth_angles").z-previous_roll)<1.5/hz
+		tick(.25)
+		for tail: Node3D in cloth.tails:
+			var angles: Vector3=tail.get_meta("cloth_angles")
+			bounded_air=bounded_air and absf(angles.z)<=.1801 and absf(angles.x)<.81
+			if tail.has_meta("bend"): bounded_air=bounded_air and absf(tail.get_meta("bend_angles").z)<=.0801
+	check(bounded_air and stable_air,"Raised knees and tiny lateral sign changes cannot flip the hem across atan2's angle boundary")
+	check(seam_error(cloth)<.00001,"Softened aerial trailing keeps every cloth seam pinned")
+	figure.joints.RightLeg.rotation=Vector3.ZERO
 	actor.velocity=Vector3(0,0,12)
 	tick(.8)
 	# Apply the same short turn/acceleration over real time at each rate,

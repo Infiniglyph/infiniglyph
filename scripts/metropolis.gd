@@ -1,6 +1,7 @@
 extends Node3D
 ## Static city additions. Render by spatial cell; every volume has real collision.
 const Neon = preload("res://scripts/neon.gd")
+const Rail = preload("res://scripts/rail_barrier.gd")
 const CELL_SIZE := 16.0
 const TOWER := Vector3(0,0,-64)
 const DAIS_HEIGHT := 3.12
@@ -48,7 +49,7 @@ func cell_for(point: Vector3, partition: String = "") -> Cell:
 		cells[key] = cell
 	return cells[key]
 
-func solid(vertices: PackedVector3Array, faces: Array, transform: Transform3D, shape: Shape3D, tag: String, warm: bool = false) -> void:
+func solid(vertices: PackedVector3Array, faces: Array, transform: Transform3D, shape: Shape3D, tag: String, warm: bool = false, collision: bool = true, render_geometry: bool = true) -> void:
 	# Keep broad low plazas and sloping bridges out of tall facade light lists.
 	var partition := tag if tag in ["TowerDais","CivicCrystal","SkywayCrossing","CrossingHandrail"] else ""
 	var cell := cell_for(transform.origin,partition)
@@ -56,6 +57,7 @@ func solid(vertices: PackedVector3Array, faces: Array, transform: Transform3D, s
 	var edges := PackedVector3Array()
 	var seen: Dictionary = {}
 	for face: Array in faces:
+		if not render_geometry: break
 		for i in range(1,face.size()-1):
 			for index: int in [face[0],face[i],face[i+1]]: triangles.append(transform*vertices[index])
 		for i in range(face.size()):
@@ -71,6 +73,7 @@ func solid(vertices: PackedVector3Array, faces: Array, transform: Transform3D, s
 	else:
 		cell.faces.append_array(triangles)
 		cell.edges.append_array(edges)
+	if not collision: return
 	var collider := CollisionShape3D.new()
 	collider.name = tag
 	collider.shape = shape
@@ -78,7 +81,7 @@ func solid(vertices: PackedVector3Array, faces: Array, transform: Transform3D, s
 	collider.transform = transform
 	solids.append({"tag":tag,"collider":collider,"transform":transform,"vertices":vertices,"faces":faces,"warm":warm})
 
-func block(at: Vector3, size: Vector3, tag: String, basis: Basis = Basis.IDENTITY, warm: bool = false) -> void:
+func block(at: Vector3, size: Vector3, tag: String, basis: Basis = Basis.IDENTITY, warm: bool = false, collision: bool = true) -> void:
 	var vertices := PackedVector3Array()
 	for x in [-1,1]:
 		for y in [-1,1]:
@@ -87,7 +90,7 @@ func block(at: Vector3, size: Vector3, tag: String, basis: Basis = Basis.IDENTIT
 		var shape := BoxShape3D.new()
 		shape.size = size
 		shapes[size] = shape
-	solid(vertices,[[0,1,3,2],[4,6,7,5],[0,4,5,1],[2,3,7,6],[0,2,6,4],[1,5,7,3]],Transform3D(basis,at),shapes[size],tag,warm)
+	solid(vertices,[[0,1,3,2],[4,6,7,5],[0,4,5,1],[2,3,7,6],[0,2,6,4],[1,5,7,3]],Transform3D(basis,at),shapes[size],tag,warm,collision)
 
 func prism(at: Vector3, polygon: Array[Vector2], height: float, tag: String) -> void:
 	var vertices := PackedVector3Array()
@@ -111,9 +114,15 @@ func prism(at: Vector3, polygon: Array[Vector2], height: float, tag: String) -> 
 	shape.points = vertices
 	solid(vertices,faces,Transform3D(Basis.IDENTITY,at+Vector3(center.x,0,center.y)),shape,tag)
 
-func beam(a: Vector3, b: Vector3, width: float, tag: String, warm: bool = false) -> void:
+func beam(a: Vector3, b: Vector3, width: float, tag: String, warm: bool = false, collision: bool = true) -> void:
 	var direction := b-a
-	block((a+b)*0.5,Vector3(width,direction.length(),width),tag,Basis(Quaternion(Vector3.UP,direction.normalized())),warm)
+	block((a+b)*0.5,Vector3(width,direction.length(),width),tag,Basis(Quaternion(Vector3.UP,direction.normalized())),warm,collision)
+
+func rail_collision(a: Vector3, b: Vector3, height: float, tag: String) -> void:
+	# Keep collision local to its spatial cell, just like the rendered architecture.
+	var center:=(a+b)*.5
+	var data:=Rail.geometry(a-center,b-center,height,.12)
+	solid(data.vertices,data.faces,Transform3D(Basis.IDENTITY,center),data.shape,tag,false,true,false)
 
 func circle(at: Vector3, radius: float, width: float, thickness: float, segments: int, tag: String) -> void:
 	for i in range(segments):
@@ -224,12 +233,13 @@ func guard(a: Vector3, b: Vector3, tag: String) -> void:
 	# Orange caps are working low-power luminaires; existing local skyway lights
 	# illuminate them without adding a light object to each individual segment.
 	var warm := tag in ["SkywayDeck","SkywayStraight","NorthPromenade"] and (a+b).x*0.5>0
-	beam(a+Vector3.UP,b+Vector3.UP,0.075,"SkywayHandrail",warm)
-	beam(a+Vector3.UP*0.5,b+Vector3.UP*0.5,0.045,"SkywayMidrail")
+	rail_collision(a,b,1.04,"SkywayGuard")
+	beam(a+Vector3.UP,b+Vector3.UP,0.075,"SkywayHandrail",warm,false)
+	beam(a+Vector3.UP*0.5,b+Vector3.UP*0.5,0.045,"SkywayMidrail",false,false)
 	var count := maxi(1,ceili(a.distance_to(b)/2.0))
 	for i in range(count+1):
 		var foot := a.lerp(b,float(i)/count)
-		beam(foot,foot+Vector3.UP,0.065,"SkywayBaluster")
+		beam(foot,foot+Vector3.UP,0.065,"SkywayBaluster",false,false)
 
 func light_at(at: Vector3, range_value: float = 5.8, energy: float = 1.0) -> void:
 	var light := OmniLight3D.new()
@@ -304,14 +314,15 @@ func build_skyway(side: int, height: float) -> void:
 		if step%4 == 3:
 			for sign_value in [-1,1]:
 				var foot := Vector3(x+sign_value*1.6,0.12+h,start_z-(step+0.5)*tread)
-				beam(foot,foot+Vector3.UP*1.05,0.07,"StairBaluster")
+				beam(foot,foot+Vector3.UP*1.05,0.07,"StairBaluster",false,false)
 	var end_z := start_z-steps*tread
 	walk_box(Vector3(x,height,end_z-1.6),Vector2(4.8,3.2),"SkywayLanding")
 	# The stair mouth is an explicit open portal, exactly the staircase width.
 	register_walk(PackedVector3Array([Vector3(x-1.6,height+0.14,end_z-0.05),Vector3(x+1.6,height+0.14,end_z-0.05),Vector3(x+1.6,height+0.14,end_z+0.5),Vector3(x-1.6,height+0.14,end_z+0.5)]),"StairPortal",true)
 	for sign_value in [-1,1]:
-		beam(Vector3(x+sign_value*1.6,1.42,start_z),Vector3(x+sign_value*1.6,height+1.05,end_z),0.07,"StairHandrail")
-		beam(Vector3(x+sign_value*1.35,0.05,start_z),Vector3(x+sign_value*1.35,height-0.18,end_z),0.16,"StairStringer")
+		rail_collision(Vector3(x+sign_value*1.6,.37,start_z),Vector3(x+sign_value*1.6,height,end_z),1.09,"StairGuard")
+		beam(Vector3(x+sign_value*1.6,1.42,start_z),Vector3(x+sign_value*1.6,height+1.05,end_z),0.07,"StairHandrail",false,false)
+		beam(Vector3(x+sign_value*1.35,0.05,start_z),Vector3(x+sign_value*1.35,height-0.18,end_z),0.16,"StairStringer",false,false)
 	routes.append({"point":Vector3(x,height+0.14,end_z-1.6),"tag":"SkywayLanding"})
 	# Continue along the open avenue, outside the existing building footprints.
 	var north_start := center.z

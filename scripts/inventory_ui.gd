@@ -8,7 +8,7 @@ const CATEGORIES := [&"weapons",&"cosmetics",&"consumables",&"materials",&"key_i
 const CATEGORY_NAMES := ["WEAPONS","ARMOR / COSMETICS","CONSUMABLES","MATERIALS","KEY ITEMS","MISCELLANEOUS"]
 const CATEGORY_GLYPHS := ["/|","<>" ,"+","#","*","::"]
 const DIRECTIONS := [&"up",&"left",&"right",&"down"]
-const EQUIPMENT_SLOTS := [&"up",&"left",&"right",&"down",&"body",&"head",&"hands",&"legs",&"shield",&"ring1",&"ring2"]
+const EQUIPMENT_SLOTS := [&"up",&"left",&"right",&"down",&"body",&"head",&"hands",&"legs",&"ring1",&"ring2"]
 const PAGE_SIZE := 8
 const CYAN := Color(0.12,0.9,0.96)
 const WHITE := Color(0.9,0.96,0.98)
@@ -474,7 +474,7 @@ func _refresh_equipment() -> void:
 		_mark(button,index==selected_index)
 		equipment_buttons.append(button)
 	selected_iid = visible_ids[selected_index]
-	var note := _label("Four weapon directions. Armor and shields are cosmetic.\nRings have no active effects.",13,MUTED)
+	var note := _label("Four weapon directions. Armor is cosmetic.\nRings have no active effects.",13,MUTED)
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_rows.add_child(note)
 	_page_label.text = "4 WEAPONS / 5 COSMETICS / 2 RINGS"
@@ -550,6 +550,8 @@ func activate_selection() -> void:
 	var definition := _definition(item)
 	if definition==null: return
 	_begin_modal(&"actions",definition.display_name)
+	if definition.custom_properties.has("respawn_kind"): _modal_choice("PLACE RESPAWN GLYPH HERE",_use_respawn)
+	if definition.custom_properties.has("shield_capacity"): _modal_choice("USE SHIELD GLYPH",_use_shield)
 	if definition.category==&"weapons" and definition.is_equippable: _modal_choice("EQUIP TO DIRECTION",_choose_slot)
 	if definition.category==&"cosmetics" and definition.is_equippable:
 		var slot := StringName(definition.custom_properties.get("cosmetic_slot","body"))
@@ -609,6 +611,18 @@ func _choose_weapon() -> void:
 			_modal_buttons[-1].text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	if choices.is_empty(): _modal_rows.add_child(_label("No compatible owned items are available.",15,MUTED))
 	_modal_choice("BACK",_close_modal)
+
+func _use_respawn() -> void:
+	var success: bool=is_instance_valid(loot) and loot.request_respawn_glyph(inventory,selected_iid)
+	_close_modal()
+	refresh()
+	set_status("Respawn glyph placed. Choose it when you die; it remains reusable." if success else "Stand on clear, solid ground to place this glyph.",not success)
+
+func _use_shield() -> void:
+	var success: bool=is_instance_valid(loot) and loot.request_shield_glyph(inventory,selected_iid)
+	_close_modal()
+	refresh()
+	set_status("Shield restored." if success else "Your current shield already offers at least that protection.",not success)
 
 func _equip(slot: StringName, iid: String) -> void:
 	var title := _item_name(iid)

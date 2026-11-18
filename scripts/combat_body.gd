@@ -34,6 +34,15 @@ var _stance_basis := Basis.IDENTITY
 var _guarding := false
 var _guard_time := 0.0
 var _spin_base := 0.0
+var _scribe_ready := false
+var _ready_time := 0.0
+var _gym_active := false
+
+func _settle_gym_turn() -> void:
+	# A completed revolution equals the rest orientation. Returning the spring
+	# from -TAU to zero would otherwise visibly unwind a whole turn on recovery.
+	hips.value=Vector3(wrapf(hips.value.x,-PI,PI),wrapf(hips.value.y,-PI,PI),wrapf(hips.value.z,-PI,PI))
+	_gym_active=false
 
 static func forward_attack_pose(hip: Vector3, chest: Vector3, weight: float) -> Dictionary:
 	# The reference rig's sagittal bend often reads backward on our +Z figure.
@@ -52,6 +61,7 @@ static func forward_attack_pose(hip: Vector3, chest: Vector3, weight: float) -> 
 	return {"hip":hinged,"chest":supported_chest.get_euler()}
 
 func begin(facing: Vector3) -> void:
+	if _gym_active: _settle_gym_turn()
 	_sources.clear()
 	support_feet.clear()
 	_stance_origin = actor.global_position
@@ -118,13 +128,22 @@ func foot_target(id: String, side: float, lead: float, width: float, stagger: fl
 
 func apply(delta: float, move: Dictionary, time: float, guarding: bool, kind: StringName, facing: Vector3) -> void:
 	var active := not move.is_empty()
+	var gym: bool=active and move.get("disc_gym",false)
+	if _gym_active and not gym: _settle_gym_turn()
+	_gym_active=gym
 	var visual: Node3D = actor.visual
+	var ready: bool = kind==&"scribe" and not actor.combat.sheathed and not actor.dodge.active and not active
 	var speed := Vector2(actor.velocity.x,actor.velocity.z).length()
 	var turn_replant := _stance_basis.z.dot(facing)<cos(deg_to_rad(50))
 	var moved := actor.global_position.distance_to(_stance_origin)>0.45
 	if guarding and (not _guarding or turn_replant or (moved and speed<0.6)):
 		begin(facing)
 		_guard_time = 0
+	if ready and (not _scribe_ready or turn_replant or (moved and speed<0.6)):
+		begin(facing)
+		_ready_time = 0
+	_scribe_ready = ready
+	_ready_time = _ready_time+delta if ready else 0.0
 	_guarding = guarding
 	if guarding: _guard_time += delta
 	var offset := Vector3.ZERO
@@ -139,6 +158,7 @@ func apply(delta: float, move: Dictionary, time: float, guarding: bool, kind: St
 	var spin := 0.0
 	var rotary := false
 	var t := _guard_time if guarding else time
+	if ready and not guarding: t = _ready_time
 	hip_drive = 0
 	shoulder_drive = 0
 	phase_label = "rest"
@@ -189,6 +209,17 @@ func apply(delta: float, move: Dictionary, time: float, guarding: bool, kind: St
 		rotation = Vector3(0.02,-0.16,0)*envelope
 		chest = Vector3(0.05,0.18,0)*envelope
 		phase_label = "brace"
+	if ready:
+		# Anatomical left is the positive-X leg on this +Z-facing figure. Move
+		# the visual centre over that rear foot; the front/right knee softens.
+		envelope = smoothstep(0,.18,_ready_time)
+		offset = Vector3(.055,-.105,-.065)*envelope
+		rotation = Vector3(.025,-.18,0)*envelope
+		chest = Vector3(.02,.16,0)*envelope
+		width = .18
+		stagger = .22
+		side = 1.0
+		phase_label = "scribe-ready"
 	# Release the lower-body lock as locomotion takes over. Airborne poses keep
 	# the existing kick/cradle: hips can turn, but feet never seek a floor in air.
 	var stationary := 1-smoothstep(0.15,1.6,speed)
@@ -196,8 +227,8 @@ func apply(delta: float, move: Dictionary, time: float, guarding: bool, kind: St
 	plant_weight = stationary*envelope if grounded else 0.0
 	if actor.global_position.distance_to(_stance_origin)>0.45: plant_weight = 0
 	if grounded and envelope>0.01 and _sources.is_empty(): begin(facing)
-	var body_scale := lerpf(0.32,1.0,stationary) if grounded else 0.30
-	offset *= body_scale if grounded else 0.15
+	var body_scale := 1.0 if gym else lerpf(0.32,1.0,stationary) if grounded else 0.30
+	offset *= body_scale if grounded or gym else 0.15
 	rotation.x *= body_scale
 	rotation.z *= body_scale
 	if rotary and active and grounded and stationary>0.8:
@@ -228,6 +259,14 @@ func apply(delta: float, move: Dictionary, time: float, guarding: bool, kind: St
 		chest_pose = Quaternion.from_euler(supported.chest)
 	visual.combat_rotation(visual.pelvis,hip_pose,1.0)
 	visual.combat_rotation(visual.chest,chest_pose,1.0)
+	if gym:
+		var pose:=Motion.sample(move,t)
+		for side_name: String in ["Left","Right"]:
+			var leg: Node3D=visual.joints[side_name+"Leg"]
+			var knee: Node3D=leg.get_node("Hinge")
+			visual.combat_rotation(leg,Quaternion.from_euler(pose.get(side_name.to_lower()+"_leg",Vector3.ZERO)),1)
+			visual.combat_rotation(knee,Quaternion.from_euler(pose.get(side_name.to_lower()+"_knee",Vector3.ZERO)),1)
+		return
 	if grounded:
 		for id in ["LeftLeg","RightLeg"]:
 			var foot_side := -1.0 if id == "LeftLeg" else 1.0
@@ -240,9 +279,10 @@ func apply(delta: float, move: Dictionary, time: float, guarding: bool, kind: St
 						var key := "left_foot" if id=="LeftLeg" else "right_foot"
 						if authored.has(key):
 							var local: Vector3 = authored[key]
-							var floor := floor_contact(_stance_origin+_stance_basis*Vector3(local.x,0,local.z))
+							var stature: float = visual.global_basis.get_scale().x
+							var floor := floor_contact(_stance_origin+_stance_basis*Vector3(local.x,0,local.z)*stature)
 							if not floor.is_empty():
-								contact.point = floor.point+Vector3.UP*maxf(0,local.y-.05)
+								contact.point = floor.point+Vector3.UP*maxf(0,local.y-.05)*stature
 								contact.planted = local.y<.085
 					target = target.lerp(contact.point,plant_weight)
 					support_feet[id] = contact

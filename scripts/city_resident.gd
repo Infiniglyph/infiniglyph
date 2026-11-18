@@ -49,8 +49,20 @@ var exits := 0
 var entries := 0
 var _curb_hold := 0.0
 var virtualized := false
+var health: float:
+	get: return population.reactions.civilian_health(self) if is_instance_valid(population.reactions) else 1000.0
+
+func combat_point() -> Vector3:
+	return global_position+Vector3.UP*.95
+
+func receive_hit(amount: float, origin: Vector3, attacker: Node = null, incoming: Dictionary = {}) -> float:
+	return population.reactions.receive_assault(self,amount,origin,attacker,incoming) if is_instance_valid(population.reactions) else 0.0
+
+func receive_combat_hit(amount: float, origin: Vector3, attacker: Node, incoming: Dictionary = {}) -> float:
+	return receive_hit(amount,origin,attacker,incoming)
 
 func _ready() -> void:
+	add_to_group("vehicle_wave_targets")
 	name = profile.name
 	collision_layer = 4 # Physical residents, separate from architecture/hurtboxes.
 	collision_mask = 13
@@ -213,6 +225,7 @@ func arrived() -> void:
 
 func talk() -> String:
 	visits += 1
+	if is_instance_valid(population.reactions) and population.reactions.is_annoyed(self): return population.reactions.answer_annoyed(self)
 	reply_time = 0
 	population.speaker = self
 	population.speaker_time = 5.5
@@ -240,6 +253,7 @@ func face(point: Vector3, weight: float) -> void:
 		visual.rotation.y = lerp_angle(visual.rotation.y,atan2(direction.x,direction.z),weight)
 
 func react_to_fight(source: Vector3) -> void:
+	if is_instance_valid(population.reactions) and population.reactions.is_annoyed(self): return
 	if reaction_cooldown>0: return
 	reaction_cooldown = 14
 	reaction_time = 3.5

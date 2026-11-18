@@ -3,12 +3,17 @@ extends Node3D
 const Database = preload("res://scripts/equipment_database.gd")
 const Geometry = preload("res://scripts/equipment_geometry.gd")
 const Garment = preload("res://scripts/equipment_garment.gd")
+const Hat = preload("res://scripts/eturnull_hat.gd")
+const KyrenCosmetic = preload("res://scripts/kyren_cosmetic.gd")
+const FalconRegalia = preload("res://scripts/falcon_regalia.gd")
+const TempleRegalia = preload("res://scripts/pyramid_regalia.gd")
+const RoyalRegalia = preload("res://scripts/ahkmet_regalia.gd")
 var visual: Node3D
 var worn: Dictionary = {}
 var pieces: Dictionary = {}
 
 func sync(inventory: Node) -> void:
-	for slot: StringName in [&"head",&"body",&"hands",&"legs",&"shield",&"ring1",&"ring2"]:
+	for slot: StringName in [&"head",&"body",&"hands",&"legs",&"ring1",&"ring2"]:
 		var instance: Resource = inventory.equipped_item(slot)
 		var id: StringName = instance.item_type_id if instance!=null else &""
 		if worn.get(slot,&"")==id: continue
@@ -20,6 +25,31 @@ func sync(inventory: Node) -> void:
 		var item := Database.get_item(id)
 		if item.is_empty(): continue
 		var g: Dictionary = item.geometry
+		if String(g.get("renderer","")).begins_with("ahkmet_") or g.get("renderer")=="union_crown":
+			var copy:=RoyalRegalia.new()
+			copy.configure(visual,g.renderer)
+			pieces[slot].append(copy)
+			continue
+		if String(g.get("renderer","")).begins_with("temple_"):
+			var copy:=TempleRegalia.new()
+			copy.configure(visual,g.renderer)
+			pieces[slot].append(copy)
+			continue
+		if String(g.get("renderer","")).begins_with("falcon_"):
+			var copy:=FalconRegalia.new()
+			copy.configure(visual,g.renderer)
+			pieces[slot].append(copy)
+			continue
+		if g.get("renderer") in ["kyren_hat","kyren_scarf"]:
+			var copy := KyrenCosmetic.new()
+			copy.configure(visual,g.renderer)
+			pieces[slot].append(copy)
+			continue
+		if g.get("renderer")=="eturnull_hat":
+			var hat := Hat.new()
+			hat.configure(visual)
+			pieces[slot].append(hat)
+			continue
 		if g.has("tailoring"):
 			var garment := Garment.new()
 			add_child(garment)
@@ -45,7 +75,6 @@ func sync(inventory: Node) -> void:
 				for side: String in ["Left","Right"]:
 					attach(slot,visual.joints[side+"Leg"],g,Vector3.ZERO)
 					attach(slot,visual.joints[side+"Leg"].get_node("Hinge"),g,Vector3.ZERO)
-			"shield": attach(slot,visual.joints.LeftArm.get_node("Hinge"),g,Vector3(0,-.2,.1))
 			"ring1","ring2": attach(slot,visual.joints[("Left" if slot==&"ring1" else "Right")+"Arm"].get_node("Hinge"),g,Vector3(0,-.28,0))
 	# A helmet occupies the hood space while the existing robe keeps its collar,
 	# fitted torso and animated inscriptions. Removing it restores the hood.

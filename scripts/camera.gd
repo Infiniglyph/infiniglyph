@@ -17,6 +17,19 @@ var _impact := Vector2.ZERO
 var _impact_age := 0.0
 var _follow_distance := DEFAULT_FOLLOW_DISTANCE
 var _vehicle_mode := false
+var _encounter_scale:=1.0
+var _encounter_original_mask: int=-1
+
+func set_encounter_scale(value: float) -> void:
+	_encounter_scale=clampf(value,1,2)
+	if is_instance_valid(arm):
+		if _encounter_scale>1:
+			if _encounter_original_mask<0: _encounter_original_mask=arm.collision_mask
+			arm.collision_mask=_encounter_original_mask|6
+		elif _encounter_original_mask>=0:
+			arm.collision_mask=_encounter_original_mask
+			_encounter_original_mask=-1
+	_apply_follow_distance()
 
 func get_follow_distance() -> float:
 	return _follow_distance
@@ -33,7 +46,7 @@ func set_vehicle_mode(value: bool) -> void:
 
 func _apply_follow_distance() -> void:
 	if not is_instance_valid(arm): return
-	var distance := _follow_distance*(VEHICLE_DISTANCE_SCALE if _vehicle_mode else 1.0)
+	var distance := _follow_distance*(VEHICLE_DISTANCE_SCALE if _vehicle_mode else _encounter_scale)
 	if _vehicle_mode and is_instance_valid(target):
 		var actions: Node = target.get("world_actions")
 		if is_instance_valid(actions):
@@ -69,6 +82,7 @@ func _ready() -> void:
 	reset_follow()
 
 func reset_follow() -> void:
+	rotation=Vector3(pitch,yaw,0)
 	_lock_shoulder = 0
 	_impact = Vector2.ZERO
 	if is_instance_valid(camera):
@@ -77,6 +91,9 @@ func reset_follow() -> void:
 	global_position = target.global_position + Vector3(0,1.35,0)
 
 func _physics_process(delta: float) -> void:
+	if target.transition_locked:
+		controls.mouse_look=Vector2.ZERO
+		return
 	_impact_age += delta
 	_impact *= exp(-22*delta)
 	var shake: bool = target.weapon_combat.rules.camera_shake_enabled

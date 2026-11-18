@@ -5,6 +5,8 @@ const Neon = preload("res://scripts/neon.gd")
 const Library = preload("res://scripts/weapon_library.gd")
 const Equipment = preload("res://scripts/equipment_database.gd")
 const Geometry = preload("res://scripts/equipment_geometry.gd")
+const Whip = preload("res://scripts/whip_presentation.gd")
+const Scribe = preload("res://scripts/scribe_presentation.gd")
 var _custom_key: StringName = &""
 var visual: Node3D
 var right_hand: Node3D
@@ -74,6 +76,9 @@ func equip(slot: StringName, stow: bool) -> void:
 		models[key].right.visible = key == slot and not stow
 		models[key].left.visible = key == slot and not stow
 		models[key].stowed.visible = key == slot and stow
+		if models[key].right is Scribe:
+			models[key].right.visible = key==slot
+			models[key].right.set_sheathed(stow)
 
 func equip_item(id: StringName, stow: bool) -> void:
 	var item := Equipment.get_item(id)
@@ -88,11 +93,23 @@ func equip_item(id: StringName, stow: bool) -> void:
 		_custom_key = id
 		var geometry: Dictionary = item.geometry
 		var kind := StringName(item.combat_kind)
-		var right := Geometry.model(geometry)
+		if kind==&"scribe":
+			var presentation := Scribe.new()
+			add_child(presentation)
+			presentation.configure(self,item)
+			var empty_left := Node3D.new()
+			left_hand.add_child(empty_left)
+			var empty_stow := Node3D.new()
+			visual.pelvis.add_child(empty_stow)
+			models[id] = {"right":presentation,"left":empty_left,"stowed":empty_stow,"stowed_blades":[]}
+			equip(id,stow)
+			return
+		var right: Node3D = Whip.new() if item.family=="whip" else Geometry.model(geometry)
+		if right is Whip: right.configure(self,geometry)
 		right_hand.add_child(right)
 		var left := Node3D.new()
 		left_hand.add_child(left)
-		if kind==&"twin_blades":
+		if kind in [&"twin_blades",&"dual_disc"]:
 			var other := geometry.duplicate(true)
 			if other.get("asymmetric",false): other.length = float(other.length)*.78
 			left.add_child(Geometry.model(other))
@@ -106,22 +123,44 @@ func equip_item(id: StringName, stow: bool) -> void:
 		if kind==&"katana":
 			back.position = Vector3.ZERO
 			back.rotation = Vector3(-1.97,.10,0)
+		elif geometry.get("family",item.family)=="greatsword":
+			_raise_greatsword(back)
 		elif geometry.get("family",item.family) in ["scythe","spear","halberd","staff"] and item.get("attachment",{}).get("stow","back")=="back":
 			# Long poles carry head-up in the same back mount as the base spear.
 			# Sword tips still angle down; only the stowed model is rotated.
 			back.position = Vector3.ZERO
 			back.rotation.z = -.32
+		if kind in [&"disc",&"dual_disc"]:
+			# Ring geometry is centered .18 above its grip. Raise the circle to
+			# the shoulder blades without putting it behind the player's head.
+			back.position=Vector3(0 if kind==&"disc" else .22,.14,0)
+			back.rotation=Vector3.ZERO
 		var stowed_blades: Array[Node3D] = [back]
-		if kind==&"twin_blades":
+		if kind in [&"twin_blades",&"dual_disc"]:
 			var second := geometry.duplicate(true)
 			if second.get("asymmetric",false): second.length = float(second.length)*.78
 			var other := Geometry.model(second)
 			stored.add_child(other)
 			other.position = Vector3(-.15,.34,0)
 			other.rotation.z = PI+.45
+			if kind==&"dual_disc":
+				other.position=Vector3(-.22,.14,0)
+				other.rotation=Vector3.ZERO
 			stowed_blades.append(other)
 		models[id] = {"right":right,"left":left,"stowed":stored,"stowed_blades":stowed_blades}
 	equip(id,stow)
+
+func _raise_greatsword(back: Node3D) -> void:
+	# Fit the actual outlined blade once on equip. A fixed grip height left the
+	# longest greatblades below the feet; retain clearance for the resting crouch.
+	var bottom := INF
+	var mount_inverse: Transform3D = back.get_parent().global_transform.affine_inverse()
+	for mesh: MeshInstance3D in back.find_children("*","MeshInstance3D",true,false):
+		var bounds := mesh.get_aabb()
+		var transform_to_mount: Transform3D = mount_inverse*mesh.global_transform
+		for corner in range(8):
+			bottom = minf(bottom,(transform_to_mount*bounds.get_endpoint(corner)).y)
+	if is_finite(bottom): back.position.y += maxf(0,.40-visual.REST_HIP_HEIGHT-bottom)
 
 func orient(right: Vector3, left: Vector3) -> void:
 	orient_hand(right_hand,visual.chest.global_basis*Basis.from_euler(right))
@@ -136,11 +175,12 @@ func orient_hand(hand: Node3D, world_basis: Basis) -> void:
 func blade_segments() -> Array:
 	if sheathed or not models.has(selected): return []
 	var kind: StringName = Library.loadout(selected).id
+	if kind==&"scribe" or Equipment.get_item(selected).get("family")=="whip": return [] # The equations are the attack geometry.
 	var length := 1.74 if kind == &"spear" else (0.66 if kind == &"twin_blades" else 1.15)
 	var item := Equipment.get_item(selected)
 	if not item.is_empty(): length = float(item.geometry.length)
 	var result := [{"a":right_hand.global_position,"b":right_hand.to_global(Vector3(0,length,0))}]
-	if kind == &"twin_blades": result.append({"a":left_hand.global_position,"b":left_hand.to_global(Vector3(0,length*(.78 if item.get("geometry",{}).get("asymmetric",false) else 1.0),0))})
+	if kind in [&"twin_blades",&"dual_disc"]: result.append({"a":left_hand.global_position,"b":left_hand.to_global(Vector3(0,length*(.78 if item.get("geometry",{}).get("asymmetric",false) else 1.0),0))})
 	return result
 
 func _triangle(a: Vector3, b: Vector3, c: Vector3) -> void:

@@ -9,8 +9,11 @@ const Neon = preload("res://scripts/neon.gd")
 var item_instance: Resource
 var pickup_id := ""
 var death_owner_id := ""
+var location_id: StringName = &"overworld"
 var claimed := false
 var pending := false
+var _glyph: Node3D
+var _glyph_clock := 0.0
 var solid: StaticBody3D
 
 static func new_id() -> String:
@@ -28,6 +31,7 @@ func _ready() -> void:
 	add_to_group("item_pickups")
 	# A small, solid plinth and faceted crystal share a single static body.
 	solid = StaticBody3D.new()
+	solid.disable_mode = CollisionObject3D.DISABLE_MODE_KEEP_ACTIVE
 	solid.name = "LootSolid"
 	solid.collision_layer = 0 if pending else 1
 	solid.collision_mask = 0
@@ -38,6 +42,11 @@ func _ready() -> void:
 	base_collision.shape = base_shape
 	base_collision.position.y = 0.05
 	solid.add_child(base_collision)
+	var definition: Resource = Catalog.get_definition(item_instance.item_type_id) if item_instance!=null else null
+	if definition!=null and definition.custom_properties.get("monster_glyph",false):
+		_build_remnant(definition.custom_properties)
+		visible=not pending
+		return
 	var points := PackedVector3Array([Vector3(0,0.77,0),Vector3(0,0.19,0),Vector3(0.19,0.46,0),Vector3(0,0.46,0.19),Vector3(-0.19,0.46,0),Vector3(0,0.46,-0.19)])
 	var crystal_shape := ConvexPolygonShape3D.new()
 	crystal_shape.points = points
@@ -78,3 +87,27 @@ func interaction_name() -> String:
 	if item_instance == null: return "Unconfigured item"
 	var definition = Catalog.get_definition(item_instance.item_type_id)
 	return str(definition.display_name) if definition != null else "Unknown item"
+
+func _build_remnant(properties: Dictionary) -> void:
+	_glyph=Node3D.new()
+	_glyph.name="RemnantGlyph"
+	add_child(_glyph)
+	var size := float(properties.glyph_scale)
+	_glyph.scale=Vector3.ONE*size
+	_glyph.position.y=.3+size*.6
+	var paths:=PackedVector3Array()
+	for i in range(32):
+		var a:=i*TAU/32
+		var b:=(i+1)*TAU/32
+		paths.append_array([Vector3(cos(a)*.43,sin(a)*.43,0),Vector3(cos(b)*.43,sin(b)*.43,0)])
+		if i%4==0: paths.append_array([Vector3(cos(a)*.46,sin(a)*.46,0),Vector3(cos(a)*.56,sin(a)*.56,0)])
+	for side in [-1,1]:
+		paths.append_array([Vector3(0,.38,0),Vector3(side*.26,0,0),Vector3(side*.26,0,0),Vector3(0,-.38,0),Vector3(-.17,.04,0),Vector3(.17,.04,0)])
+	paths.append_array([Vector3(0,-.28,0),Vector3(0,.28,0)])
+	_glyph.add_child(Neon.lines(paths,Neon.shared_material(Color(properties.glyph_color))))
+
+func _process(delta: float) -> void:
+	if not is_instance_valid(_glyph): return
+	_glyph_clock+=delta
+	_glyph.rotation.y+=delta*.65
+	_glyph.position.y=.3+_glyph.scale.y*.6+sin(_glyph_clock*2)*.055

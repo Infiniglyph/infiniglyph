@@ -9,6 +9,7 @@ func track(pickup: Node3D, owner_id: String, item_instance_id: String) -> void:
 	if owner_id.is_empty() or not is_instance_valid(pickup): return
 	var key: String = pickup.pickup_id
 	markers[key] = {"pickup_id":key,"owner_id":owner_id,"item_instance_id":item_instance_id,"world_position":pickup.global_position}
+	if pickup.location_id!=&"overworld": markers[key].location_id=String(pickup.location_id)
 	_source_ids[key] = pickup.get_instance_id()
 	_sources[key] = weakref(pickup)
 	pickup.tree_exited.connect(_source_exited.bind(key,pickup.get_instance_id()),CONNECT_ONE_SHOT)
@@ -26,7 +27,7 @@ func for_owner(owner_id: String) -> Array[Dictionary]:
 	for marker: Dictionary in markers.values():
 		if marker.owner_id == owner_id:
 			var source: Node3D = _sources[marker.pickup_id].get_ref() if _sources.has(marker.pickup_id) else null
-			if is_instance_valid(source): marker.world_position = source.global_position
+			if is_instance_valid(source) and source.is_inside_tree(): marker.world_position = source.global_position
 			result.append(marker.duplicate(true))
 	return result
 

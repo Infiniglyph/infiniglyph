@@ -190,9 +190,11 @@ func _build() -> void:
 
 func open_menu() -> void:
 	if is_open: return
+	if actor.transition_locked: return
 	if session.ui.is_open: session.ui.close_menu()
 	if session.shop.is_open: session.shop.close_menu()
 	if session.duel.dialogue_open: session.duel.answer(false)
+	if is_instance_valid(session.kyren_encounter) and session.kyren_encounter.dialogue_open: session.kyren_encounter.answer(false)
 	if is_instance_valid(session.boss_encounter) and session.boss_encounter.dialogue_open: session.boss_encounter.answer(false)
 	_previous_mouse = Input.mouse_mode
 	is_open = true
@@ -222,6 +224,10 @@ func show_home() -> void:
 	_settings.hide()
 	_home.show()
 	_yield_button.visible = session.duel.active
+	if is_instance_valid(session.kyren_encounter) and session.kyren_encounter.active:
+		_yield_button.visible = true
+		_yield_button.text = "Leave Kyren encounter"
+	else: _yield_button.text = "Yield sparring duel"
 	_focus_controls = []
 	for control: Control in _home_controls:
 		if control.visible: _focus_controls.append(control)
@@ -243,6 +249,7 @@ func recover_player() -> void:
 	else: _status.text = result.message
 
 func yield_duel() -> void:
+	if is_instance_valid(session.kyren_encounter) and session.kyren_encounter.active: session.kyren_encounter.disengage()
 	if session.duel.active: session.duel.interact()
 	close_menu()
 

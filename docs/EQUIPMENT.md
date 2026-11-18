@@ -2,15 +2,15 @@
 
 The central bipyramid's Tower Exchange has three separate departments:
 **Weapons**, **Items**, and **Armour**. Every offer remains free. Weapons includes
-all 1,716 new named weapons and the four starters; Items holds Health Glyphs and
-129 rings; Armour holds the Scribe robe and 1,064 cosmetic pieces, including
-693 shield appearances. Search and family/slot filters stay within a department.
+all 1,704 named weapons and the four starters; Items holds Health, Shield and
+Respawn Glyphs alongside 136 rings; Armour holds the Scribe robe and 402 cosmetic pieces, including
+the Eturnull Hat and Kyren's hat/scarf copies. Search and family/slot filters stay within a department.
 There are six offer rows per page, one preview viewport, and no world pause.
 Up/Down or the left stick navigates; Left/Right changes pages, RB changes the
 filter, A/Enter acquires one item, and B/Escape returns to the exchange lobby.
 
 Equip purchases in the existing inventory. Four directions remain weapon
-shortcuts. Body, Head, Hands, Legs and Shield are cosmetic slots; two ring slots
+shortcuts. Body, Head, Hands and Legs are cosmetic slots; two ring slots
 hold inert accessories. Health Glyph controls and healing remain unchanged.
 Inventory rows, equipment assignments and the inspector now show the item's
 weapon family or wearable construction and slot, such as Scythe, Cloth Robe /
@@ -21,7 +21,7 @@ the selected type, assignment and menu controls remain visible.
 
 ## Named weapons and actual reference motion
 
-The former 1,713 standard counterparts are now named weapons with original names,
+The 1,685 active reference weapon counterparts are named weapons with original names,
 individual descriptions and per-item motion recipes. The Fractured Moon, Event
 Horizon and The Last Argument also receive the sampled-motion upgrade while
 retaining their authored geometry, lore, attack values and art names. Stable
@@ -71,8 +71,9 @@ grip, tempo, stance width and loading weight. Three-stage basics work from eithe
 attack button, with separate compact airborne curves. Four arts use their own
 reference gestures. Infusion counterparts retain related visual identities and
 share a motion vocabulary, while their recipes and compiled motion/timing
-signatures differ. These are **not 1,716 independently hand-keyed performances**.
-The quality fixture checks all 1,716 compiled signatures for duplication.
+signatures differ. These are **not 1,688 independently hand-keyed performances**.
+The quality fixture checks all 1,695 compiled signatures, including Kyren's
+authored katana recipe, for duplication.
 
 Contact timing is inferred from sampled motion because the selected clips lack
 usable hit annotations. The three original named designs retain their existing
@@ -89,11 +90,22 @@ paired-blade tips retain their downward angles, and katanas retain their left-hi
 mount. These changes affect only the stowed model, preserving drawn grips and
 attack geometry.
 
+Greatswords retain their downward carry, with the back mount raised to fit the
+actual outlined blade. Every registered greatsword has at least 40 cm of tip
+clearance at rest, leaving room for crouching without shortening its model.
+Leg cosmetics enclose the ankles with closed boot soles and hide the underlying
+glowing feet while equipped. Removing them restores the bare feet; catalog
+previews use the same fitted boots.
+
+All RB/LB light attacks deal damage without hit stun, including named combos and
+aerial variants. Weapon arts retain fortitude-based interruption, and light
+attacks still obey normal blocking, guard strain, dodging and parry rules.
+
 The supplied DAR archive contains 2,344 clips in total. The selected pass skips
 209 category candidates with unsupported track counts or durations. The archive's
 whip category has no clips; filament handling adapts the curved-weapon vocabulary.
-Conduit/bow/crossbow counterparts still use melee gestures. Projectile and spell
-systems are outside this change.
+Conduit counterparts still use melee gestures. Bows, crossbows and talismans are
+retired; projectile and spell systems are outside this change.
 
 ## Wearable construction
 
@@ -145,10 +157,78 @@ rebuilds a mismatched preview; repeated inspection of the same item reuses it.
 Long descriptions scroll within the inspector without pushing page controls off
 screen. Health Glyphs have their own green geometric preview.
 
+**Void Soul Greaves** are original Legs cosmetics inspired by a layered
+waistcloth silhouette. Cyan, violet, gold, mint, pink, blue, silver and ember
+editions share a single cut: four weathered outer folds, front and back scale
+aprons, a clasped belt, wrapped greaves and closed boots. Their description
+recalls a gift from the void to a weary traveler. All eight are available through
+Tower Exchange / Equipment Archive and use normal ownership and checkpoint
+persistence. Cloth uses the existing movement and vehicle folding system;
+there are no new defensive bonuses or movement restrictions.
+
+## Flexible whips and returning discs
+
+All existing whip definitions use a tapered 24-link lash on the hand rig.
+Windup, a traveling bend, the crack and slack recovery use the named filament
+motions. Hurt volumes follow the rendered centerline during short contact
+windows; sword fans and rigid segmented-rod visuals are removed for whips.
+The stowed/catalog model is coiled. Light attacks retain the shared no-stun rule.
+
+**Vector Disc** and **Twin Vector Discs** are single/dual weapon families. RB/LB
+(and the existing mouse attack buttons) use quick knife-style cuts. All four
+weapon arts (X/Y/RT+X/RT+Y; Q/R/V+Q/V+R) launch real spinning discs approximately
+seven meters. Ready discs point down with their faces turned sideways to clear
+the body, and back-mounted circles sit between the
+shoulder blades, with the single disc centered. RT+X/RT+Y use cartwheel/vault
+motions with authored hip turns and scissoring legs. Different release points
+feed curved outbound paths that converge on a locked target. Discs return to
+the moving hand along broad circular arcs, hit at most once per target on
+each flight leg, and deal 55% damage on return. Charge increases damage without
+adding extra projectiles or range. Normal block, dodge, parry and the one-second
+attacker stun apply. Cancellation, switching, sheathing and death reclaim flight
+geometry and hitboxes. No new resource, input mapping or movement restriction
+is introduced. Search by name or use the Discs family filter.
+
+**Respawn Glyph** and **Home Respawn Glyph** appear in the Items department and
+consumable filter. Inventory placement consumes one item to bind a reusable
+marker on clear solid ground. Each owner keeps one marker of each kind;
+replacement affects only that kind. Death offers personal, Home and default
+destinations using controller, keyboard or mouse without pausing simulation.
+Neither marker is consumed by death. Both destinations, facing and camera view
+persist through checkpoints, including placements in the owner's dungeon.
+
+The pyramid entry encounter also registers **Khopesh of the Warden**, **Tomb
+Blade**, **Warden's Wraps**, **Linen Bindings**, and the inert **Jackal Pendant**.
+Gear copies and collectible remnant glyphs use the existing loot authority and
+checkpoint format. Glyph rarity and visible size follow enemy difficulty:
+cyan/Common for skeletons, violet/Uncommon for guardians, gold/Rare for the
+exalted guardian. Bone Shards are collectible materials; no crafting system or
+unrequested stat bonuses are activated.
+
+B2 adds **Horuswing Blades** (curved twin blades), **Sentinel Spear**, **Falcon
+Sentinel Mantle**, **Skyguard Tassets**, and **Eye of Horus Seal**. All use owned
+equipment slots, catalog previews, Tower Exchange offers and existing save
+validation. The cloak, tassets and wrist seal use the same batched procedural
+geometry worn by the aerial guard. Closed greaves hide the underlying feet.
+The accessory follows existing cosmetic ring rules. Falcon defeats choose a
+gear copy from all five items, plus an Uncommon or elite Rare remnant glyph;
+airborne rewards settle on supported ground in their own dungeon World3D.
+Dungeon enemies reset after player death or exiting the instance, including
+defeated enemies. These resets preserve dropped equipment and remnant glyphs;
+moving between floors keeps current-run clears.
+
 ## Content and bounded runtime architecture
 
-The library still contains 2,906 counterparts plus the three early named designs,
-for **2,909 new definitions** and **2,920 total catalog entries**. Source infusion
+The library contains 2,185 active counterparts, three early named designs,
+the Eturnull Hat and Manuscript, Kyren's katana, straw hat and scarf, and eight
+Void Soul Greaves editions, plus twelve pyramid/disc designs, 22 B3-B7 designs
+and seven B8 boss designs, for **2,242 additional definitions** and
+**2,264 total catalog entries**, including six remnant/material definitions and
+two placeable respawn glyphs. The original 693 cosmetic shields, eight
+talismans, twelve bows and eight crossbows are retired. All 721 exact IDs in
+`retired.json` support validated save migration, including ownership, equipment,
+world drops and loss markers. Retired weapons cannot be purchased or minted.
+The starter weapon's functional shield remains. Source infusion
 and ring variants retain separate stable IDs. The original crosswalk covers all
 2,887 unique CSV IDs and 770 portrait files, adding 19 portrait-only counterparts.
 Sixteen source rows lack a matching portrait and use construction defaults.
@@ -156,6 +236,23 @@ Sixteen source rows lack a matching portrait and use construction defaults.
 | Files | Responsibility |
 | --- | --- |
 | `data/equipment/catalog.json` | Names, lore, geometry, tailoring and per-item motion recipes |
+| `data/equipment/scribe_equipment.json` | Original Eturnull Hat and Manuscript definitions, stats and moves |
+| `data/equipment/pyramid_equipment.json` | Single/twin discs, five entry-floor drops and five B2 drops |
+| `data/equipment/pyramid_depth_equipment.json` | Six B3-B7 weapons, eleven clothing pieces and five cosmetic keepsakes |
+| `tools/build_pyramid_depth_equipment.py` | Reproducible authored depth equipment definitions using native motion recipes |
+| `scripts/pyramid_regalia.gd`, `scripts/pyramid_depth_visual.gd` | Shared temple clothing, animal masks, lionesses, serpents, scorpions and constructs |
+| `scripts/falcon_regalia.gd`, `scripts/pyramid_wings.gd` | Batched shared feathers, clothing, greaves and two-root wing animation |
+| `scripts/falcon_brain.gd`, `scripts/falcon_combat.gd`, `scripts/falcon_moves.gd`, `scripts/pyramid_arrow.gd` | Observable aerial pursuit, timed shared attacks and enemy-only swept arrows |
+| `scripts/whip_presentation.gd`, `scripts/returning_disc.gd` | Flexible cord contacts and swept returning weapon flight |
+| `scripts/disc_moves.gd`, `scripts/combat_body.gd` | Dagger-style rim cuts and movement-compatible full-body throws |
+| `scripts/respawn_glyphs.gd`, `scripts/respawn_glyph_marker.gd`, `scripts/respawn_glyph_data.gd` | Safe owned placement, reusable markers, death choice and checkpoint validation |
+| `data/equipment/void_soul_equipment.json` | Eight original Void Soul Greaves color editions |
+| `scripts/void_soul_weave.gd` | Batched scale aprons and split cloth on the shared garment rig |
+| `data/equipment/kyren_equipment.json` | Kyren's named katana, ember hat and flowing scarf; equal-chance copies awarded through boss defeat loot |
+| `scripts/kyren_hat.gd`, `scripts/kyren_cosmetic.gd` | Shared NPC hat geometry and wearable Head/Body copies with actual pooled effects |
+| `scripts/eturnull_hat.gd` | Head-mounted geometry and pooled symbol-to-equation rain |
+| `scripts/scribe_moves.gd`, `scribe_presentation.gd` | Conducting, shared writing/contact paths, open book, pages, quill and hip stow |
+| `data/equipment/retired.json` | Exact historical IDs used only to validate and retire old save entries |
 | `data/equipment/named_weapons.json` | Three early named designs, schedules and sampled curves |
 | `data/equipment/motions/*.json` | Runtime joint samples and style manifest; no source paths/binaries |
 | `scripts/equipment_database.gd`, `item_catalog.gd` | Validated definitions and existing item metadata |
@@ -223,6 +320,14 @@ torso lean while standing, advancing, backpedaling and facing different headings
 the actual back mount, plus sword/katana/paired carry, unchanged drawn transforms
 and repeated equip/draw cycles.
 
+`equipment_fit_and_light_hits.gd` passes 43 checks at 60 Hz. It checks all 223
+greatsword mounts, 98 tailored leg cosmetics and seven custom temple/royal leg
+sets, closed soles, foot restoration, inventory/preview coverage, grounded/aerial
+light combos, repeated hits against both duelists, immediate dodge access,
+preserved attacks/charges, and unchanged parry and weapon-art stun. Use
+`-- --capture` for `captures/equipment_fit_greatsword.png` and
+`captures/equipment_fit_boots.png`.
+
 `natural_weapon_arms.gd` follows actual shoulder, elbow and wrist chains over
 all fifteen handling cuts, grounded and airborne combos, modified and charged
 arts, and multiple headings. It checks hand workspace, shared grips, anatomical
@@ -251,3 +356,57 @@ cuts with their runtime geometry. The four starter movesets and existing combat,
 parry/exhaustion, dodge, robe, mounted-pose, inventory and performance suites
 remain regression coverage. Detailed current results are recorded with this
 checkpoint in the repository README.
+
+## Eturnull equipment
+
+See the [current Eturnull gameplay notes](../README.md#eturnull-equipment-and-scribe-combat)
+for controls, acquisition, active hit geometry and the save migration. New Scribe
+weapons use `family` and `combat_kind` set to `scribe`, `geometry.renderer` set to
+`scribe`, their own `guard`, and authored `moves` with `equation`, `scribe_shape`,
+`stroke_radius`, timing, reach and damage. Their strokes supply both rendering and
+collision contacts through the existing combat resolver. No item-ID cases are
+needed in the controller. The hat uses `geometry.renderer = eturnull_hat`.
+
+The Scribe tuning pass adapts nine distinct existing named-weapon gestures into
+the conducting arm while keeping the book arm supported. Anatomical sides are
+explicitly corrected for the figure's historical arm-node names. Light stages
+use the starter twin-blade timing; writing and corresponding contact capsules
+reach the spear's seven-metre art range (9.1 m at full charge). The Manuscript's
+base heavy damage is 30; light stages are 13/16/18/17 and arts are 28/24/23/25
+per pulse, with matching aerial values and the existing charge/momentum bonuses.
+Ready stance is
+weighted over the rear left foot, with the right arm relaxed and nearly straight.
+The quill has its own shoulder-high hover a metre to the right, with a smoothed
+world-velocity trail capped at 30 cm. Attack writing and the book entry/exit
+transitions still take over its tip. The hat
+now sits 13 cm lower and uses the robe's five-color mathematical palette.
+Its crown reuses 16 flat glyph instances: they emerge at the central tip, flow
+radially across the conical surface, fade near the brim and cycle cached shapes.
+Their tangent planes sit above the opaque fabric and follow the hat's motion;
+the existing 44-glyph brim rain retains its independent equation formation.
+During phase dodge, the hat and Scribe attachments retain their local poses and
+resume animation on arrival. Their render updates cannot overwrite the shared
+phase material or counteract the character's temporary compression.
+The closed Manuscript and the robe's belt tome orient their page fore-edges
+forward and their broad covers sideways against the hip. The Manuscript's
+stow orientation accounts for the leaf hinges rotating during closure.
+
+## B8 keepsakes
+
+`tools/build_ahkmet_equipment.py` builds seven original equipment definitions in
+`data/equipment/ahkmet_equipment.json`. Ahkmet's Scepter uses the existing staff
+motion family and a solid golden-light shaft with a double halo/serpent focus.
+Lorai's Fangblade uses the existing sword family with an original curved outline.
+The Nemes, Mantle, Bracers and Greaves occupy Head, Body, Hands and Legs;
+Serpent Crown of Union is an alternative Head cosmetic. `ahkmet_regalia.gd`
+shares their joint-mounted geometry with Ahkmet and equipment previews. None of
+the cosmetic pieces changes stats. The Apep–Lorai Catalyst is a stackable rare
+material, not a new power or resource system.
+
+The first B8 clear grants all seven copies plus one catalyst and a Rare remnant;
+repeat clears grant a random fresh gear copy, catalyst and Rare remnant. All
+copies receive fresh item identities through the existing loot service. The
+inventory's validated `boss_reward_claims` stores the first-clear entitlement in
+the same atomic checkpoint as ownership and unclaimed drops. Death/exit resets
+the encounter, rather than the already earned entitlement. Tower Exchange and
+Equipment Archive list the new equipment through the normal registry.

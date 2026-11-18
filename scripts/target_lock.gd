@@ -27,6 +27,7 @@ func is_locked() -> bool:
 	return is_instance_valid(opponent) and not opponent.is_queued_for_deletion()
 
 func point(target: Node3D) -> Vector3:
+	if target.has_method("camera_focus_point"): return target.camera_focus_point()
 	return target.combat_point() if target.has_method("combat_point") else target.global_position+Vector3.UP*0.95
 
 func facing() -> Vector3:
@@ -40,6 +41,7 @@ func movement(input: Vector2) -> Vector3:
 
 func living(target: Node3D) -> bool:
 	if not is_instance_valid(target) or target.is_queued_for_deletion() or target == actor: return false
+	if target.get_world_3d()!=actor.get_world_3d(): return false
 	if not target.is_visible_in_tree(): return false
 	if not target.is_in_group("combat_targets") or not target.has_method("receive_hit"): return false
 	if actor.has_method("can_attack_target") and not actor.can_attack_target(target): return false

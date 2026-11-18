@@ -22,7 +22,11 @@ func run() -> void:
 	print("CATALOG LOAD: ",(Time.get_ticks_usec()-start)/1000.0," ms; definitions=",catalog.size())
 	var summary: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/equipment/summary.json"))
 	var named: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/equipment/named_weapons.json"))
-	check(all.size()==int(summary.counterparts)+named.items.size(),"Every audited counterpart and authored named design is registered")
+	var pyramid: Dictionary=JSON.parse_string(FileAccess.get_file_as_string("res://data/equipment/pyramid_equipment.json"))
+	var depths: Dictionary=JSON.parse_string(FileAccess.get_file_as_string("res://data/equipment/pyramid_depth_equipment.json"))
+	var void_soul: Dictionary=JSON.parse_string(FileAccess.get_file_as_string("res://data/equipment/void_soul_equipment.json"))
+	var boss_gear: Dictionary=JSON.parse_string(FileAccess.get_file_as_string("res://data/equipment/ahkmet_equipment.json"))
+	check(all.size()==int(summary.counterparts)+named.items.size()+5+void_soul.items.size()+pyramid.items.size()+depths.items.size()+boss_gear.items.size(),"Every audited counterpart and authored design is registered")
 	var names: Dictionary = {}
 	var valid := true
 	var effects_inert := true

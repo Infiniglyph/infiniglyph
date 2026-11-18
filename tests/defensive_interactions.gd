@@ -177,7 +177,8 @@ func run() -> void:
 	b._begin(move)
 	b.elapsed = 0.22
 	var fortitude: float = b.effective_fortitude()
-	var weak := move.duplicate()
+	# Fortitude interruption belongs to weapon arts; bumper hits never stun.
+	var weak := Library.move(&"down",&"special_x")
 	weak.hit_stun_level = fortitude-0.01
 	damage = npc.receive_combat_hit(24,p.combat_point(),p,weak)
 	check(damage == 24 and b.last_outcome == &"hyper_armor" and not b.active_move.is_empty() and b.elapsed == 0.22,"Fortitude resists interruption but still takes full damage and preserves attack timing")

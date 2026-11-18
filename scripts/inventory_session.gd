@@ -5,13 +5,17 @@ const Store = preload("res://scripts/inventory_store.gd")
 const Pickup = preload("res://scripts/item_pickup.gd")
 const Catalog = preload("res://scripts/item_catalog.gd")
 const TowerShop = preload("res://scripts/tower_shop.gd")
+const Regions = preload("res://scripts/world_regions.gd")
+const Shields = preload("res://scripts/shield_glyphs.gd")
 var actor: CharacterBody3D
 var controls: Node
 var duel: CanvasLayer
 var loot: Node3D
 var population: Node3D
 var boss_encounter: Node
+var kyren_encounter: Node
 var world_actions: Node3D
+var dungeon_travel: Node
 var ui: CanvasLayer
 var shop: CanvasLayer
 @export var persistence_enabled := true
@@ -28,6 +32,7 @@ var _checkpoint_pending := false
 var _resume_gameplay := false
 var hint: Label
 var notice: Label
+var loss_hint: Label
 var _loss_count := 0
 var resident_dialogue: Label
 var _resident_speaker: WeakRef
@@ -68,6 +73,11 @@ func _ready() -> void:
 	add_child(layer)
 	hint = _label(layer,Vector2(-350,-40),Color(0.65,1,1))
 	notice = _label(layer,Vector2(-350,-72),Color(1,0.6,0.25))
+	loss_hint = _label(layer,Vector2(-350,-104),Color(1,0.6,0.25))
+	loss_hint.name = "LostGearLocation"
+	loss_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	loss_hint.add_theme_font_size_override("font_size",14)
+	loss_hint.hide()
 	resident_dialogue = Label.new()
 	resident_dialogue.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
 	resident_dialogue.position = Vector2(30,-172)
@@ -144,9 +154,11 @@ func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("inventory_toggle") and not event.is_echo():
 		get_viewport().set_input_as_handled()
 		if _checkpoint_pending: return
+		if actor.transition_locked: return
 		if is_instance_valid(actor.get_parent().get("start_menu")) and actor.get_parent().start_menu.is_open: return
 		if is_instance_valid(duel) and duel.dialogue_open: return
 		if is_instance_valid(boss_encounter) and boss_encounter.dialogue_open: return
+		if is_instance_valid(kyren_encounter) and kyren_encounter.dialogue_open: return
 		if shop.is_open: shop.close_menu()
 		ui.toggle()
 
@@ -166,6 +178,13 @@ func _closed() -> void:
 func can_talk() -> bool:
 	if _checkpoint_pending: return false
 	if ui.is_open or not controls.gameplay_enabled or duel.dialogue_open or duel.active: return false
+	if is_instance_valid(dungeon_travel):
+		if dungeon_travel.busy: return false
+		if dungeon_travel.focused_door()!=null: return true
+		if dungeon_travel.inside(): return loot.nearest_pickup(actor)!=null
+	if is_instance_valid(kyren_encounter):
+		if kyren_encounter.active: return false
+		if kyren_encounter.can_talk(): return true
 	if is_instance_valid(world_actions) and world_actions.attached(): return true
 	if is_instance_valid(boss_encounter):
 		if boss_encounter.active: return false
@@ -180,6 +199,18 @@ func can_yield() -> bool:
 
 func interact() -> void:
 	if ui.is_open or not controls.gameplay_enabled: return
+	if is_instance_valid(dungeon_travel):
+		if dungeon_travel.busy: return
+		var item: Node3D=loot.nearest_pickup(actor)
+		if item==null and dungeon_travel.interact(): return
+		if dungeon_travel.inside():
+			if item!=null: loot.request_pickup(actor.inventory,item)
+			return
+	if is_instance_valid(kyren_encounter):
+		if kyren_encounter.active: return
+		if kyren_encounter.can_talk() and loot.nearest_pickup(actor)==null:
+			kyren_encounter.interact()
+			return
 	if is_instance_valid(world_actions) and world_actions.attached():
 		world_actions.leave()
 		return
@@ -212,6 +243,11 @@ func _process(delta: float) -> void:
 		if controls.gameplay_enabled and not ui.is_open:
 			if loot.request_health_glyph(actor.inventory): show_notice("Health Glyph restored your light.")
 			else: show_notice("Health already full." if actor.health>=actor.weapon_combat.max_health else "No Health Glyphs available.")
+	if controls.consume_shield():
+		if controls.gameplay_enabled and not ui.is_open:
+			if loot.request_shield_glyph(actor.inventory): show_notice("%s Shield Glyph restored your protection." % str(actor.inventory.shield_state.tier).capitalize())
+			elif Shields.preferred_item(actor.inventory)==null: show_notice("No Shield Glyphs available.")
+			else: show_notice("Shield already provides this much protection.")
 	if controls.consume_interaction(): interact()
 	_resident_time = maxf(0,_resident_time-delta)
 	var resident: Node3D = _resident_speaker.get_ref() if _resident_speaker!=null else null
@@ -224,11 +260,25 @@ func _process(delta: float) -> void:
 	_refresh_losses()
 	hint.text = ""
 	if ui.is_open or not controls.gameplay_enabled or duel.active: return
+	if is_instance_valid(dungeon_travel):
+		var door: Node3D=dungeon_travel.focused_door()
+		if door!=null and loot.nearest_pickup(actor)==null:
+			hint.text="G / tap RT: "+door.prompt
+			return
+		if dungeon_travel.inside():
+			var item: Node3D=loot.nearest_pickup(actor)
+			if item!=null: hint.text="G / RT: collect "+item.interaction_name()
+			return
+	if is_instance_valid(kyren_encounter):
+		if kyren_encounter.active: return
+		if kyren_encounter.can_talk() and loot.nearest_pickup(actor)==null:
+			hint.text = "G / RT: talk to Kyren"
+			return
 	if is_instance_valid(boss_encounter) and boss_encounter.can_challenge():
 		hint.text = "G / RT: challenge Greefer again"
 		return
 	if is_instance_valid(world_actions) and world_actions.attached():
-		hint.text = "G / tap RT: exit  |  WASD / left stick: drive, S / stick back: brake" if is_instance_valid(world_actions.vehicle) else "G / tap RT / move / jump: stand up"
+		hint.text = "G / RT: exit | left stick: drive | L3 / Ctrl: boost | R3 / Tab: light wave" if is_instance_valid(world_actions.vehicle) else "G / tap RT / move / jump: stand up"
 		return
 	var pickup: Node3D = loot.nearest_pickup(actor)
 	if pickup != null:
@@ -251,10 +301,32 @@ func show_notice(message: String, duration: float = 3.0) -> void:
 	_notice_time = duration
 
 func _refresh_losses() -> void:
+	if _exiting or not is_inside_tree() or not is_instance_valid(actor) or not actor.is_inside_tree(): return
 	var entries: Array = loot.markers.for_owner(actor.inventory.owner_id)
 	if entries.size()>_loss_count:
 		show_notice("Lost gear remains where you fell. %d unclaimed." % entries.size(),6)
 	_loss_count = entries.size()
+	loss_hint.visible = not entries.is_empty()
+	loss_hint.text = ""
+	if entries.is_empty(): return
+	# Dictionary/serialized drop order is oldest-to-newest; recovering the latest
+	# naturally reveals the previous outstanding loss without deleting any item.
+	var nearest: Dictionary = entries[-1]
+	var point: Vector3 = nearest.world_position
+	var distance: float=actor.global_position.distance_to(point)
+	# Dedicated persistent guidance must survive short pickup/save notices.
+	# Move it above a speaking resident's panel rather than covering dialogue.
+	loss_hint.offset_top = -202 if resident_dialogue.visible else -104
+	loss_hint.offset_bottom = loss_hint.offset_top+26
+	var location:=StringName(nearest.get("location_id","overworld"))
+	if is_instance_valid(dungeon_travel) and location!=dungeon_travel.active_location:
+		loss_hint.text="LOST GEAR  |  %s  |  return through the pyramid doorway  |  %d unclaimed" % ["PYRAMID" if location!=&"overworld" else "OPEN WORLD",entries.size()]
+		return
+	if location!=&"overworld":
+		var floor_text: String=dungeon_travel.interior.floor_label(point) if is_instance_valid(dungeon_travel) else ""
+		loss_hint.text="LOST GEAR  %.0f m  |  PYRAMID %s  X %.0f  Z %.0f  |  %d unclaimed" % [distance,floor_text,point.x,point.z,entries.size()]
+		return
+	loss_hint.text = "LOST GEAR  %.0f m  |  %s  |  ALT %.0f m  |  %d unclaimed" % [distance,Regions.grid_label(Regions.grid_at(point)),point.y,entries.size()]
 
 func _dirty() -> void:
 	if _exiting or not is_inside_tree() or _loading or _checkpoint_pending or not persistence_enabled or networked() or _save_queued: return
@@ -272,7 +344,9 @@ func save_checkpoint(path: String = "", silent: bool = false) -> bool:
 		show_notice("Session ownership is saved by the host.")
 		return false
 	var destination := path if not path.is_empty() else save_path
-	var snapshot: Dictionary = Store.encode(actor.inventory,loot.serialize_world(),[],loot.session_id)
+	var location: String=String(dungeon_travel.active_location) if is_instance_valid(dungeon_travel) else "overworld"
+	var state: Dictionary=dungeon_travel.location_state() if is_instance_valid(dungeon_travel) else {}
+	var snapshot: Dictionary = Store.encode(actor.inventory,loot.serialize_world(),[],loot.session_id,location,state)
 	var error: Error = Store.store(destination,snapshot)
 	if error != OK:
 		show_notice("Inventory save failed; current items remain in memory.",6)
@@ -285,14 +359,24 @@ func load_checkpoint(path: String = "") -> bool:
 	var source := path if not path.is_empty() else save_path
 	var snapshot: Dictionary = Store.load_snapshot(source)
 	if snapshot.is_empty() or snapshot.session_id != loot.session_id or snapshot.inventory.owner_id != actor.inventory.owner_id: return false
+	var location:=StringName(snapshot.get("location_context","overworld"))
+	if is_instance_valid(dungeon_travel):
+		if not dungeon_travel.can_load_location(location): return false
+	elif location!=&"overworld": return false
 	var owned_before: Dictionary = actor.inventory.serialize()
 	var world_before: Array = loot.serialize_world()
 	_loading = true
 	var ok: bool = actor.inventory.restore(snapshot.inventory)
-	if ok: ok = loot.restore_world(snapshot.world_drops)
+	var world_changed := false
+	if ok:
+		ok = loot.restore_world(snapshot.world_drops)
+		world_changed = ok
+	if ok and is_instance_valid(dungeon_travel): ok=dungeon_travel.restore_location(location,snapshot.get("location_state",{}))
 	if not ok:
 		actor.inventory.restore(owned_before)
-		loot.restore_world(world_before)
+		# restore_world is already atomic on rejection. Replacing untouched
+		# drops here would leave duplicate pending colliders until frame end.
+		if world_changed: loot.restore_world(world_before)
 	_loading = false
 	return ok
 

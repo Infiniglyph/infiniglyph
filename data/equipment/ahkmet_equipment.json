@@ -1,0 +1,259 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "id": "ahkmets_scepter",
+      "name": "Ahkmet's Scepter",
+      "description": "A staff of solidified golden light, carried by Ahkmet upon the head of the serpent he raised. When he opened his arms for the final union, Lorai received the same light. Why the Pharaoh was imprisoned remains unknown.",
+      "category": "weapons",
+      "kind": "named",
+      "family": "staff",
+      "slot": "left",
+      "combat_kind": "spear",
+      "rarity": "Legendary",
+      "value": 250,
+      "acquisition": "Pyramid B8 / Tower Exchange / Equipment Archive",
+      "geometry": {
+        "family": "staff",
+        "length": 2.18,
+        "width": 0.134,
+        "depth": 0.05,
+        "curve": 0,
+        "guard": 0.32,
+        "detail": 5,
+        "paired": false,
+        "tint": "ffd051",
+        "style": "plate",
+        "bulk": 0.054,
+        "serpent_focus": true,
+        "light_surface": true
+      },
+      "effects": [],
+      "motion_set": {
+        "cut": "conduit",
+        "basic": [
+          "c741ebb3e19af",
+          "cd9a7206b9148",
+          "c6d921b92e42a",
+          "c741ebb3e19af",
+          "cd9a7206b9148",
+          "c6d921b92e42a"
+        ],
+        "arts": [
+          "c1364aa38c4e1",
+          "c1364aa38c4e1",
+          "c1364aa38c4e1",
+          "c1364aa38c4e1"
+        ],
+        "leverage": 1.12,
+        "tempo": 1.04,
+        "stance": 0.31,
+        "grip": 0.014,
+        "weight": 0.869
+      },
+      "attachment": {
+        "primary_hand": "right",
+        "offhand": "free",
+        "stow": "back",
+        "model_axis": "+Y"
+      }
+    },
+    {
+      "id": "lorais_fangblade",
+      "name": "Lorai's Fangblade",
+      "description": "A curved blade shaped after the fangs of Lorai, the child of Apep raised by Ahkmet. Its edge recalls a bond freely kept, even when two forms became one.",
+      "category": "weapons",
+      "kind": "named",
+      "family": "curved_sword",
+      "slot": "down",
+      "combat_kind": "sword_shield",
+      "rarity": "Legendary",
+      "value": 250,
+      "acquisition": "Pyramid B8 / Tower Exchange / Equipment Archive",
+      "geometry": {
+        "family": "curved_sword",
+        "length": 1.15,
+        "width": 0.143,
+        "depth": 0.045,
+        "curve": 0.105,
+        "guard": 0.416,
+        "detail": 5,
+        "paired": false,
+        "tint": "ffd051",
+        "style": "plate",
+        "bulk": 0.22,
+        "outline": [
+          [
+            -0.055,
+            -0.28
+          ],
+          [
+            0.055,
+            -0.28
+          ],
+          [
+            0.07,
+            0.32
+          ],
+          [
+            0.22,
+            0.64
+          ],
+          [
+            0.4,
+            1.02
+          ],
+          [
+            0.37,
+            1.32
+          ],
+          [
+            0.28,
+            1.12
+          ],
+          [
+            0.12,
+            0.86
+          ],
+          [
+            -0.01,
+            0.57
+          ],
+          [
+            -0.055,
+            0.26
+          ]
+        ]
+      },
+      "effects": [],
+      "motion_set": {
+        "cut": "crescent",
+        "basic": [
+          "c1b4f4f24c6ba",
+          "c0696891ae860",
+          "c9e0de1091ebe",
+          "c879c8e75b1ab",
+          "c7260c87920f7",
+          "c0cf5e2029f2d"
+        ],
+        "arts": [
+          "c6a166bc6a638",
+          "c670fc773741f",
+          "c32749b83cf9d",
+          "c7d913bf13460"
+        ],
+        "leverage": 1.15,
+        "tempo": 1.07,
+        "stance": 0.27,
+        "grip": 0.018,
+        "weight": 0.85
+      },
+      "attachment": {
+        "primary_hand": "right",
+        "offhand": "free",
+        "stow": "back",
+        "model_axis": "+Y"
+      }
+    },
+    {
+      "id": "pharaoh_vile_nemes",
+      "name": "Pharaoh of the Vile \u2014 Nemes",
+      "description": "Royal linen and a golden serpent crest from Ahkmet's ceremonial dress. The title Vile outlived every explanation for it. Cosmetic attire.",
+      "category": "cosmetics",
+      "kind": "cosmetic",
+      "family": "head",
+      "slot": "head",
+      "combat_kind": "none",
+      "rarity": "Legendary",
+      "value": 120,
+      "acquisition": "Pyramid B8 / Tower Exchange / Equipment Archive",
+      "geometry": {
+        "family": "head",
+        "renderer": "ahkmet_head",
+        "tint": "ffd051",
+        "bulk": 0.32
+      },
+      "effects": []
+    },
+    {
+      "id": "pharaoh_vile_mantle",
+      "name": "Pharaoh of the Vile \u2014 Mantle",
+      "description": "A broad gold collar over dark ceremonial folds. Lorai knew this silhouette before the player ever reached the throne. Cosmetic attire.",
+      "category": "cosmetics",
+      "kind": "cosmetic",
+      "family": "body",
+      "slot": "body",
+      "combat_kind": "none",
+      "rarity": "Legendary",
+      "value": 120,
+      "acquisition": "Pyramid B8 / Tower Exchange / Equipment Archive",
+      "geometry": {
+        "family": "body",
+        "renderer": "ahkmet_body",
+        "tint": "ffd051",
+        "bulk": 0.32
+      },
+      "effects": []
+    },
+    {
+      "id": "pharaoh_vile_bracers",
+      "name": "Pharaoh of the Vile \u2014 Bracers",
+      "description": "Gold-edged wrappings worn by the hands that raised Lorai. Their last command was an invitation, not a chain. Cosmetic attire.",
+      "category": "cosmetics",
+      "kind": "cosmetic",
+      "family": "hands",
+      "slot": "hands",
+      "combat_kind": "none",
+      "rarity": "Legendary",
+      "value": 120,
+      "acquisition": "Pyramid B8 / Tower Exchange / Equipment Archive",
+      "geometry": {
+        "family": "hands",
+        "renderer": "ahkmet_hands",
+        "tint": "ffd051",
+        "bulk": 0.32
+      },
+      "effects": []
+    },
+    {
+      "id": "pharaoh_vile_greaves",
+      "name": "Pharaoh of the Vile \u2014 Greaves",
+      "description": "Long hieroglyphic panels above closed ceremonial greaves. Ahkmet kept his footing upon a living companion rather than a throne. Cosmetic attire.",
+      "category": "cosmetics",
+      "kind": "cosmetic",
+      "family": "legs",
+      "slot": "legs",
+      "combat_kind": "none",
+      "rarity": "Legendary",
+      "value": 120,
+      "acquisition": "Pyramid B8 / Tower Exchange / Equipment Archive",
+      "geometry": {
+        "family": "legs",
+        "renderer": "ahkmet_legs",
+        "tint": "ffd051",
+        "bulk": 0.32
+      },
+      "effects": []
+    },
+    {
+      "id": "serpent_crown_union",
+      "name": "Serpent Crown of Union",
+      "description": "Two curling lines meet beneath a single serpent crest. A keepsake of the willing union between a Pharaoh and the serpent he raised, not a mark of dominion. Cosmetic attire.",
+      "category": "cosmetics",
+      "kind": "cosmetic",
+      "family": "head",
+      "slot": "head",
+      "combat_kind": "none",
+      "rarity": "Legendary",
+      "value": 120,
+      "acquisition": "Pyramid B8 / Tower Exchange / Equipment Archive",
+      "geometry": {
+        "family": "head",
+        "renderer": "union_crown",
+        "tint": "ffd051",
+        "bulk": 0.32
+      },
+      "effects": []
+    }
+  ]
+}

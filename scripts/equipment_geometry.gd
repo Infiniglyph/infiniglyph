@@ -100,7 +100,11 @@ func build(g: Dictionary) -> void:
 			box(0,-.2,.07,.35 if family=="bow" else .75,.08)
 		"spear","halberd","scythe","staff":
 			box(0,-.65,.055,length,.06)
-			if family=="staff": ring(Vector2(0,length-.53),.18,.035,.06)
+			if family=="staff":
+				ring(Vector2(0,length-.53),.18,.035,.06)
+				if g.get("serpent_focus",false):
+					ring(Vector2(0,length-.53),.29,.035,.07)
+					prism([Vector2(-.08,length-.53),Vector2(0,length-.36),Vector2(.08,length-.53),Vector2(0,length-.70)],.075)
 			elif family=="scythe": prism([Vector2(0,length-.8),Vector2(.70,length-.66),Vector2(.42,length-.42),Vector2(0,length-.45)],.045)
 			elif family=="halberd": prism([Vector2(-.04,length-.95),Vector2(-.38,length-.7),Vector2(-.31,length-.35),Vector2(.07,length-.5)],.07)
 			else: prism([Vector2(-.13,length-.7),Vector2(0,length),Vector2(.13,length-.7)],.045)
@@ -115,11 +119,13 @@ func build(g: Dictionary) -> void:
 		"chime","talisman":
 			shell(.12,.12,.3,.5)
 			ring(Vector2(0,.4),.09,.023,.04)
+		"disc","dual_disc":
+			ring(Vector2(0,.18),.28,.072,.04)
+			ring(Vector2(0,.18),.195,.012,.05)
 		"whip":
-			box(0,-.22,.06,.4,.06)
-			for i in range(10):
-				var y := .18+i*length/10
-				box(sin(i*.6)*.12,y,.025,length/10*.88,.025)
+			# Coiled preview/stow model. The wielded lash is a dynamic rope.
+			box(0,-.22,.055,.36,.055)
+			for i in range(3): ring(Vector2(.08,.27),.17+i*.025,.012,.024)
 		_:
 			box(0,-.24,.055,.36,.055)
 			box(0,.08,float(g.get("guard",.3)),.04,.09)
@@ -161,6 +167,6 @@ static func model(g: Dictionary) -> Node3D:
 		var instance := MeshInstance3D.new()
 		instance.mesh = cache[key][index]
 		instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		instance.material_override = Neon.dark if index==0 else Neon.shared_material(Color(String(g.get("tint","75eaff"))))
+		instance.material_override = Neon.dark if index==0 and not g.get("light_surface",false) else Neon.shared_material(Color(String(g.get("tint","75eaff"))))
 		root.add_child(instance)
 	return root

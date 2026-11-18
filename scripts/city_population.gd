@@ -8,6 +8,7 @@ const Profiles = preload("res://scripts/resident_profiles.gd")
 @export var initial_outdoors := 44
 @export var population_seed := 0
 var player: CharacterBody3D
+var reactions: Node3D
 var duel: CanvasLayer
 var residents: Array[CharacterBody3D] = []
 var reserved_outdoors := 0 # Street-combat proxies reserve their civilian slot.

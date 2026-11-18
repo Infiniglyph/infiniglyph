@@ -14,6 +14,8 @@ var serial := 0
 
 static func obtain(actor: Node) -> Node3D:
 	var arena := actor.get_parent()
+	var shared: Node=arena.get_meta("combat_feedback_arena") if arena.has_meta("combat_feedback_arena") else null
+	if is_instance_valid(shared): arena=shared
 	var controller := arena.get_node_or_null("CombatImpactFeedback")
 	if controller == null:
 		controller = load("res://scripts/impact_feedback.gd").new()

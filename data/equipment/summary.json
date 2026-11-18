@@ -1,5 +1,5 @@
 {
-  "counterparts": 2906,
+  "counterparts": 2185,
   "families": {
     "fist": 67,
     "dagger": 132,
@@ -14,12 +14,8 @@
     "scythe": 34,
     "halberd": 100,
     "whip": 34,
-    "talisman": 8,
     "staff": 12,
     "chime": 7,
-    "bow": 12,
-    "crossbow": 8,
-    "shield": 693,
     "head": 100,
     "body": 96,
     "hands": 85,
@@ -28,6 +24,7 @@
   },
   "named_demonstrations": 3,
   "source_rows": 2887,
-  "portrait_only": 19,
-  "named_weapons": 1716
+  "portrait_only": 18,
+  "named_weapons": 1688,
+  "retired_counterparts": 721
 }

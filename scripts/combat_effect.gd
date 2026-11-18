@@ -72,6 +72,14 @@ func _ready() -> void:
 				for i in range(3):
 					var c := Vector3((i-1)*0.65,0,0.5+i*0.6)
 					points.append_array([c+Vector3(0,-0.7,0),c+Vector3(0,0.55,0),c+Vector3(-0.3,0.1,0),c+Vector3(0.45,0.6,0.4)])
+	if profile=="feather":
+		for i in range(9):
+			var angle:=lerpf(-deg_to_rad(arc)*.5,deg_to_rad(arc)*.5,i/8.0)
+			var direction:=Vector3(sin(angle),0,cos(angle))
+			var side:=Vector3(direction.z,0,-direction.x)*.13
+			var root:=direction*radius*.55
+			var tip:=direction*radius*.96
+			points.append_array([root,tip,root,tip*.86+side,tip*.86+side,tip,root,tip*.86-side,tip*.86-side,tip])
 	add_child(Neon.lines(points,ink))
 	scale = Vector3.ONE*0.8
 

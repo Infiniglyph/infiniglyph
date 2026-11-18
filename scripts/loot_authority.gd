@@ -4,6 +4,7 @@ const Pickup = preload("res://scripts/item_pickup.gd")
 const Instance = preload("res://scripts/item_instance.gd")
 const Catalog = preload("res://scripts/item_catalog.gd")
 const Markers = preload("res://scripts/lost_item_markers.gd")
+const Shields = preload("res://scripts/shield_glyphs.gd")
 signal changed
 signal picked_up(inventory: Node, item: Resource)
 signal dropped(inventory: Node, item: Resource, pickup: Node3D)
@@ -20,6 +21,19 @@ var _inventories: Dictionary = {}
 var _death_results: Dictionary = {}
 var _shops: Dictionary = {}
 var _busy := false
+var location_roots: Dictionary = {}
+var respawn_glyphs: Node
+var active_location: StringName = &"overworld"
+
+func location_for(actor: Node3D) -> StringName:
+	for id: StringName in location_roots:
+		if location_roots[id].get_world_3d()==actor.get_world_3d(): return id
+	return &"overworld"
+
+func _space(location: StringName = &"") -> PhysicsDirectSpaceState3D:
+	var id:=active_location if location==&"" else location
+	if location_roots.has(id): return location_roots[id].get_world_3d().direct_space_state
+	return get_world_3d().direct_space_state
 
 func transaction_active() -> bool:
 	return _busy
@@ -49,6 +63,7 @@ func actor_for(inventory: Node) -> Node3D:
 func _authorized(operation: StringName, inventory: Node, payload: Dictionary) -> bool:
 	if not host_enabled or _busy or not register_inventory(inventory): return false
 	if not is_instance_valid(actor_for(inventory)): return false
+	if actor_for(inventory).get("transition_locked")==true: return false
 	return not validator.is_valid() or bool(validator.call(operation,inventory,payload))
 
 func _transferable(item: Resource) -> bool:
@@ -127,6 +142,51 @@ func request_health_glyph(inventory: Node) -> bool:
 	if consumed!=null: changed.emit()
 	return consumed!=null
 
+func request_respawn_glyph(inventory: Node, instance_id: String) -> bool:
+	if not _authorized(&"respawn_glyph",inventory,{"instance_id":instance_id}) or not is_instance_valid(respawn_glyphs): return false
+	if actor_for(inventory)!=respawn_glyphs.actor: return false
+	var item: Resource=inventory.get_item(instance_id)
+	if item==null or not item.is_valid() or item.owner_id!=inventory.owner_id: return false
+	var types: Dictionary=respawn_glyphs.Data.TYPES
+	if not types.has(item.item_type_id): return false
+	var record: Dictionary=respawn_glyphs.placement(item.item_type_id)
+	if record.is_empty(): return false
+	_busy=true
+	var kind: String=types[item.item_type_id]
+	var consumed: Resource=inventory.take_item(instance_id,1)
+	if consumed!=null:
+		inventory.respawn_points[kind]=record
+		consumed.quantity=0
+		inventory.changed.emit()
+	_busy=false
+	if consumed!=null: changed.emit()
+	return consumed!=null
+
+func request_shield_glyph(inventory: Node, instance_id: String = "") -> bool:
+	# Quick use selects on the authority, before the same ownership transaction
+	# used by Inventory. A full stronger shield never wastes a lesser glyph.
+	if instance_id.is_empty():
+		var preferred := Shields.preferred_item(inventory)
+		if preferred==null: return false
+		instance_id=preferred.instance_id
+	if not _authorized(&"shield_glyph",inventory,{"instance_id":instance_id}): return false
+	var actor:=actor_for(inventory)
+	if not is_instance_valid(actor) or actor.health<=0 or actor.get("transition_locked")==true: return false
+	var item: Resource=inventory.get_item(instance_id)
+	if item==null or not item.is_valid() or item.owner_id!=inventory.owner_id or item.item_type_id not in Shields.ITEMS: return false
+	var tier: String=Shields.ITEMS[item.item_type_id]
+	if float(inventory.shield_state.get("points",0))>=Shields.TIERS[tier]: return false
+	_busy=true
+	var consumed: Resource=inventory.take_item(instance_id,1)
+	if consumed!=null:
+		inventory.shield_state={"tier":tier,"points":Shields.TIERS[tier]}
+		consumed.quantity=0
+		inventory.changed.emit()
+		actor.weapon_combat.changed.emit()
+	_busy=false
+	if consumed!=null: changed.emit()
+	return consumed!=null
+
 func register_shop(id: StringName, shop: Node) -> void:
 	# World-authored offers, never client-supplied items or prices.
 	_shops[id] = weakref(shop)
@@ -157,13 +217,14 @@ func _drop(inventory: Node, instance_id: String, quantity: int, at: Vector3, dea
 	var item: Resource = inventory.get_item(instance_id)
 	if item == null or item.owner_id != inventory.owner_id or quantity<=0 or quantity>item.quantity or not _transferable(item): return null
 	if _world_has(instance_id): return null
-	var floor := supported_position(at)
-	if floor.is_empty() or not clear_volume(floor.point): return null
+	var location:=location_for(actor_for(inventory))
+	var floor := supported_position(at,location)
+	if floor.is_empty() or not clear_volume(floor.point,location): return null
 	if death_owner.is_empty() and actor_for(inventory).global_position.distance_to(floor.point)>3.0: return null
 	var preview: Resource = item.duplicate(true)
 	preview.quantity = quantity
 	preview.owner_id = ""
-	var pickup := _prepare(preview,floor.point,death_owner,Pickup.new_id())
+	var pickup := _prepare(preview,floor.point,death_owner,Pickup.new_id(),location)
 	if pickup == null: return null
 	if death_owner.is_empty() and not line_of_sight(actor_for(inventory),pickup):
 		pickup.queue_free()
@@ -218,20 +279,69 @@ func nearest_pickup(actor: Node3D, max_distance: float = 2.8) -> Node3D:
 			distance = next
 	return nearest
 
+func spawn_reward(item_type_id: StringName, at: Vector3, location: StringName = &"") -> Node3D:
+	# Trusted host-authored encounter reward, never a client purchase/transfer.
+	# A fresh identity leaves the NPC's original equipped item untouched.
+	if not host_enabled or _busy or not finite_point(at): return null
+	if location==&"": location=active_location
+	if not location_roots.is_empty() and not location_roots.has(location): return null
+	var item: Resource = Catalog.create(item_type_id)
+	if item==null or not _transferable(item): return null
+	for radius in range(4):
+		for index in range(1 if radius==0 else 8):
+			var angle := index*TAU/8
+			var floor := supported_position(at+Vector3(cos(angle),0,sin(angle))*radius,location)
+			if floor.is_empty() or not clear_volume(floor.point,location): continue
+			_busy=true
+			var pickup := _prepare(item,floor.point,"",Pickup.new_id(),location)
+			if pickup!=null:
+				pickup.activate()
+				_record(pickup)
+			_busy=false
+			if pickup!=null: changed.emit()
+			return pickup
+	return null
+
+func spawn_reward_bundle(types: Array, at: Vector3, location: StringName) -> Array:
+	# Boss keepsakes commit together. A failed factory/support check leaves no
+	# registered drops or claimed first-clear entitlement behind.
+	if not host_enabled or _busy or not finite_point(at) or types.is_empty() or types.size()>12: return []
+	if not location_roots.is_empty() and not location_roots.has(location): return []
+	var prepared: Array=[]
+	_busy=true
+	for i in range(types.size()):
+		var item: Resource=Catalog.create(StringName(types[i]))
+		var angle:=i*TAU/types.size()
+		var ground:=supported_position(at+Vector3(cos(angle),0,sin(angle))*2.2,location)
+		var copy: Node3D
+		if item!=null and _transferable(item) and not ground.is_empty() and clear_volume(ground.point,location): copy=_prepare(item,ground.point,"",Pickup.new_id(),location)
+		if copy==null:
+			for candidate: Node3D in prepared: candidate.queue_free()
+			_busy=false
+			return []
+		prepared.append(copy)
+	for pickup: Node3D in prepared:
+		pickup.activate()
+		_record(pickup)
+	_busy=false
+	changed.emit()
+	return prepared
+
 func line_of_sight(actor: Node3D, pickup: Node3D) -> bool:
 	if not is_inside_tree() or not actor.is_inside_tree(): return false
+	if actor.get_world_3d()!=pickup.get_world_3d(): return false
 	var excluded: Array[RID] = []
 	if actor is CollisionObject3D: excluded.append(actor.get_rid())
 	if is_instance_valid(pickup.solid): excluded.append(pickup.solid.get_rid())
 	var from: Vector3 = actor.combat_point() if actor.has_method("combat_point") else actor.global_position+Vector3.UP*0.9
 	var query := PhysicsRayQueryParameters3D.create(from,pickup.global_position+Vector3.UP*0.45,1,excluded)
-	return get_world_3d().direct_space_state.intersect_ray(query).is_empty()
+	return actor.get_world_3d().direct_space_state.intersect_ray(query).is_empty()
 
-func supported_position(at: Vector3) -> Dictionary:
+func supported_position(at: Vector3, location: StringName = &"") -> Dictionary:
 	if not is_inside_tree() or not finite_point(at): return {}
 	var excluded := solid_exclusions()
 	var query := PhysicsRayQueryParameters3D.create(at+Vector3.UP*0.35,at-Vector3.UP*512,1,excluded)
-	var hit := get_world_3d().direct_space_state.intersect_ray(query)
+	var hit := _space(location).intersect_ray(query)
 	if hit.is_empty() or hit.normal.y<0.65: return {}
 	return {"point":hit.position}
 
@@ -244,7 +354,7 @@ func solid_exclusions() -> Array[RID]:
 		if actor is CollisionObject3D: excluded.append(actor.get_rid())
 	return excluded
 
-func clear_volume(point: Vector3) -> bool:
+func clear_volume(point: Vector3, location: StringName = &"") -> bool:
 	var shape := BoxShape3D.new()
 	shape.size = Vector3(0.46,0.78,0.46)
 	var query := PhysicsShapeQueryParameters3D.new()
@@ -252,7 +362,7 @@ func clear_volume(point: Vector3) -> bool:
 	query.transform.origin = point+Vector3.UP*0.41
 	query.collision_mask = 1
 	query.exclude = solid_exclusions()
-	return get_world_3d().direct_space_state.intersect_shape(query,1).is_empty()
+	return _space(location).intersect_shape(query,1).is_empty()
 
 func register_pickup(pickup: Node3D) -> bool:
 	if not host_enabled or _busy or not is_instance_valid(pickup) or pickup.item_instance == null: return false
@@ -280,7 +390,7 @@ func _adopt_editor_pickups() -> void:
 	for pickup: Node3D in get_tree().get_nodes_in_group("item_pickups"):
 		if not pickups.has(pickup.pickup_id): register_pickup(pickup)
 
-func _prepare(item: Resource, point: Vector3, death_owner: String, pickup_id: String) -> Node3D:
+func _prepare(item: Resource, point: Vector3, death_owner: String, pickup_id: String, location: StringName = &"overworld") -> Node3D:
 	var candidate = spawn_factory.call() if spawn_factory.is_valid() else Pickup.new()
 	if not candidate is Pickup:
 		if candidate is Node: candidate.queue_free()
@@ -288,8 +398,13 @@ func _prepare(item: Resource, point: Vector3, death_owner: String, pickup_id: St
 	candidate.item_instance = item
 	candidate.pickup_id = pickup_id
 	candidate.death_owner_id = death_owner
+	candidate.location_id = location
 	candidate.pending = true
-	add_child(candidate)
+	if location!=&"overworld" and location_roots.has(location):
+		var root: Node3D=location_roots[location]
+		var parent: Node3D=root.pickup_parent_for(point) if root.has_method("pickup_parent_for") else root
+		parent.add_child(candidate)
+	else: add_child(candidate)
 	candidate.global_position = point
 	if not is_instance_valid(candidate) or not candidate.is_inside_tree() or candidate.is_queued_for_deletion():
 		if is_instance_valid(candidate): candidate.queue_free()
@@ -317,6 +432,9 @@ func validate_snapshot(snapshot: Array) -> bool:
 		if not row is Dictionary or not row.get("pickup_id") is String or row.pickup_id.is_empty() or pickup_ids.has(row.pickup_id): return false
 		if not row.get("item") is Dictionary or not row.get("death_owner_id","") is String: return false
 		if not row.get("position") is Array or row.position.size()!=3: return false
+		if not Instance.valid_text(row.get("location_id","overworld")): return false
+		var location:=StringName(row.get("location_id","overworld"))
+		if location!=&"overworld" and not location_roots.has(location): return false
 		for coordinate in row.position:
 			if not (coordinate is float or coordinate is int) or not is_finite(float(coordinate)): return false
 		var point := Vector3(float(row.position[0]),float(row.position[1]),float(row.position[2]))
@@ -332,7 +450,9 @@ func serialize_world() -> Array[Dictionary]:
 	for pickup: Node3D in pickups.values():
 		if not is_instance_valid(pickup) or pickup.claimed or pickup.pending or pickup.is_queued_for_deletion(): continue
 		var point := pickup.global_position
-		result.append({"pickup_id":pickup.pickup_id,"item":pickup.item_instance.to_dict(),"position":[point.x,point.y,point.z],"death_owner_id":pickup.death_owner_id})
+		var row: Dictionary={"pickup_id":pickup.pickup_id,"item":pickup.item_instance.to_dict(),"position":[point.x,point.y,point.z],"death_owner_id":pickup.death_owner_id}
+		if pickup.location_id!=&"overworld": row.location_id=String(pickup.location_id)
+		result.append(row)
 	return result
 
 func restore_world(snapshot: Array) -> bool:
@@ -340,11 +460,12 @@ func restore_world(snapshot: Array) -> bool:
 	var candidates: Array[Node3D] = []
 	for row: Dictionary in snapshot:
 		var point := Vector3(float(row.position[0]),float(row.position[1]),float(row.position[2]))
-		var floor := supported_position(point)
-		if floor.is_empty() or absf(floor.point.y-point.y)>0.4 or not clear_volume(point):
+		var location:=StringName(row.get("location_id","overworld"))
+		var floor := supported_position(point,location)
+		if floor.is_empty() or absf(floor.point.y-point.y)>0.4 or not clear_volume(point,location):
 			for pending in candidates: pending.queue_free()
 			return false
-		var candidate := _prepare(Instance.from_dict(row.item),point,row.get("death_owner_id",""),row.pickup_id)
+		var candidate := _prepare(Instance.from_dict(row.item),point,row.get("death_owner_id",""),row.pickup_id,location)
 		if candidate == null:
 			for pending in candidates: pending.queue_free()
 			return false

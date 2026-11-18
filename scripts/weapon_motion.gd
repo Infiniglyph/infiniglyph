@@ -15,7 +15,7 @@ static func sample(move: Dictionary, elapsed: float) -> Dictionary:
 	var frames: Array = move.get("motion",[])
 	if frames.size()<2: return {}
 	var t := clampf(elapsed/maxf(0.01,float(move.duration)),0,1)
-	if move.get("retargeted",false) and move.hits.size()>1:
+	if (move.get("retargeted",false) or move.get("scribe_gesture",false)) and move.hits.size()>1:
 		# Repeat the source drive for each existing legitimate pulse, including
 		# the charged release's extra strike. Do not invent additional damage.
 		var contact := float(move.get("motion_contact",float(move.hits[0])/float(move.duration)))
@@ -41,7 +41,7 @@ static func sample(move: Dictionary, elapsed: float) -> Dictionary:
 	var result: Dictionary = {}
 	for key: String in ["right","left","right_rotation","left_rotation","hip","chest"]:
 		result[key] = vector(a[key]).lerp(vector(b[key]),weight)
-	for key: String in ["hip_offset","left_foot","right_foot"]:
+	for key: String in ["hip_offset","left_foot","right_foot","left_leg","right_leg","left_knee","right_knee"]:
 		if a.has(key) and b.has(key): result[key] = vector(a[key]).lerp(vector(b[key]),weight)
 	if move.get("retargeted",false) and move.hits.size()>1 and t>.88:
 		for key: String in result:
@@ -53,4 +53,9 @@ static func sample(move: Dictionary, elapsed: float) -> Dictionary:
 			# reflection preserves a proper rotation and the blade's cutting side.
 			var grip: Vector3 = result[hand+"_rotation"]
 			result[hand+"_rotation"] = Vector3(-grip.x,-grip.y,grip.z)
+	if move.get("auto_sheathe",false):
+		var closing := smoothstep(float(move.get("sheath_start",.68)),1,elapsed/maxf(.01,float(move.duration)))
+		result.right = result.right.lerp(Vector3(-.16,1.04,.12),closing)
+		result.left = result.left.lerp(Vector3(-.28,1.0,.05),closing)
+		result.right_rotation = result.right_rotation.lerp(Vector3(-1.97,.10,0),closing)
 	return result

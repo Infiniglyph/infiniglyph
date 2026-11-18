@@ -1,0 +1,2052 @@
+{
+  "version": 1,
+  "lines": [
+    {
+      "id": "kyren_000",
+      "text": "You lost or something?",
+      "triggers": [
+        "greet",
+        "challenge"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 85,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_001",
+      "text": "You know this is private property, right?",
+      "triggers": [
+        "greet",
+        "challenge"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 85,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_002",
+      "text": "Nice weapon. Did it come with instructions?",
+      "triggers": [
+        "greet",
+        "challenge"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 85,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_003",
+      "text": "You looking for a fight? That's unfortunate.",
+      "triggers": [
+        "greet",
+        "challenge"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 85,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_004",
+      "text": "I was having a perfectly good afternoon.",
+      "triggers": [
+        "greet",
+        "challenge"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 85,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_005",
+      "text": "You sure you wanna do this?",
+      "triggers": [
+        "greet",
+        "challenge"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 85,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_006",
+      "text": "Alright, but don't scuff my lawn.",
+      "triggers": [
+        "greet",
+        "challenge"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 85,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_007",
+      "text": "You look like you practiced that walk.",
+      "triggers": [
+        "greet",
+        "challenge"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 85,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_008",
+      "text": "Oh, you're one of those people.",
+      "triggers": [
+        "greet",
+        "challenge"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 85,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_009",
+      "text": "Fine. Let's get this over with.",
+      "triggers": [
+        "greet",
+        "challenge"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 85,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_010",
+      "text": "You gonna fight back or what?",
+      "triggers": [
+        "taunt"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 20,
+      "conditions": {
+        "winning": true
+      }
+    },
+    {
+      "id": "kyren_011",
+      "text": "I'm barely trying here.",
+      "triggers": [
+        "taunt"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 20,
+      "conditions": {
+        "winning": true
+      }
+    },
+    {
+      "id": "kyren_012",
+      "text": "You know there's a block button, right?",
+      "triggers": [
+        "taunt"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 20,
+      "conditions": {
+        "winning": true
+      }
+    },
+    {
+      "id": "kyren_013",
+      "text": "That was embarrassing. Do it again.",
+      "triggers": [
+        "taunt"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 20,
+      "conditions": {
+        "winning": true
+      }
+    },
+    {
+      "id": "kyren_014",
+      "text": "You keep swinging like that, I'm gonna fall asleep.",
+      "triggers": [
+        "taunt"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 20,
+      "conditions": {
+        "winning": true
+      }
+    },
+    {
+      "id": "kyren_015",
+      "text": "I've seen pedestrians with better footwork.",
+      "triggers": [
+        "taunt"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 20,
+      "conditions": {
+        "winning": true
+      }
+    },
+    {
+      "id": "kyren_016",
+      "text": "You paid for that weapon?",
+      "triggers": [
+        "taunt"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 20,
+      "conditions": {
+        "winning": true
+      }
+    },
+    {
+      "id": "kyren_017",
+      "text": "I could do this with my eyes closed.",
+      "triggers": [
+        "taunt"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 20,
+      "conditions": {
+        "winning": true
+      }
+    },
+    {
+      "id": "kyren_018",
+      "text": "Come on, at least make it interesting.",
+      "triggers": [
+        "taunt"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 20,
+      "conditions": {
+        "winning": true
+      }
+    },
+    {
+      "id": "kyren_019",
+      "text": "You sure you're not an NPC?",
+      "triggers": [
+        "taunt"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 20,
+      "conditions": {
+        "winning": true
+      }
+    },
+    {
+      "id": "kyren_020",
+      "text": "Ow! What the hell?!",
+      "triggers": [
+        "player_hit"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_021",
+      "text": "Okay, lucky shot.",
+      "triggers": [
+        "player_hit"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_022",
+      "text": "That barely counted.",
+      "triggers": [
+        "player_hit"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_023",
+      "text": "I DODGED THAT! COME ON!",
+      "triggers": [
+        "dodge_hit"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 75,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_024",
+      "text": "What is that hitbox?!",
+      "triggers": [
+        "player_hit"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_025",
+      "text": "There's no way that reached me.",
+      "triggers": [
+        "player_hit"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_026",
+      "text": "Okay, that one was actually annoying.",
+      "triggers": [
+        "player_hit"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_027",
+      "text": "You caught me adjusting my hat.",
+      "triggers": [
+        "player_hit"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_028",
+      "text": "I wasn't ready!",
+      "triggers": [
+        "player_hit"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_029",
+      "text": "Oh, we're doing that now?",
+      "triggers": [
+        "player_hit"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_030",
+      "text": "OH, COME ON!",
+      "triggers": [
+        "player_parry"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_031",
+      "text": "You're just gonna parry everything?!",
+      "triggers": [
+        "player_parry"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_032",
+      "text": "That timing was suspicious.",
+      "triggers": [
+        "player_parry"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_033",
+      "text": "You got lucky. Again.",
+      "triggers": [
+        "player_parry"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_034",
+      "text": "STOP READING MY INPUTS!",
+      "triggers": [
+        "parry_domination"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 95,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_035",
+      "text": "Who parries that?!",
+      "triggers": [
+        "player_parry"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_036",
+      "text": "Okay, you definitely practiced that.",
+      "triggers": [
+        "player_parry"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_037",
+      "text": "You know other buttons exist, right?",
+      "triggers": [
+        "player_parry"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_038",
+      "text": "I'm reporting that parry window.",
+      "triggers": [
+        "player_parry"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_039",
+      "text": "Bro, let me FINISH THE ATTACK!",
+      "triggers": [
+        "player_parry"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_040",
+      "text": "Nope.",
+      "triggers": [
+        "kyren_parry"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_041",
+      "text": "Saw that coming.",
+      "triggers": [
+        "kyren_parry"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_042",
+      "text": "Too obvious.",
+      "triggers": [
+        "kyren_parry"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_043",
+      "text": "Try something new.",
+      "triggers": [
+        "kyren_parry"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_044",
+      "text": "You telegraphed that from across the street.",
+      "triggers": [
+        "kyren_parry"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_045",
+      "text": "That's what happens when you get predictable.",
+      "triggers": [
+        "kyren_parry"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_046",
+      "text": "And that's how you parry.",
+      "triggers": [
+        "kyren_parry"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_047",
+      "text": "You really thought that would work?",
+      "triggers": [
+        "kyren_parry"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_048",
+      "text": "Again. Please. I dare you.",
+      "triggers": [
+        "kyren_parry"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_049",
+      "text": "Thanks for the free opening.",
+      "triggers": [
+        "kyren_parry"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_050",
+      "text": "Too slow!",
+      "triggers": [
+        "miss"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_051",
+      "text": "Not even close.",
+      "triggers": [
+        "miss"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_052",
+      "text": "You swinging at ghosts?",
+      "triggers": [
+        "miss"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_053",
+      "text": "You almost hit my mailbox.",
+      "triggers": [
+        "mailbox_contact"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_054",
+      "text": "Was that supposed to be an attack?",
+      "triggers": [
+        "miss"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_055",
+      "text": "My grandma moves faster than that.",
+      "triggers": [
+        "miss"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_056",
+      "text": "Careful, you're gonna hurt yourself.",
+      "triggers": [
+        "miss"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_057",
+      "text": "That was a lot of effort for nothing.",
+      "triggers": [
+        "miss"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_058",
+      "text": "You trying to trim the tree?",
+      "triggers": [
+        "tree_contact"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 75,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_059",
+      "text": "I'm standing RIGHT HERE!",
+      "triggers": [
+        "miss"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_060",
+      "text": "BRO, GET DOWN HERE!",
+      "triggers": [
+        "sky_jump_spam"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_061",
+      "text": "What are you, a helicopter?!",
+      "triggers": [
+        "sky_jump_spam"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_062",
+      "text": "You know we have a ground, right?",
+      "triggers": [
+        "sky_jump_spam"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_063",
+      "text": "STOP JUMPING!",
+      "triggers": [
+        "sky_jump_spam"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_064",
+      "text": "How many times can you do that?!",
+      "triggers": [
+        "sky_jump_spam"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_065",
+      "text": "This isn't a flying competition!",
+      "triggers": [
+        "sky_jump_spam"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_066",
+      "text": "Oh, look, another jump. Shocking.",
+      "triggers": [
+        "sky_jump_spam"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_067",
+      "text": "You gonna fight me or orbit the planet?",
+      "triggers": [
+        "sky_jump_spam"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_068",
+      "text": "I swear, if you jump one more time—",
+      "triggers": [
+        "sky_jump_spam"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_069",
+      "text": "Okay, fine. Two can play that game.",
+      "triggers": [
+        "sky_jump_spam"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_070",
+      "text": "Oh, so we're throwing flashlights now?",
+      "triggers": [
+        "weapon_art"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_071",
+      "text": "Nice light show. You done?",
+      "triggers": [
+        "weapon_art"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_072",
+      "text": "YOU HIT ME FROM OVER THERE?!",
+      "triggers": [
+        "weapon_art"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_073",
+      "text": "That's not a sword, that's a laser pointer!",
+      "triggers": [
+        "weapon_art"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_074",
+      "text": "Quit hiding behind your weapon art!",
+      "triggers": [
+        "weapon_art"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_075",
+      "text": "How is that wave bigger than your weapon?!",
+      "triggers": [
+        "weapon_art"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_076",
+      "text": "You're just spamming the shiny attack!",
+      "triggers": [
+        "weapon_art"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_077",
+      "text": "I can barely see through all this nonsense!",
+      "triggers": [
+        "weapon_art"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_078",
+      "text": "Okay, that was actually pretty cool. I mean—cheap!",
+      "triggers": [
+        "weapon_art"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_079",
+      "text": "That move needs a nerf. Immediately.",
+      "triggers": [
+        "weapon_art"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_080",
+      "text": "Okay, something's wrong here.",
+      "triggers": [
+        "half_health",
+        "salty"
+      ],
+      "min_salt": 25,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 65,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_081",
+      "text": "Nah, there's no way.",
+      "triggers": [
+        "half_health",
+        "salty"
+      ],
+      "min_salt": 25,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 65,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_082",
+      "text": "You're definitely exploiting something.",
+      "triggers": [
+        "half_health",
+        "salty"
+      ],
+      "min_salt": 25,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 65,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_083",
+      "text": "BRO, HOW MUCH DO YOU PLAY THIS GAME?!",
+      "triggers": [
+        "half_health",
+        "salty"
+      ],
+      "min_salt": 25,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 65,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_084",
+      "text": "You have GOT to be kidding me!",
+      "triggers": [
+        "half_health",
+        "salty"
+      ],
+      "min_salt": 25,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 65,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_085",
+      "text": "That's the third time you've done that!",
+      "triggers": [
+        "repeat_technique"
+      ],
+      "min_salt": 25,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 65,
+      "conditions": {
+        "repeated_three": true
+      }
+    },
+    {
+      "id": "kyren_086",
+      "text": "You're such a tryhard!",
+      "triggers": [
+        "half_health",
+        "salty"
+      ],
+      "min_salt": 25,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 65,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_087",
+      "text": "WHO FIGHTS LIKE THIS?!",
+      "triggers": [
+        "half_health",
+        "salty"
+      ],
+      "min_salt": 25,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 65,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_088",
+      "text": "I'm telling you, something's broken!",
+      "triggers": [
+        "half_health",
+        "salty"
+      ],
+      "min_salt": 25,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 65,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_089",
+      "text": "I was winning five seconds ago!",
+      "triggers": [
+        "half_health",
+        "salty"
+      ],
+      "min_salt": 25,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 65,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_090",
+      "text": "NOPE. I'M NOT LOSING THIS.",
+      "triggers": [
+        "low_health",
+        "meltdown"
+      ],
+      "min_salt": 50,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 80,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_091",
+      "text": "I REFUSE TO LOSE ON MY OWN LAWN!",
+      "triggers": [
+        "low_health",
+        "meltdown"
+      ],
+      "min_salt": 50,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 80,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_092",
+      "text": "BRO, YOU'RE ACTUALLY SWEATING THIS HARD?!",
+      "triggers": [
+        "low_health",
+        "meltdown"
+      ],
+      "min_salt": 50,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 80,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_093",
+      "text": "My game is lagging. I swear.",
+      "triggers": [
+        "low_health",
+        "meltdown"
+      ],
+      "min_salt": 50,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 80,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_094",
+      "text": "That attack should NOT have connected!",
+      "triggers": [
+        "low_health",
+        "meltdown"
+      ],
+      "min_salt": 50,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 80,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_095",
+      "text": "I'M REPORTING YOU TO INFINIGLYPH!",
+      "triggers": [
+        "low_health",
+        "meltdown"
+      ],
+      "min_salt": 50,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 80,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_096",
+      "text": "YOU'RE NOT EVEN THAT GOOD!",
+      "triggers": [
+        "low_health",
+        "meltdown"
+      ],
+      "min_salt": 50,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 80,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_097",
+      "text": "Okay, okay, okay, hold on—",
+      "triggers": [
+        "low_health",
+        "meltdown"
+      ],
+      "min_salt": 50,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 80,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_098",
+      "text": "WHY ARE YOU STILL ATTACKING?!",
+      "triggers": [
+        "low_health",
+        "meltdown"
+      ],
+      "min_salt": 50,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 80,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_099",
+      "text": "THIS IS ACTUALLY RIDICULOUS!",
+      "triggers": [
+        "low_health",
+        "meltdown"
+      ],
+      "min_salt": 50,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 80,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_100",
+      "text": "And stay off my lawn.",
+      "triggers": [
+        "victory"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 100,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_101",
+      "text": "You done? Good. I was busy.",
+      "triggers": [
+        "victory"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 100,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_102",
+      "text": "You interrupted my nap for THAT?",
+      "triggers": [
+        "victory"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 100,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_103",
+      "text": "Better luck next time. You'll need it.",
+      "triggers": [
+        "victory"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 100,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_104",
+      "text": "You should probably practice somewhere else.",
+      "triggers": [
+        "victory"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 100,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_105",
+      "text": "That's what happens when you bother people.",
+      "triggers": [
+        "victory"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 100,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_106",
+      "text": "I told you this was a bad idea.",
+      "triggers": [
+        "victory"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 100,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_107",
+      "text": "Maybe try blocking next time.",
+      "triggers": [
+        "victory"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 100,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_108",
+      "text": "Don't worry. I won't tell the neighbors.",
+      "triggers": [
+        "victory"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 100,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_109",
+      "text": "You coming back? Of course you are.",
+      "triggers": [
+        "victory"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 100,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_110",
+      "text": "I DODGED THAT!",
+      "triggers": [
+        "defeat"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 100,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_111",
+      "text": "Nah. Run it back.",
+      "triggers": [
+        "defeat"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 100,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_112",
+      "text": "Best two out of three.",
+      "triggers": [
+        "defeat"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 100,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_113",
+      "text": "My controller disconnected.",
+      "triggers": [
+        "defeat"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 100,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_114",
+      "text": "That doesn't count. I was sitting down earlier.",
+      "triggers": [
+        "defeat"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 100,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_115",
+      "text": "You got lucky. Like, unbelievably lucky.",
+      "triggers": [
+        "defeat"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 100,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_116",
+      "text": "Whatever. Enjoy your little victory.",
+      "triggers": [
+        "defeat"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 100,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_117",
+      "text": "I wasn't using my main weapon.",
+      "triggers": [
+        "defeat"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 100,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_118",
+      "text": "Don't tell the neighbors.",
+      "triggers": [
+        "defeat"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 100,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_119",
+      "text": "Get off my lawn. Seriously.",
+      "triggers": [
+        "defeat"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 100,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_120",
+      "text": "Oh, it's YOU again.",
+      "triggers": [
+        "return_greet"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 85,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_121",
+      "text": "Back for another beating?",
+      "triggers": [
+        "return_greet"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 85,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_122",
+      "text": "I remember what you did last time.",
+      "triggers": [
+        "return_greet"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 85,
+      "conditions": {
+        "previous_loss": true
+      }
+    },
+    {
+      "id": "kyren_123",
+      "text": "I've been practicing. Unfortunately for you.",
+      "triggers": [
+        "return_greet"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 85,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_124",
+      "text": "You really have nothing better to do?",
+      "triggers": [
+        "return_greet"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 85,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_125",
+      "text": "Let me guess. More jumping?",
+      "triggers": [
+        "return_greet"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 85,
+      "conditions": {
+        "previous_sky": true
+      }
+    },
+    {
+      "id": "kyren_126",
+      "text": "I'm not falling for that parry nonsense again.",
+      "triggers": [
+        "return_greet"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 85,
+      "conditions": {
+        "previous_parry": true
+      }
+    },
+    {
+      "id": "kyren_127",
+      "text": "You know where I live. That's getting weird.",
+      "triggers": [
+        "return_greet"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 85,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_128",
+      "text": "Alright. One more. Then I'm taking a nap.",
+      "triggers": [
+        "return_greet"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 85,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_129",
+      "text": "If you beat me again, we're calling it lag.",
+      "triggers": [
+        "return_greet"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 85,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_130",
+      "text": "Did you just parry THAT?!",
+      "triggers": [
+        "special_parried"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 80,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_131",
+      "text": "Okay, even I'm impressed. Don't get excited.",
+      "triggers": [
+        "aerial_hit"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 75,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_132",
+      "text": "You just destroyed my mailbox!",
+      "triggers": [
+        "mailbox_destroyed"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_133",
+      "text": "HEY! THAT'S MY HOUSE!",
+      "triggers": [
+        "house_contact"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 80,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_134",
+      "text": "WHO TAUGHT YOU THAT?!",
+      "triggers": [
+        "charge_interrupt"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 75,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_135",
+      "text": "You seriously came here wearing THAT?",
+      "triggers": [
+        "outfit_reaction"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 60,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_136",
+      "text": "Did you just beat me with starter equipment?",
+      "triggers": [
+        "starter_victory"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 105,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_137",
+      "text": "Okay, that combo was personal.",
+      "triggers": [
+        "repeat_technique"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 70,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_138",
+      "text": "You have got to be recording this.",
+      "triggers": [
+        "aerial_hit"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 70,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_139",
+      "text": "I swear this neighborhood used to be peaceful.",
+      "triggers": [
+        "house_contact",
+        "tree_contact"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 25.0,
+      "priority": 65,
+      "conditions": {}
+    },
+    {
+      "id": "three_defeats_first",
+      "text": "YOU KNOW WHAT? FINE! YOU WIN! HAPPY?!",
+      "triggers": [
+        "three_defeats_first"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 30.0,
+      "priority": 110,
+      "conditions": {}
+    },
+    {
+      "id": "three_defeats_second",
+      "text": "Still think you’re cheating, though.",
+      "triggers": [
+        "three_defeats_second"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 30.0,
+      "priority": 110,
+      "conditions": {}
+    },
+    {
+      "id": "perfect_victory",
+      "text": "Yeah, okay. Enjoy your little YouTube clip.",
+      "triggers": [
+        "perfect_victory"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 30.0,
+      "priority": 108,
+      "conditions": {}
+    },
+    {
+      "id": "revenge_victory",
+      "text": "See?! THAT'S what was supposed to happen!",
+      "triggers": [
+        "revenge_victory"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 30.0,
+      "priority": 108,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_counter",
+      "text": "Thanks for the free opening.",
+      "triggers": [
+        "kyren_counter"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 30.0,
+      "priority": 70,
+      "conditions": {}
+    },
+    {
+      "id": "kyren_hit",
+      "text": "Too slow!",
+      "triggers": [
+        "kyren_hit"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 30.0,
+      "priority": 55,
+      "conditions": {}
+    },
+    {
+      "id": "repeat_technique",
+      "text": "You know other moves exist, right?",
+      "triggers": [
+        "repeat_technique"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 30.0,
+      "priority": 75,
+      "conditions": {}
+    },
+    {
+      "id": "charge_interrupt",
+      "text": "BRO, LET ME FINISH THE ATTACK!",
+      "triggers": [
+        "charge_interrupt"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 30.0,
+      "priority": 80,
+      "conditions": {}
+    },
+    {
+      "id": "aerial_hit",
+      "text": "WHO FIGHTS LIKE THIS?!",
+      "triggers": [
+        "aerial_hit"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 30.0,
+      "priority": 75,
+      "conditions": {}
+    },
+    {
+      "id": "smug",
+      "text": "I'm barely trying here.",
+      "triggers": [
+        "smug"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 30.0,
+      "priority": 35,
+      "conditions": {}
+    },
+    {
+      "id": "annoyed",
+      "text": "Okay, lucky shot.",
+      "triggers": [
+        "annoyed"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 30.0,
+      "priority": 40,
+      "conditions": {}
+    },
+    {
+      "id": "salty",
+      "text": "That move needs a nerf. Immediately.",
+      "triggers": [
+        "salty"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 30.0,
+      "priority": 45,
+      "conditions": {}
+    },
+    {
+      "id": "meltdown",
+      "text": "THIS IS ACTUALLY RIDICULOUS!",
+      "triggers": [
+        "meltdown"
+      ],
+      "min_salt": 0,
+      "max_salt": 100,
+      "weight": 1.0,
+      "cooldown": 30.0,
+      "priority": 50,
+      "conditions": {}
+    }
+  ]
+}

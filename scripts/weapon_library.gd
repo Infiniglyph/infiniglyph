@@ -1,5 +1,6 @@
 extends RefCounted
 const Equipment = preload("res://scripts/equipment_database.gd")
+const DiscMoves = preload("res://scripts/disc_moves.gd")
 const NamedMoves = preload("res://scripts/equipment_moves.gd")
 ## Authored prototype moves: timing and damage are tuning data, not animation assets.
 const LOADOUTS := {
@@ -12,12 +13,23 @@ static func loadout(slot: StringName) -> Dictionary:
 	var item := Equipment.get_item(slot)
 	if item.get("category")=="weapons":
 		var base: Dictionary = LOADOUTS[StringName(item.slot)]
-		return {"id":StringName(item.combat_kind),"name":item.name,"short":item.name,"color":Color(item.geometry.tint),"guard":base.guard,"item_id":slot}
+		return {"id":StringName(item.combat_kind),"name":item.name,"short":item.name,"color":Color(item.geometry.tint),"guard":float(item.get("guard",base.guard)),"item_id":slot}
 	return LOADOUTS.get(slot,LOADOUTS[&"down"])
 
 static func move(slot: StringName, action: StringName, combo: int = 0, aerial: bool = false) -> Dictionary:
+	var result := _move(slot,action,combo,aerial)
+	if result.is_empty(): return result
+	result.action = String(action)
+	# Bumper attacks deal damage without forcing either fighter out of an action.
+	if action in [&"attack_left",&"attack_right"]:
+		result.hit_stun_level = 0.0
+		result.hit_stagger = 0.0
+	return result
+
+static func _move(slot: StringName, action: StringName, combo: int, aerial: bool) -> Dictionary:
 	var item := Equipment.get_item(slot)
 	if item.get("category")=="weapons":
+		if item.family in ["disc","dual_disc"]: return DiscMoves.move(item,action,combo,aerial)
 		if item.has("motion_set"): return NamedMoves.move(item,action,combo,aerial)
 		if item.has("moves"):
 			var key := String(action)+("_air" if aerial else "")
@@ -107,4 +119,10 @@ static func charged_move(slot: StringName, action: StringName, strength: float, 
 	result.hit_stun_level = float(result.hit_stun_level)*(1+0.45*power)
 	result.hit_stagger = minf(0.65,float(result.hit_stagger)*(1+0.3*power))
 	result.charge = power
+	if result.get("disc_throw",false):
+		result.reach=7.0
+		result.hits=[.48 if result.get("disc_gym",false) else result.hits[0]] # One flight per release.
+		if result.get("disc_gym",false): result.windup=.30
+	if result.has("dash"):
+		result.dash = {"start":.04,"end":.20,"speed":float(result.dash.speed)}
 	return result

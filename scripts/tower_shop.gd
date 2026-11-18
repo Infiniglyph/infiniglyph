@@ -6,10 +6,10 @@ const Browser = preload("res://scripts/equipment_browser.gd")
 var browser: PanelContainer
 var _main_panel: PanelContainer
 const SHOP_ID := &"central_tower"
-const ITEMS: Array[StringName] = [&"sword_shield",&"spear",&"katana",&"twin_blades",&"health_glyph",&"eternal_scribe_robes"]
+const ITEMS: Array[StringName] = [&"sword_shield",&"spear",&"katana",&"twin_blades",&"health_glyph",&"shield_glyph_light",&"shield_glyph_medium",&"shield_glyph_heavy",&"respawn_glyph",&"home_respawn_glyph",&"eternal_scribe_robes"]
 # Authoritative offer prices. Currency settlement can be added here later;
 # nonzero prices are displayed but unavailable until that system exists.
-@export var prices: Dictionary = {"sword_shield":0,"spear":0,"katana":0,"twin_blades":0,"health_glyph":0,"eternal_scribe_robes":0}
+@export var prices: Dictionary = {"sword_shield":0,"spear":0,"katana":0,"twin_blades":0,"health_glyph":0,"shield_glyph_light":0,"shield_glyph_medium":0,"shield_glyph_heavy":0,"respawn_glyph":0,"home_respawn_glyph":0,"eternal_scribe_robes":0}
 signal opened
 signal closed
 var session: Node
@@ -26,7 +26,7 @@ var _metro: Node3D
 func _ready() -> void:
 	name = "TowerShop"
 	layer = 22
-	_metro = session.actor.get_parent().get_node("CentralDistrict/Metropolis")
+	_metro = session.actor.get_parent().find_child("Metropolis",true,false)
 	session.loot.register_shop(SHOP_ID,self)
 	_build()
 	_screen.hide()
@@ -43,6 +43,7 @@ func offer(id: StringName) -> Dictionary:
 
 func can_use(actor: Node3D) -> bool:
 	if not is_instance_valid(actor) or not is_instance_valid(_metro): return false
+	if actor.get_world_3d()!=_metro.get_world_3d(): return false
 	if actor!=session.actor or actor.health<=0 or not actor.is_on_floor(): return false
 	if actor.dodge.active or actor.weapon_combat.is_staggered() or not actor.weapon_combat.active_move.is_empty() or actor.combat.charge_action!=&"": return false
 	if session.duel.active or session.duel.dialogue_open: return false
@@ -101,8 +102,8 @@ func _build() -> void:
 	box.add_child(_label("TOWER EXCHANGE",26))
 	box.add_child(_label("Central tower  /  All items currently free",16))
 	_add_button(box,"WEAPONS  /  Named weapons and combat styles",func(): open_browser("weapons"))
-	_add_button(box,"ITEMS  /  Health Glyphs and keepsakes",func(): open_browser("items"))
-	_add_button(box,"ARMOUR  /  Clothing, plate and shields",func(): open_browser("armour"))
+	_add_button(box,"ITEMS  /  Health Glyphs, Shield Glyphs and keepsakes",func(): open_browser("items"))
+	_add_button(box,"ARMOUR  /  Clothing, plate, gloves and greaves",func(): open_browser("armour"))
 	_status = _label("",16)
 	_status.custom_minimum_size.y = 52
 	_status.modulate = Color(1,0.66,0.28)

@@ -32,8 +32,21 @@ static func _prepare() -> void:
 			var move: Dictionary = Weapons.move(slot,actions[i])
 			specials.append({"input":["X / Q","Y / R","RT+X / V+Q","RT+Y / V+R"][i],"name":move.name,"damage":move.damage,"reach":move.reach})
 		_add(weapon.id,weapon.name,descriptions[slot],&"weapons",1,true,true,true,{"weapon_slot":String(slot),"guard":weapon.guard,"damage_left":left.damage,"damage_right":right.damage,"reach":maxf(left.reach,right.reach),"specials":specials})
+	for tier: String in ["common","uncommon","rare"]:
+		var glyph_color: String={"common":"67ffff","uncommon":"c68aff","rare":"ffd16a"}[tier]
+		var glyph_scale: float={"common":.48,"uncommon":.72,"rare":1.05}[tier]
+		_add(StringName("monster_glyph_"+tier),tier.capitalize()+" Remnant Glyph","A stable glyph left when a defeated creature dissolves. Its size and brilliance reflect the strength of its former bearer. Collectible material.",&"materials",99,false,true,true,{"monster_glyph":true,"rarity":tier.capitalize(),"glyph_color":glyph_color,"glyph_scale":glyph_scale})
+	_add(&"bone_shards","Bone Shards","Small golden fragments recovered from a restless skeleton. A material awaiting a new purpose.",&"materials",99)
+	_add(&"venom_fang","Venom Fang","A preserved fang recovered from the serpent pit. A collectible material; its future use has yet to be determined.",&"materials",99)
+	_add(&"apep_lorai_catalyst","Apep–Lorai Catalyst","A violet-gold crystal left by Lorai, the child of Apep. Two patterns run through its heart, neither erasing the other. A rare collectible material; no crafting power is currently assigned.",&"materials",99,false,true,true,{"rarity":"Legendary","glyph_coin_value":180,"glyph_color":"bc49ff","glyph_scale":1.15})
 	_add(&"light_shard","Light Shard","A compact fragment of stable light, prized as a material.",&"materials",99)
 	_add(&"health_glyph","Health Glyph","Restore 350 HP. Hold RT and press B, or press H. Consumed only when injured.",&"consumables",99,false,true,true,{"healing":350})
+	for tier: String in ["light","medium","heavy"]:
+		var points: int={"light":250,"medium":500,"heavy":1000}[tier]
+		_add(StringName("shield_glyph_"+tier),tier.capitalize()+" Shield Glyph","Use from Inventory to establish %d shield points. Shields absorb combat damage before HP. Replaces the current shield; does not stack or regenerate. Lost on death." % points,&"consumables",99,false,true,true,{"shield_capacity":points,"shield_tier":tier})
+	for kind: String in ["respawn","home"]:
+		var id: StringName=&"respawn_glyph" if kind=="respawn" else &"home_respawn_glyph"
+		_add(id,"Respawn Glyph" if kind=="respawn" else "Home Respawn Glyph","Place from Inventory on clear ground to bind a reusable reconstruction point. Choose between your Respawn Glyph, Home Respawn Glyph, and default spawn on death. One active point of each kind; placing another replaces the previous point of that kind.",&"consumables",20,false,true,true,{"respawn_kind":kind})
 	_add(&"signal_tonic","Signal Tonic","An amber pulse sealed in glass, awaiting a purpose.",&"consumables",20)
 	_add(&"civic_key","Civic Access Glyph","A civic credential keyed to its current bearer.",&"key_items",1,false,false,false)
 	_add(&"cyan_mantle","Cyan Mantle Pattern","An encoded weave of cyan light.",&"cosmetics",1)
@@ -48,6 +61,17 @@ static func _prepare() -> void:
 
 static func get_definition(id: StringName) -> Resource:
 	_prepare()
+	# Minimal historical definitions validate old saves only. They are absent
+	# from all offers and cannot be created or restored into live ownership.
+	if Equipment.is_retired(id):
+		var family: String = Equipment.retired[String(id)]
+		var definition := Definition.new()
+		definition.item_type_id = id
+		definition.max_stack = 1
+		definition.is_equippable = true
+		definition.category = &"cosmetics" if family=="shield" else &"weapons"
+		definition.custom_properties = {"cosmetic_slot":"shield"} if family=="shield" else {"weapon_slot":"down"}
+		return definition
 	return definitions.get(id)
 
 static func all() -> Array:
@@ -55,6 +79,7 @@ static func all() -> Array:
 	return definitions.values()
 
 static func create(id: StringName, quantity: int = 1) -> Resource:
+	if Equipment.is_retired(id): return null
 	var definition: Resource = get_definition(id)
 	if definition == null or quantity<1 or quantity>definition.max_stack: return null
 	var item := Instance.new()

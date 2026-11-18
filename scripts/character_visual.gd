@@ -11,6 +11,7 @@ const REST_HIP_HEIGHT := 0.946
 const MAX_LANDING_COMPRESSION := 0.34
 @export var live_retrieval := true
 var joints: Dictionary = {}
+var foot_meshes: Dictionary = {}
 var phase := 0.0
 var pelvis: Node3D
 var chest: Node3D
@@ -98,7 +99,7 @@ func combat_leg(id: String, target: Vector3, pole: Vector3) -> void:
 	combat_rotation(hip,hip_pose,1.0)
 	combat_rotation(knee,knee_pose,1.0)
 
-func sphere(parent: Node3D, at: Vector3, radius: float) -> void:
+func sphere(parent: Node3D, at: Vector3, radius: float) -> MeshInstance3D:
 	var visual := MeshInstance3D.new()
 	var mesh := SphereMesh.new()
 	mesh.radius = radius
@@ -109,6 +110,7 @@ func sphere(parent: Node3D, at: Vector3, radius: float) -> void:
 	visual.mesh = mesh
 	parent.add_child(visual)
 	visual.position = at
+	return visual
 
 func rod(parent: Node3D, length: float, radius: float = 0.035) -> void:
 	var visual := MeshInstance3D.new()
@@ -135,7 +137,8 @@ func limb(parent: Node3D, id: String, at: Vector3, upper: float, lower: float) -
 	hinge.position.y = -upper
 	sphere(hinge,Vector3.ZERO,0.052)
 	rod(hinge,lower)
-	sphere(hinge,Vector3(0,-lower,0),0.045)
+	var end := sphere(hinge,Vector3(0,-lower,0),0.045)
+	if id.ends_with("Leg"): foot_meshes[id] = end
 	joints[id] = pivot
 
 func _ready() -> void:
@@ -381,14 +384,15 @@ func _solve_leg(id: String, target: Vector3, pole_direction: Vector3 = Vector3.Z
 	var hip: Node3D = joints[id]
 	var knee: Node3D = hip.get_node("Hinge")
 	var offset := target-hip.global_position
-	var distance := clampf(offset.length(),0.08,0.898)
+	var stature := global_basis.get_scale().x
+	var distance := clampf(offset.length(),0.08*stature,0.898*stature)
 	var direction := offset.normalized()
 	# The knee points forward (+Z); the shin folds back, preserving rig anatomy.
 	var forward := global_basis.z if pole_direction.is_zero_approx() else pole_direction
 	var pole := forward-direction*forward.dot(direction)
 	if pole.length_squared() < 0.001: pole = global_basis.y-direction*global_basis.y.dot(direction)
 	pole = pole.normalized()
-	var upper := direction*(distance*0.5)+pole*sqrt(maxf(0,0.45*0.45-distance*distance*0.25))
+	var upper := direction*(distance*0.5)+pole*sqrt(maxf(0,pow(.45*stature,2)-distance*distance*0.25))
 	var knee_point := hip.global_position+upper
 	var ankle := hip.global_position+direction*distance
 	var up := -upper.normalized()

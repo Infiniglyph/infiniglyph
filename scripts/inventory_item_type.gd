@@ -5,8 +5,8 @@ const WEAPONS := {
 	"sword_shield":"Longsword + Shield", "fist":"Fist Weapon", "dagger":"Dagger",
 	"sword":"Sword", "curved_sword":"Curved Sword", "greatsword":"Greatsword",
 	"katana":"Katana", "axe":"Axe", "twin_blades":"Twin Blades", "hammer":"Hammer",
-	"spear":"Spear", "scythe":"Scythe", "halberd":"Halberd", "whip":"Whip",
-	"talisman":"Talisman", "staff":"Staff", "chime":"Chime", "bow":"Bow", "crossbow":"Crossbow"
+	"spear":"Spear", "scythe":"Scythe", "halberd":"Halberd", "whip":"Whip", "disc":"Disc", "dual_disc":"Twin Discs",
+	"scribe":"Scribe Weapon", "staff":"Staff", "chime":"Chime", "bow":"Bow", "crossbow":"Crossbow"
 }
 
 static func label(definition: Resource) -> String:
@@ -20,8 +20,9 @@ static func label(definition: Resource) -> String:
 	if definition.category==&"cosmetics":
 		if not definition.is_equippable: return "Cosmetic Pattern"
 		if definition.item_type_id==&"eternal_scribe_robes": return "Cloth Robe / Body"
+		if definition.item_type_id==&"kyren_hat": return "Straw Hat / Head"
+		if definition.item_type_id==&"kyren_scarf": return "Flowing Scarf / Body"
 		var slot := String(properties.get("cosmetic_slot",family))
-		if slot=="shield": return "Shield / Offhand"
 		var geometry: Dictionary = entry.get("geometry",{})
 		var tailoring: Dictionary = geometry.get("tailoring",{})
 		var cloth: bool = tailoring.get("cut",geometry.get("style","plate"))=="cloth"
@@ -39,5 +40,6 @@ static func label(definition: Resource) -> String:
 				elif tailoring.get("hat",false): head="Hat"
 				return head+" / Head"
 		return slot.replace("_"," ").capitalize()+" / Appearance"
+	if properties.has("respawn_kind"): return "Reusable Respawn Point / Placeable Glyph"
 	if definition.item_type_id==&"health_glyph": return "Health Glyph / Consumable"
 	return String({&"consumables":"Consumable",&"materials":"Material",&"key_items":"Key Item",&"misc":"Miscellaneous"}.get(definition.category,String(definition.category).replace("_"," ").capitalize()))

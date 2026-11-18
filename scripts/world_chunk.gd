@@ -2,6 +2,7 @@ extends Node3D
 ## Immutable spatial batches. Visuals and collision have the same local origin;
 ## engine frustum culling never unloads a fast Sky Jump's landing surface.
 const Neon = preload("res://scripts/neon.gd")
+const Rail = preload("res://scripts/rail_barrier.gd")
 static var boxes: Dictionary = {}
 static var dark: StandardMaterial3D
 static var wire: StandardMaterial3D
@@ -33,9 +34,10 @@ func triangle(a: Vector3, b: Vector3, c: Vector3, normal: Vector3) -> void:
 	triangles.append_array([a-position,b-position,c-position])
 	normals.append_array([normal,normal,normal])
 
-func volume(vertices: PackedVector3Array, faces: Array, transform: Transform3D, shape: Shape3D, kind: String, color: Color) -> void:
+func volume(vertices: PackedVector3Array, faces: Array, transform: Transform3D, shape: Shape3D, kind: String, color: Color, collision: bool = true, render_geometry: bool = true) -> void:
 	var seen: Dictionary = {}
 	for face: Array in faces:
+		if not render_geometry: break
 		var normal: Vector3 = transform.basis*((vertices[face[1]]-vertices[face[0]]).cross(vertices[face[2]]-vertices[face[0]])).normalized()
 		for i in range(1,face.size()-1):
 			triangle(transform*vertices[face[0]]-normal*0.002,transform*vertices[face[i]]-normal*0.002,transform*vertices[face[i+1]]-normal*0.002,normal)
@@ -46,6 +48,7 @@ func volume(vertices: PackedVector3Array, faces: Array, transform: Transform3D, 
 			if not seen.has(pair):
 				line(transform*vertices[a],transform*vertices[b],color)
 				seen[pair] = true
+	if not collision: return
 	var collider := CollisionShape3D.new()
 	collider.name = kind
 	collider.shape = shape
@@ -53,7 +56,7 @@ func volume(vertices: PackedVector3Array, faces: Array, transform: Transform3D, 
 	collider.transform = Transform3D(transform.basis,transform.origin-position)
 	volumes.append({"kind":kind,"collider":collider,"transform":transform,"vertices":vertices,"faces":faces})
 
-func box(at: Vector3, size: Vector3, kind: String, color: Color, basis: Basis = Basis.IDENTITY) -> void:
+func box(at: Vector3, size: Vector3, kind: String, color: Color, basis: Basis = Basis.IDENTITY, collision: bool = true) -> void:
 	var vertices := PackedVector3Array()
 	for x in [-1,1]:
 		for y in [-1,1]:
@@ -62,7 +65,12 @@ func box(at: Vector3, size: Vector3, kind: String, color: Color, basis: Basis = 
 		var shape := BoxShape3D.new()
 		shape.size = size
 		boxes[size] = shape
-	volume(vertices,[[0,1,3,2],[4,6,7,5],[0,4,5,1],[2,3,7,6],[0,2,6,4],[1,5,7,3]],Transform3D(basis,at),boxes[size],kind,color)
+	volume(vertices,[[0,1,3,2],[4,6,7,5],[0,4,5,1],[2,3,7,6],[0,2,6,4],[1,5,7,3]],Transform3D(basis,at),boxes[size],kind,color,collision)
+
+func rail(a: Vector3, b: Vector3, height: float, kind: String, color: Color, width: float = .16, render_geometry: bool = true) -> void:
+	var center:=(a+b)*.5
+	var data:=Rail.geometry(a-center,b-center,height,width)
+	volume(data.vertices,data.faces,Transform3D(Basis.IDENTITY,center),data.shape,kind,color,true,render_geometry)
 
 func convex(vertices: PackedVector3Array, faces: Array, at: Vector3, kind: String, color: Color) -> void:
 	var shape := ConvexPolygonShape3D.new()

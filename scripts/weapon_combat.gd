@@ -1,6 +1,8 @@
 extends Node
 ## Timed weapon moves and coordinated whole-body visual poses. Locomotion
 ## velocity and the collision capsule remain owned by the player controller.
+const ReturningDisc = preload("res://scripts/returning_disc.gd")
+var flying_discs: Array[Node3D] = []
 const Library = preload("res://scripts/weapon_library.gd")
 const Rig = preload("res://scripts/weapon_rig.gd")
 const Effect = preload("res://scripts/combat_effect.gd")
@@ -9,7 +11,9 @@ const Body = preload("res://scripts/combat_body.gd")
 const Rules = preload("res://scripts/combat_rules.gd")
 const Feedback = preload("res://scripts/impact_feedback.gd")
 const Equipment = preload("res://scripts/equipment_database.gd")
+const Shields = preload("res://scripts/shield_glyphs.gd")
 const Motion = preload("res://scripts/weapon_motion.gd")
+const ScribeMoves = preload("res://scripts/scribe_moves.gd")
 const PARRY_WINDOW := 0.18
 const PARRY_FEEDBACK_TIME := 0.60
 const BASE_HEALTH := 1000.0
@@ -22,12 +26,59 @@ const ARM_BEND_SPEED := 18.0
 signal changed
 signal hit_landed(target: Node, amount: float, move_name: String)
 signal parried(source: Vector3)
+signal contact_resolved(event: Dictionary)
+signal attack_started(move: Dictionary)
+signal attack_finished(move: Dictionary, hits: int)
+signal environment_contact(collider: Node3D, attack_serial: int)
+var _attack_hit_start := 0
+var _dash_active := false
+var _dash_carry := Vector2.ZERO
+var _dash_direction := Vector3.ZERO
+var _art_stowed := false
+
+func drive_velocity(current: Vector2) -> Vector2:
+	var dash: Dictionary = active_move.get("dash",{})
+	var driving: bool = not dash.is_empty() and elapsed>=float(dash.start) and elapsed<float(dash.end) and not is_staggered() and not actor.dodge.active
+	if driving:
+		if not _dash_active:
+			_dash_carry = current
+			_dash_direction = _facing
+			_dash_active = true
+		return Vector2(_dash_direction.x,_dash_direction.z)*float(dash.speed)
+	if _dash_active:
+		_dash_active = false
+		return _dash_carry
+	return current
+
+func _report_contact(attacker: Node, incoming: Dictionary, before: float, dodging: bool, charging: bool) -> void:
+	var attack_serial_value := int(incoming.get("attack_serial",0))
+	var attack_key := str(attacker.get_instance_id() if is_instance_valid(attacker) else 0)+":"+str(attack_serial_value)
+	var event_id := attack_key+":"+str(incoming.get("pulse",0))+":"+str(actor.get_instance_id())
+	# Direct/environmental damage has no attack serial. Each is its own event.
+	if attack_serial_value==0: event_id += ":"+str(Time.get_ticks_usec())
+	contact_resolved.emit({"event_id":event_id,"attack_key":attack_key,"attacker":attacker,"defender":actor,"incoming":incoming.duplicate(),"outcome":last_outcome,"damage":maxf(0,before-health),"blocked":last_blocked,"dodging":dodging,"interrupted_charge":charging and actor.combat.charge_action==&"","attacker_airborne":is_instance_valid(attacker) and attacker is CharacterBody3D and not attacker.is_on_floor(),"attacker_speed":attacker.velocity.length() if is_instance_valid(attacker) and attacker is CharacterBody3D else 0.0,"health_ratio":health/maxf(1,max_health)})
 var actor: CharacterBody3D
 var rig: Node3D
 var trail: MeshInstance3D
 var body := Body.new()
 var max_health := BASE_HEALTH
 var health := BASE_HEALTH
+var shield_points: float:
+	get:
+		var inventory: Node=actor.get("inventory")
+		return float(inventory.shield_state.get("points",0)) if is_instance_valid(inventory) else 0.0
+var shield_capacity: float:
+	get:
+		var inventory: Node=actor.get("inventory")
+		return Shields.capacity(inventory.shield_state) if is_instance_valid(inventory) else 0.0
+var last_shield_absorbed := 0.0
+
+func absorb_shield(amount: float) -> float:
+	last_shield_absorbed=minf(shield_points,amount)
+	if last_shield_absorbed>0:
+		actor.inventory.shield_state.points=shield_points-last_shield_absorbed
+		actor.inventory.changed.emit()
+	return amount-last_shield_absorbed
 var stagger_remaining := 0.0
 var forced_state := &""
 var forced_duration := 0.0
@@ -42,6 +93,7 @@ var _reaction_scale := 1.0
 var _kneel_remaining := 0.0
 var _kneel_duration := 0.0
 var _pulse_targets: Dictionary = {}
+var attack_serial := 0
 var recoil_remaining := 0.0
 var _recoil_away := Vector3.FORWARD
 var _last_stagger_tick := -1
@@ -257,6 +309,7 @@ func _on_action(action: StringName, slot: StringName) -> void:
 	actor.combat.cancel_charge()
 	var move := charged_move(slot,action,strength)
 	if move.is_empty(): return
+	move.action = String(action)
 	if actor.dodge.active or not active_move.is_empty():
 		_queued = {"action":action,"slot":slot,"charge":strength}
 		_queue_time = 0.4
@@ -277,6 +330,8 @@ func _on_charge_started(_action: StringName, _slot: StringName) -> void:
 
 func _begin(move: Dictionary) -> void:
 	if is_staggered(): return
+	attack_serial += 1
+	_attack_hit_start = total_hits
 	active_move = move
 	if move.has("combo_next"):
 		_combo_cursor = int(move.combo_next)
@@ -288,8 +343,19 @@ func _begin(move: Dictionary) -> void:
 	body.begin(_facing)
 	status = move.name
 	changed.emit()
+	attack_started.emit(move.duplicate())
 
 func cancel() -> void:
+	for disc in flying_discs.duplicate():
+		if is_instance_valid(disc): disc.reclaim()
+	flying_discs.clear()
+	if _art_stowed:
+		_art_stowed = false
+		sync_rig()
+	if _dash_active:
+		actor.velocity.x = _dash_carry.x
+		actor.velocity.z = _dash_carry.y
+		_dash_active = false
 	_combo_cursor = 0
 	_combo_remaining = 0
 	actor.combat.cancel_charge()
@@ -306,6 +372,8 @@ func cancel() -> void:
 		parry_remaining = 0
 		changed.emit()
 	if is_instance_valid(trail): trail.samples.clear()
+	if is_instance_valid(rig) and rig is Rig and rig.models.has(rig.selected) and rig.models[rig.selected].right.has_method("clear_writing"):
+		rig.models[rig.selected].right.clear_writing()
 
 func _on_weapon(slot: StringName) -> void:
 	cancel()
@@ -331,6 +399,11 @@ func reset() -> void:
 	cancel()
 	clear_stagger()
 	health = max_health
+	last_shield_absorbed=0
+	var inventory: Node=actor.get("inventory")
+	if is_instance_valid(inventory) and not inventory.shield_state.is_empty():
+		inventory.shield_state={}
+		inventory.changed.emit()
 	psi_meter = 0
 	_psi_delay = 0
 	last_outcome = &"invalid"
@@ -356,15 +429,21 @@ func guard_strength() -> float:
 	return 0.25 if actor.combat.sheathed else float(loadout(actor.combat.selected_slot).guard)
 
 func receive_hit(amount: float, source: Vector3, attacker: Node = null, incoming: Dictionary = {}) -> float:
+	if actor.get("transition_locked")==true: return 0
+	var before_health := health
+	var was_dodging: bool = actor.dodge.active
+	var was_charging: bool = actor.combat.charge_action!=&""
 	last_parried = false
 	last_blocked = false
 	last_evaded = false
 	last_damage = 0
+	last_shield_absorbed=0
 	last_outcome = &"invalid"
 	if amount<=0 or health<=0: return 0
 	if actor.dodge.is_invulnerable():
 		last_evaded = true
 		last_outcome = &"evaded"
+		_report_contact(attacker,incoming,before_health,was_dodging,was_charging)
 		return 0
 	var attack := incoming
 	if attack.is_empty() and is_instance_valid(attacker) and attacker.get("weapon_combat") != null:
@@ -389,6 +468,7 @@ func receive_hit(amount: float, source: Vector3, attacker: Node = null, incoming
 		feedback.confirm("parry",point,direction,attacker,actor,false,int(incoming.get("hurtbox_shape",-1)))
 		parried.emit(source)
 		changed.emit()
+		_report_contact(attacker,attack,before_health,was_dodging,was_charging)
 		return 0
 	var basic_guard := guarding and frontal
 	last_blocked = bloom or basic_guard
@@ -396,7 +476,7 @@ func receive_hit(amount: float, source: Vector3, attacker: Node = null, incoming
 	var vulnerability: float = rules.exhausted_damage_multiplier if forced_state == &"exhausted" else 1.0
 	last_damage = maxf(0,amount)*(1-reduction)*vulnerability
 	var applied := last_damage
-	health = maxf(0,health-last_damage)
+	health = maxf(0,health-absorb_shield(last_damage))
 	var outcome := "block" if last_blocked else "hit"
 	last_outcome = &"block" if last_blocked else &"hyper_armor"
 	if last_blocked:
@@ -408,7 +488,9 @@ func receive_hit(amount: float, source: Vector3, attacker: Node = null, incoming
 		if basic_guard and _add_exhaustion(strain*maxf(0,rules.defender_exhaustion_multiplier),source):
 			outcome = "exhaustion"
 	elif health>0:
-		var strength := float(attack.get("hit_stun_level",0))
+		# Enforce the shared input rule even for older/custom move dictionaries.
+		var light: bool = StringName(attack.get("action",&"")) in [&"attack_left",&"attack_right"]
+		var strength := 0.0 if light else float(attack.get("hit_stun_level",0))
 		if strength>=effective_fortitude() and strength>0:
 			enter_forced(&"hit",float(attack.get("hit_stagger",0.25)),source)
 			last_outcome = &"stagger"
@@ -422,13 +504,16 @@ func receive_hit(amount: float, source: Vector3, attacker: Node = null, incoming
 	feedback.confirm(outcome,point,direction,attacker,actor,applied>0,int(incoming.get("hurtbox_shape",-1)))
 	if applied>0: parry_feedback = 0
 	changed.emit()
+	_report_contact(attacker,attack,before_health,was_dodging,was_charging)
 	if health<=0: actor.on_combat_defeat()
 	return applied
 
 func receive_environment_damage(amount: float) -> float:
+	if actor.get("transition_locked")==true: return 0
 	# Gravity has no attacker, guard arc, parry, momentum multiplier or iframe.
 	# Keep it separate from weapon resolution and its fortitude/exhaustion rules.
 	if amount<=0 or health<=0: return 0
+	last_shield_absorbed=0
 	var applied := minf(health,amount)
 	health -= applied
 	last_damage = applied
@@ -441,6 +526,7 @@ func receive_environment_damage(amount: float) -> float:
 	# in its previous crouch. Sparks, sound and camera feedback still play.
 	feedback.confirm("hit" if applied<=50 else "heavy",actor.combat_point(),Vector3.DOWN,null,actor,true,-1,false)
 	changed.emit()
+	_report_contact(null,{},health+applied,false,false)
 	if health<=0: actor.on_combat_defeat()
 	return applied
 
@@ -474,7 +560,7 @@ func _physics_process(delta: float) -> void:
 		world_actions.apply_pose()
 		return
 	impact_feedback = maxf(0,impact_feedback-delta)
-	if actor.target_lock.is_locked(): _facing = actor.target_lock.facing()
+	if actor.target_lock.is_locked() and not _dash_active: _facing = actor.target_lock.facing()
 	var was_ready := parry_remaining>0
 	var had_feedback := parry_feedback>0
 	parry_remaining = maxf(0,parry_remaining-delta)
@@ -497,7 +583,13 @@ func _physics_process(delta: float) -> void:
 		elapsed += delta
 		advance_strikes(previous)
 		if not active_move.is_empty() and elapsed >= float(active_move.duration):
+			var completed := active_move.duplicate()
 			active_move = {}
+			if completed.get("auto_sheathe",false):
+				_art_stowed = false
+				actor.combat.sheathed = true
+				sync_rig()
+			attack_finished.emit(completed,total_hits-_attack_hit_start)
 			status = "Ready"
 			changed.emit()
 	if actor.combat.charge_action != &"" and active_move.is_empty() and not actor.combat.blocking:
@@ -516,7 +608,18 @@ func _physics_process(delta: float) -> void:
 		if status.begins_with("Charge "): status = "Ready"
 		apply_pose(delta)
 	if actor.get("fall_damage") != null: actor.fall_damage.apply_pose(delta)
+	if not active_move.is_empty() and active_move.get("auto_sheathe",false) and elapsed/float(active_move.duration)>.94 and rig is Rig:
+		rig.equip(rig.selected,true)
+		_art_stowed = true
 	_freeze_armed = hitstop_remaining>0
+	if rig is Rig and rig.models.has(rig.selected) and rig.models[rig.selected].right.has_method("update_lash"):
+		var lash: Node3D=rig.models[rig.selected].right
+		lash.update_lash(delta,active_move,elapsed,_facing if not active_move.is_empty() else aim_direction())
+		if active_move.get("weapon_family")=="whip":
+			for pulse in range(active_move.hits.size()):
+				if absf(elapsed-float(active_move.hits[pulse]))<=.075:
+					resolve_strike(active_move,pulse,actor.combat_point(),lash.hit_candidates(),false)
+					if active_move.is_empty(): break
 	var tracing: bool = not active_move.is_empty() and elapsed >= float(active_move.windup)*0.65 and elapsed < float(active_move.duration)*0.86
 	if not visual_frozen(): trail.update(delta,rig.blade_segments() if tracing else [],loadout(actor.combat.selected_slot).color)
 	_hud_time -= delta
@@ -533,14 +636,31 @@ func advance_strikes(previous: float) -> void:
 func strike(pulse: int = -1) -> void:
 	if active_move.is_empty() or is_staggered(): return
 	var move := active_move.duplicate(true)
-	if actor.target_lock.is_locked(): _facing = actor.target_lock.facing()
-	var origin := actor.global_position+Vector3.UP*0.95
+	if actor.target_lock.is_locked() and not _dash_active: _facing = actor.target_lock.facing()
+	var origin: Vector3 = actor.combat_point()
+	var environment_ray := actor.get_world_3d().direct_space_state.intersect_ray(PhysicsRayQueryParameters3D.create(origin,origin+_facing*float(move.reach),9,[actor.get_rid()]))
+	if not environment_ray.is_empty() and not move.get("disc_throw",false): environment_contact.emit(environment_ray.collider,attack_serial)
+	if move.get("weapon_family")=="scribe" and rig.models.has(rig.selected):
+		var presentation: Node3D = rig.models[rig.selected].right
+		var contact_time := float(move.hits[pulse]) if pulse>=0 else elapsed
+		resolve_strike(move,pulse,origin,presentation.hit_candidates(move,contact_time,_facing),false)
+		changed.emit()
+		return
+	if move.get("disc_throw",false):
+		throw_discs(move)
+		return
+	if move.get("weapon_family")=="whip" and rig.models.has(rig.selected):
+		var lash: Node3D = rig.models[rig.selected].right
+		lash.update_lash(0,move,elapsed,_facing)
+		resolve_strike(move,pulse,origin,lash.hit_candidates(),false)
+		changed.emit()
+		return
 	var volume := SphereShape3D.new()
 	volume.radius = float(move.reach)
 	var query := PhysicsShapeQueryParameters3D.new()
 	query.shape = volume
 	query.transform = Transform3D(Basis.IDENTITY,origin)
-	query.collision_mask = 2
+	query.collision_mask = 6 # Fighter hurtboxes and physical civilians.
 	query.exclude = [actor.get_rid()]
 	var space := actor.get_world_3d().direct_space_state
 	var candidates: Array = space.intersect_shape(query,32)
@@ -548,7 +668,27 @@ func strike(pulse: int = -1) -> void:
 	emit_effect(move.profile,float(move.reach),float(move.arc),loadout(actor.combat.selected_slot).color,origin,_facing)
 	changed.emit()
 
-func resolve_strike(move: Dictionary, pulse: int, origin: Vector3, candidates: Array, use_arc: bool = true) -> void:
+func throw_discs(move: Dictionary) -> void:
+	for disc in flying_discs.duplicate():
+		if is_instance_valid(disc): disc.reclaim()
+	flying_discs.clear()
+	var dual: bool = move.get("weapon_family")=="dual_disc"
+	for i in range(2 if dual else 1):
+		var disc := ReturningDisc.new()
+		disc.combat = self
+		disc.actor = actor
+		disc.item_id = rig.selected
+		disc.move = move.duplicate(true)
+		disc.move.attack_serial = attack_serial
+		disc.direction = _facing
+		disc.held = rig.models[rig.selected].right if i==0 else rig.models[rig.selected].left
+		disc.hand = rig.right_hand if i==0 else rig.left_hand
+		disc.spread = (.45 if i==0 else -.45) if dual else 0.0
+		disc.return_side = -1.0 if i==1 else 1.0
+		flying_discs.append(disc)
+		actor.get_parent().add_child(disc)
+
+func resolve_strike(move: Dictionary, pulse: int, origin: Vector3, candidates: Array, use_arc: bool = true, persistent: bool = false) -> void:
 	# Shared resolution for weapon volumes and articulated creature contacts.
 	# Sample actual impact velocity; keep guard/parry/exhaustion in receive_hit.
 	var impact_speed := actor.velocity.length()
@@ -577,12 +717,14 @@ func resolve_strike(move: Dictionary, pulse: int, origin: Vector3, candidates: A
 		# existing two-argument hit contract; never infer the attacker from a lock.
 		var contact := move.duplicate()
 		contact.hurtbox_shape = int(candidate.shape)
-		var surface := space.intersect_ray(PhysicsRayQueryParameters3D.create(origin,point,2,[actor.get_rid()]))
+		contact.attack_serial = int(move.get("attack_serial",attack_serial))
+		contact.pulse = pulse
+		var surface := space.intersect_ray(PhysicsRayQueryParameters3D.create(origin,point,6,[actor.get_rid()]))
 		contact.contact = candidate.get("contact",surface.position if not surface.is_empty() and surface.collider == target else point-toward.normalized()*0.27)
 		var applied: float = target.receive_combat_hit(damage,origin,actor,contact) if target.has_method("receive_combat_hit") else target.receive_hit(damage,origin)
 		if not target.has_method("receive_combat_hit") and applied>0:
 			feedback.confirm("heavy" if float(move.get("hit_stun_level",0))>=1.5 else "hit",contact.contact,toward,actor,target,true,int(candidate.shape))
-		if applied<=0 and active_move.is_empty(): break # A parry cancels this entire pulse.
+		if applied<=0 and (is_staggered() or not persistent and active_move.is_empty()): break # A parry cancels this entire pulse.
 		if applied <= 0: continue
 		total_hits += 1
 		last_strike_speed = impact_speed
@@ -590,7 +732,7 @@ func resolve_strike(move: Dictionary, pulse: int, origin: Vector3, candidates: A
 		last_hit_amount = applied
 		impact_feedback = 2.0
 		hit_landed.emit(target,applied,move.name)
-		if active_move.is_empty(): break
+		if is_staggered() or not persistent and active_move.is_empty(): break
 
 func spawn_effect(origin: Vector3) -> void:
 	emit_effect(active_move.profile,float(active_move.reach),float(active_move.arc),loadout(actor.combat.selected_slot).color,origin,_facing)
@@ -616,7 +758,8 @@ func solve_arm(id: String, target_local: Vector3, weight: float) -> void:
 	var hinge: Node3D = arm.get_node("Hinge")
 	var target: Vector3 = actor.visual.to_global(target_local)
 	var offset := target-arm.global_position
-	var distance := clampf(offset.length(),0.05,0.586)
+	var stature: float = actor.visual.global_basis.get_scale().x
+	var distance := clampf(offset.length(),0.05*stature,0.586*stature)
 	var direction := offset.normalized()
 	if direction.is_zero_approx(): direction = actor.visual.chest.global_basis.z.normalized()
 	target = arm.global_position+direction*distance
@@ -653,17 +796,19 @@ func solve_arm(id: String, target_local: Vector3, weight: float) -> void:
 				pole = previous.rotated(direction,clampf(angle,-ARM_BEND_SPEED*_arm_pose_delta,ARM_BEND_SPEED*_arm_pose_delta)).normalized()
 		_arm_bends[id] = actor.visual.chest.global_basis.inverse()*pole
 		_arm_reaches[id] = actor.visual.chest.global_basis.inverse()*direction
-	var along := (0.30*0.30-0.29*0.29+distance*distance)/(2*distance)
-	var upper := direction*along+pole*sqrt(maxf(0,0.30*0.30-along*along))
+	var upper_length := .30*stature
+	var lower_length := .29*stature
+	var along := (upper_length*upper_length-lower_length*lower_length+distance*distance)/(2*distance)
+	var upper := direction*along+pole*sqrt(maxf(0,upper_length*upper_length-along*along))
 	var up := -upper.normalized()
 	var right := up.cross(pole).normalized()
 	var desired := Basis(right,up,right.cross(up)).orthonormalized()
-	var local: Basis = arm.get_parent().global_basis.inverse()*desired
+	var local: Basis = arm.get_parent().global_basis.orthonormalized().inverse()*desired
 	actor.visual.combat_rotation(arm,local.get_rotation_quaternion(),weight)
 	var lower_up := (hinge.global_position-target).normalized()
 	right = lower_up.cross(pole).normalized()
 	desired = Basis(right,lower_up,right.cross(lower_up)).orthonormalized()
-	local = arm.global_basis.inverse()*desired
+	local = arm.global_basis.orthonormalized().inverse()*desired
 	actor.visual.combat_rotation(hinge,local.get_rotation_quaternion(),weight)
 
 func apply_pose(delta: float) -> void:
@@ -681,7 +826,8 @@ func apply_pose(delta: float) -> void:
 	var katana: bool = kind == &"katana" and not actor.combat.sheathed
 	var shared_grip: bool = katana or (attacking and active_move.get("grip_mode")=="support")
 	if not shared_grip: _katana_gripping = false
-	var desired_weight := 1.0 if attacking or guarding or katana or recoil>0 else (0.45 if idle and not actor.combat.sheathed else 0.0)
+	var scribe: bool = kind==&"scribe" and not actor.combat.sheathed
+	var desired_weight := 1.0 if attacking or guarding or katana or scribe or recoil>0 else (0.45 if idle and not actor.combat.sheathed else 0.0)
 	_pose_weight = lerpf(_pose_weight,desired_weight,1-exp(-18*delta))
 	_natural_pole_weight = maxf(_pose_weight,release_weight) if named else 0.0
 	if attacking or guarding:
@@ -691,6 +837,23 @@ func apply_pose(delta: float) -> void:
 	var left := Vector3(-0.28,1.08,0.22)
 	var right_rotation := Vector3(0.16,0,-0.12)
 	var left_rotation := Vector3(0.16,0,0.12)
+	var family: String=Equipment.get_item(rig.selected).get("family",String(kind))
+	# Ready carry: short blades point ahead; knuckle blades point down.
+	# Authored attack/guard frames below still take over immediately.
+	if family in ["dagger","twin_blades"]:
+		right_rotation.x=1.35
+		left_rotation.x=1.35
+	elif family in ["disc","dual_disc"]:
+		right_rotation.x=PI
+		left_rotation.x=PI
+		right_rotation.y=PI*.5
+		left_rotation.y=-PI*.5
+	elif family=="whip":
+		right = Vector3(.31,.96,.06)
+		right_rotation = Vector3(1.1,0,-.12)
+	elif family=="fist":
+		right_rotation.x=2.85
+		left_rotation.x=2.85
 	if guarding:
 		right = Vector3(0.22,1.30,0.32)
 		left = Vector3(-0.16,1.32,0.40)
@@ -753,6 +916,12 @@ func apply_pose(delta: float) -> void:
 			left = authored.left
 			right_rotation = authored.right_rotation
 			left_rotation = authored.left_rotation
+	if scribe:
+		var conducting := ScribeMoves.pose(active_move,elapsed,actor.combat.charge_action!=&"",guarding,Time.get_ticks_msec()*.001)
+		right = conducting.right
+		left = conducting.left
+		right_rotation = conducting.right_rotation
+		left_rotation = conducting.left_rotation
 	if recoil>0:
 		right = right.lerp(Vector3(0.40,1.32,-0.08),recoil)
 		left = left.lerp(Vector3(-0.36,1.22,-0.10),recoil)
@@ -761,7 +930,8 @@ func apply_pose(delta: float) -> void:
 	for axis in range(3):
 		_right_rotation[axis] = lerp_angle(_right_rotation[axis],right_rotation[axis],1-exp(-22*delta))
 		_left_rotation[axis] = lerp_angle(_left_rotation[axis],left_rotation[axis],1-exp(-22*delta))
-	body.apply(delta,active_move,elapsed,guarding,kind,aim_direction() if guarding else _facing)
+	var body_facing: Vector3 = aim_direction() if guarding else (actor.visual.global_basis.z if scribe and not attacking else _facing)
+	body.apply(delta,active_move,elapsed,guarding,kind,body_facing)
 	if recoil>0: apply_recoil_body(recoil)
 	if _kneel_remaining>0: apply_exhausted_body()
 	if _pose_weight>0.001:
@@ -795,10 +965,11 @@ func apply_pose(delta: float) -> void:
 			var hilt_offset: Vector3 = actor.visual.chest.global_basis*Basis.from_euler(_right_rotation)*Vector3(0,-0.17,0)
 			var r_shoulder: Vector3 = actor.visual.joints.RightArm.global_position
 			var l_shoulder: Vector3 = actor.visual.joints.LeftArm.global_position
+			var shared_reach: float = .575*actor.visual.global_basis.get_scale().x
 			for i in range(5):
-				right_world = r_shoulder+(right_world-r_shoulder).limit_length(0.575)
+				right_world = r_shoulder+(right_world-r_shoulder).limit_length(shared_reach)
 				var support := right_world+hilt_offset
-				right_world += l_shoulder+(support-l_shoulder).limit_length(0.575)-support
+				right_world += l_shoulder+(support-l_shoulder).limit_length(shared_reach)-support
 		var arm_weight := 1.0 if named else _pose_weight
 		solve_arm("RightArm",actor.visual.to_local(right_world),1.0 if shared_grip else arm_weight)
 		if not shared_grip: solve_arm("LeftArm",actor.visual.to_local(left_world),arm_weight)

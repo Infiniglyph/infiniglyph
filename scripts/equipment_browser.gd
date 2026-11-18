@@ -27,6 +27,10 @@ var category := "weapons"
 var category_heading: Label
 
 func _ready() -> void:
+	visibility_changed.connect(func():
+		if is_instance_valid(preview) and not is_visible_in_tree(): preview.render_target_update_mode = SubViewport.UPDATE_DISABLED
+		if is_instance_valid(model): model.process_mode = Node.PROCESS_MODE_INHERIT if is_visible_in_tree() else Node.PROCESS_MODE_DISABLED
+	)
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	anchor_left = .08
 	anchor_right = .92
@@ -95,7 +99,7 @@ func entry_for(id: StringName) -> Dictionary:
 	if not entry.is_empty(): return entry
 	var definition: Resource = Catalog.get_definition(id)
 	if definition==null: return {}
-	var family := "body" if id==&"eternal_scribe_robes" else "consumable" if id==&"health_glyph" else String(id)
+	var family := "body" if id==&"eternal_scribe_robes" else "consumable" if definition.category==&"consumables" else String(id)
 	return {"id":String(id),"name":definition.display_name,"description":definition.description,"category":String(definition.category),"kind":"starter","family":family,"rarity":"Civic","value":0,"acquisition":"Tower Exchange","geometry":{"family":family,"length":1.2,"tint":"75eaff"}}
 
 func set_category(value: String) -> void:
@@ -105,7 +109,7 @@ func set_category(value: String) -> void:
 	page = 0
 	selected = &""
 	filter.clear()
-	var choices: Array = ["ALL","DAGGERS","SWORDS","HEAVY","POLEARMS","PAIRED","OTHER"] if category=="weapons" else ["ALL","BODY","HEAD","HANDS","LEGS","SHIELDS"] if category=="armour" else ["ALL","HEALTH GLYPHS","RINGS"]
+	var choices: Array = ["ALL","DAGGERS","SWORDS","HEAVY","POLEARMS","PAIRED","OTHER","SCRIBE","DISCS"] if category=="weapons" else ["ALL","BODY","HEAD","HANDS","LEGS"] if category=="armour" else ["ALL","GLYPHS","RINGS"]
 	for choice: String in choices: filter.add_item(choice)
 	filter.select(0)
 
@@ -115,9 +119,9 @@ func matches(entry: Dictionary) -> bool:
 	if category=="armour" and entry.category!="cosmetics": return false
 	if category=="items" and entry.category in ["weapons","cosmetics"]: return false
 	if filter.selected==0: return true
-	if category=="armour": return fam==["","body","head","hands","legs","shield"][filter.selected]
+	if category=="armour": return fam==["","body","head","hands","legs"][filter.selected]
 	if category=="items": return fam==("consumable" if filter.selected==1 else "ring")
-	var sets: Array = [[],["dagger"],["sword","curved_sword","katana"],["axe","hammer","greatsword"],["spear","halberd","scythe"],["twin_blades","fist"],["staff","chime","talisman","whip","bow","crossbow"]]
+	var sets: Array = [[],["dagger"],["sword","curved_sword","katana"],["axe","hammer","greatsword"],["spear","halberd","scythe"],["twin_blades","fist"],["staff","chime","whip"],["scribe"],["disc","dual_disc"]]
 	return fam in sets[filter.selected]
 
 func cycle_filter() -> void:
@@ -206,7 +210,8 @@ func show_item(id: StringName) -> void:
 	details.text = "%s / %s\n%s\nCatalog value: %d Glyph Coins. Currently free.\n%s" % [entry.rarity,entry.family,entry.acquisition,entry.value,"Hold a special to charge; release to strike." if entry.kind=="named" else ("No active ring effects." if entry.kind=="ring" else "Cosmetic appearance." if entry.category=="cosmetics" else "Equip or use from inventory.")]
 	if reuse:
 		model.show()
-		preview.render_target_update_mode = SubViewport.UPDATE_ONCE
+		model.process_mode = Node.PROCESS_MODE_INHERIT if is_visible_in_tree() else Node.PROCESS_MODE_DISABLED
+		preview.render_target_update_mode = SubViewport.UPDATE_ALWAYS if entry.geometry.has("renderer") else SubViewport.UPDATE_ONCE
 		return
 	if is_instance_valid(model):
 		stage.remove_child(model)
@@ -214,15 +219,19 @@ func show_item(id: StringName) -> void:
 	model = Preview.model(entry)
 	_model_id = id
 	stage.add_child(model)
+	model.process_mode = Node.PROCESS_MODE_INHERIT if is_visible_in_tree() else Node.PROCESS_MODE_DISABLED
 	model.rotation.y = .5
 	var length := float(entry.geometry.length)
-	var fitted: bool = entry.geometry.has("tailoring") or id==&"eternal_scribe_robes"
+	var fitted: bool = entry.geometry.has("tailoring") or entry.geometry.has("renderer") or id==&"eternal_scribe_robes"
 	var center := Vector3(0,.98,0) if fitted else Vector3(0,length*.28,0) if entry.category=="weapons" else Vector3(0,.1,0)
 	var distance := 3.0 if fitted else maxf(1.3,length*1.6)
 	camera.fov = 42 if fitted else 55
 	if fitted and entry.family=="head":
 		center.y = 1.78
 		distance = 1.6
+	elif entry.geometry.get("renderer")=="kyren_scarf":
+		center.y = 1.35
+		distance = 4.5 # Frame the entire three-metre tail as the wind turns.
 	elif fitted and entry.family=="hands":
 		center.y = 1.25
 		distance = 1.9
@@ -232,4 +241,4 @@ func show_item(id: StringName) -> void:
 	elif entry.family=="ring": distance=.55
 	camera.position = center+Vector3(0,0,distance)
 	camera.look_at(center)
-	preview.render_target_update_mode = SubViewport.UPDATE_ONCE
+	preview.render_target_update_mode = SubViewport.UPDATE_ALWAYS if entry.geometry.has("renderer") else SubViewport.UPDATE_ONCE

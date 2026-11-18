@@ -188,7 +188,7 @@ def main():
     source_rows=len(rows)
     known={normal(r['name']) for r in rows}|{key[1] for key in portraits}|{normal(k) for k in ALIASES}
     aliases={normal(k):normal(v) for k,v in ALIASES.items()}
-    used=set();items=[];names=set();families=collections.Counter();shape_cache={};archives={}
+    used=set();items=[];names=set();families=collections.Counter();shape_cache={};archives={};retired={}
     for row in rows:
         base,weave=base_name(row['name'],known);cat=row['category'];fam=family(base,cat)
         pc='shields' if fam=='shield' else cat
@@ -204,6 +204,9 @@ def main():
             rows.append({"name":p['name'],"base":p['name'],"weave":"","code":"portrait_"+p['code'],"category":key[0],"family":family(p['name'],key[0]),"portrait":p})
     for row in rows:
         cat=row['category'];fam=row['family'];s=seed(row['base']);iid='eq_'+{'weapons':'w','shields':'s','armor':'a','rings':'r'}[cat]+'_'+row['code']
+        if fam in ('shield','talisman','bow','crossbow'):
+            retired[iid]=fam
+            continue
         title=ADJECTIVES[s%24]+' '+SUBJECTS[(s//24)%24]+' '+NOUNS[fam]
         if row['weave']:title+=' / '+row['weave']
         if title in names:title+=' '+str(seed(iid)%10000).zfill(4)
@@ -236,8 +239,9 @@ def main():
     temporary.replace(data/'catalog.json')
     if not (data/'named_weapons.json').exists():
         (data/'named_weapons.json').write_text(json.dumps({"version":1,"items":named_items()},indent=2),encoding='utf8')
+    (data/'retired.json').write_text(json.dumps({'version':1,'items':retired},indent=2),encoding='utf8')
     private=ROOT/'.godot/equipment-references';private.mkdir(parents=True,exist_ok=True)
-    audit['summary']={"counterparts":len(items),"families":dict(families),"named_demonstrations":3,"source_rows":source_rows,"portrait_only":len(items)-source_rows}
+    audit['summary']={"counterparts":len(items),"families":dict(families),"named_demonstrations":3,"source_rows":source_rows,"portrait_only":sum(not r.get("csv") for r in rows if r["family"] not in ("shield","talisman","bow","crossbow")),"retired_counterparts":len(retired)}
     (data/'summary.json').write_text(json.dumps(audit['summary'],indent=2),encoding='utf8')
     (private/'crosswalk.json').write_text(json.dumps(audit,indent=2),encoding='utf8')
     print(json.dumps(audit['summary'],indent=2))

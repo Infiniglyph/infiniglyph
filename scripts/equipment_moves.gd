@@ -46,6 +46,20 @@ static func move(item: Dictionary, action: StringName, combo: int, aerial: bool)
 			frame.chest[0] = float(frame.chest[0])*.8
 			frame.hip_offset = [0,0,0]
 			for hand: String in ["right","left"]: frame[hand][2] = float(frame[hand][2])*.88
+	# Optional authored handling on a named design; original reference counterparts
+	# retain their existing recipes, timings and stats.
+	if item.has("handling"):
+		var handling: Dictionary = item.handling
+		var sequence: Array = handling.get(String(action),[])
+		var override_index := index if basic else 0
+		var overrides: Dictionary = sequence[override_index] if override_index<sequence.size() else {}
+		result.merge(overrides.duplicate(true),true)
+		result.action = String(action)
+	if item.family=="whip":
+		result.weapon_family = "whip"
+		result.reach = clampf(float(item.geometry.length)*1.8,2.8,4.4)*(1.0 if basic else 1.18)
+		result.profile = "whip"
+		result.arc = 160.0
 	if moves.size()>=CACHE_LIMIT: moves.erase(moves.keys()[0])
 	moves[key] = result
 	return result.duplicate(true)

@@ -4,9 +4,12 @@ extends Node3D
 const Chunk = preload("res://scripts/world_chunk.gd")
 const Gate = preload("res://scripts/outward_gate.gd")
 const Neon = preload("res://scripts/neon.gd")
+const KyrenHome = preload("res://scripts/kyren_homestead.gd")
+const Pyramid = preload("res://scripts/pyramid_exterior.gd")
 const HALF_EXTENT := 1152
 const CHUNK_SIZE := 256
 const TERRAIN_STEP := 16
+const GRID_SIZE := TERRAIN_STEP
 const CITY_EDGE := 448
 const SUBURB_EDGE := 704
 const CYAN := Color(0.025,0.74,0.85)
@@ -20,6 +23,8 @@ var buildings: Array[Dictionary] = []
 var destinations: Array[Dictionary] = []
 var counts := {"city":0,"homes":0,"farms":0,"trees":0,"rocks":0}
 var build_ms := 0
+var kyren_home: Node3D
+var pyramid: Node3D
 
 static func code(x: int, z: int, salt: int = 0) -> int:
 	# No shared/global RNG state: changing the map cannot reroll NPC identities.
@@ -41,6 +46,12 @@ static func base_height(x: float, z: float) -> float:
 
 static func vertex_height(x: float, z: float) -> float:
 	var height := base_height(x,z)
+	var pyramid_pad:=Pyramid.pad_blend(x,z)
+	if pyramid_pad>0:
+		return lerpf(height,base_height(0,Pyramid.CENTER.z),pyramid_pad)
+	var yard := KyrenHome.pad_blend(x,z)
+	if yard>0:
+		return lerpf(height,base_height(KyrenHome.CENTER.x,KyrenHome.CENTER.z),yard)
 	var px := floori(x/64)*64+32
 	var pz := floori(z/64)*64+32
 	var radius := maxi(absi(px),absi(pz))
@@ -79,6 +90,14 @@ static func region_at(point: Vector3) -> String:
 	if radius<SUBURB_EDGE: return "Suburbs"
 	return "Countryside"
 
+static func grid_at(point: Vector3) -> Vector2i:
+	# Local longitude/latitude: east is +X, north is -Z. Center cell zero
+	# on the hub origin; height and camera/player facing never change the cell.
+	return Vector2i(floori(point.x/GRID_SIZE+0.5),floori(-point.z/GRID_SIZE+0.5))
+
+static func grid_label(cell: Vector2i) -> String:
+	return "GRID  LAT %03d%s  LON %03d%s" % [absi(cell.y),"N" if cell.y>=0 else "S",absi(cell.x),"E" if cell.x>=0 else "W"]
+
 func chunk_at(point: Vector3) -> Node3D:
 	var key := Vector2i(floori((point.x+128)/CHUNK_SIZE),floori((point.z+128)/CHUNK_SIZE))
 	return chunks.get(key)
@@ -100,6 +119,8 @@ func _ready() -> void:
 					var at := chunk.position+Vector3(dx,0,dz)
 					var radius := maxf(absf(at.x),absf(at.z))
 					if radius<128: continue # Preserve the complete original hub.
+					if KyrenHome.reserves_plot(at): continue
+					if Pyramid.reserves_plot(at): continue
 					var seed := code(floori(at.x/64),floori(at.z/64))
 					if radius<CITY_EDGE: build_city(chunk,at,seed)
 					elif radius<SUBURB_EDGE: build_suburb(chunk,at,seed)
@@ -108,6 +129,14 @@ func _ready() -> void:
 	build_destinations()
 	for chunk: Node3D in chunks.values(): chunk.commit()
 	build_gates()
+	kyren_home = KyrenHome.new()
+	kyren_home.position = Vector3(KyrenHome.CENTER.x,height_at(KyrenHome.CENTER.x,KyrenHome.CENTER.z),KyrenHome.CENTER.z)
+	add_child(kyren_home)
+	destinations.append({"name":"Kyren's home","point":kyren_home.kyren.global_position})
+	pyramid=Pyramid.new()
+	pyramid.position=Vector3(Pyramid.CENTER.x,height_at(Pyramid.CENTER.x,Pyramid.CENTER.z),Pyramid.CENTER.z)
+	add_child(pyramid)
+	destinations.append({"name":"Pyramid","point":pyramid.arrival_anchor.global_position})
 	build_ms = Time.get_ticks_msec()-started
 
 func build_terrain(chunk: Node3D) -> void:
@@ -303,9 +332,10 @@ func build_bridges() -> void:
 		var chunk: Node3D = chunk_at(Vector3(x,0,-864))
 		chunk.box(Vector3(x,-0.45,-864),Vector3(12,1.2,64),"CountryBridgeDeck",CYAN)
 		for side in [-1,1]:
-			chunk.box(Vector3(x+side*5.8,1.2,-864),Vector3(0.12,0.12,64),"BridgeRail",CYAN)
+			chunk.rail(Vector3(x+side*5.8,.15,-896),Vector3(x+side*5.8,.15,-832),1.11,"BridgeGuard",CYAN,.14,false)
+			chunk.box(Vector3(x+side*5.8,1.2,-864),Vector3(0.12,0.12,64),"BridgeRail",CYAN,Basis.IDENTITY,false)
 			for z in range(-894,-832,8):
-				chunk.box(Vector3(x+side*5.8,0.65,z),Vector3(0.12,1.1,0.12),"BridgeBaluster",CYAN)
+				chunk.box(Vector3(x+side*5.8,0.65,z),Vector3(0.12,1.1,0.12),"BridgeBaluster",CYAN,Basis.IDENTITY,false)
 			for z in [-880,-848]:
 				chunk.box(Vector3(x+side*4,-3,z),Vector3(0.7,5.4,0.7),"BridgePier",CYAN)
 		lamp(chunk,Vector3(x+7,0,-828),false)
@@ -333,8 +363,8 @@ func build_destinations() -> void:
 	var chunk: Node3D = chunk_at(at)
 	chunk.box(at+Vector3.UP*0.05,Vector3(30,0.1,20),"CountryLookout",CYAN)
 	for side in [-1,1]:
-		chunk.box(at+Vector3(side*14,0.7,0),Vector3(0.12,1.4,20),"LookoutRail",CYAN)
-	chunk.box(at+Vector3(0,0.7,-10),Vector3(28,1.4,0.12),"LookoutRail",CYAN)
+		chunk.rail(at+Vector3(side*14,0,-10),at+Vector3(side*14,0,10),1.4,"LookoutRail",CYAN,.12)
+	chunk.rail(at+Vector3(-14,0,-10),at+Vector3(14,0,-10),1.4,"LookoutRail",CYAN,.12)
 	sign_at(Vector3(20,0,-1040),"COUNTRY LOOKOUT")
 	destinations.append({"name":"Country Lookout","point":at+Vector3.UP*0.1})
 
