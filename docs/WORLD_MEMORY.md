@@ -38,6 +38,33 @@ and speed-dependent lead range protect Sky Jump landings and fast approaches.
 Identity, conversation history and building-entry/exit counters stay on the same
 resident object. Talking, reacting and combat participants retain full updates.
 
+The original hundred residents now occupy the wider city as well as the hub.
+Thirty-two retain their identities in eight existing outer-city block circuits;
+their outdoor errands and breaks stay within their own connected neighborhood.
+Those streets have no open resident lobbies, so these residents rest outdoors
+instead of returning through a locked progression gate to a tutorial lobby.
+The remaining sixty-eight still use all twenty-two original physical lobbies.
+Startup places thirty-two residents around those outer blocks and twelve on
+hub streets; the shared sixty-four outdoor-slot limit is unchanged. Quieter
+perimeter streets inside the hub also provide actual walking destinations.
+Ember, practice targets, shops and progression gates retain their placements.
+
+Neighborhood-aware destination selection prevents personal errands from
+gathering the whole original roster back at the central plaza. Distant residents
+continue their existing lightweight journeys, then regain physical bodies and
+the same contextual interaction when approached. `tests/city_distribution.gd`
+measures fixed-seed tutorial-area density over time and checks route support,
+solid contacts, identity, real lobby visits and closed progression gates.
+Eligible lobby residents with fewer outdoor turns have priority when a slot
+opens, with rotating ties. Concealment and doorway occupancy remain mandatory;
+pending outer street placements keep their own reserved capacity.
+With seed 1893 over 120 seconds, original-resident density within 48 m of the
+tutorial center averaged 34.32 before redistribution and 13.07 afterward
+(peaks 42 and 19). Active movement-physics bodies averaged 61.13 and 28.68.
+These counts measure the same hundred identities, with regional pedestrians
+disabled in both runs; they are not a frame-rate benchmark. Both runs found
+zero unsupported positions or solid penetrations beyond the 2 cm tolerance.
+
 `district_life.gd` retains the existing bounded physical neighborhoods and adds
 65/90 m physical/virtual tiers for regional pedestrians. Visible virtual motion
 interpolates between the five-Hz route records. Regional pose updates and seated

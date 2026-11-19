@@ -24,6 +24,14 @@ func _initialize() -> void: call_deferred("run")
 
 func run() -> void:
 	world = load("res://scenes/main.tscn").instantiate()
+	# This fixture stages the original lobby camera directly. The separate
+	# dungeon viewport mirrors a gameplay camera at frame boundaries; it is not
+	# part of the physical doorway/visibility contract being tested here.
+	world.wider_world_enabled = false
+	world.district_life_enabled = false
+	world.world_memory_enabled = false
+	world.boss_encounters_enabled = false
+	world.inventory_persistence_enabled = false
 	root.add_child(world)
 	world.player.visual.retrieval.enabled = false
 	world.sparring_partner.visual.retrieval.enabled = false
@@ -44,7 +52,9 @@ func run() -> void:
 	check(supported==22,"Every concealed indoor handoff has supported full-body clearance")
 	var resident: CharacterBody3D
 	for candidate: CharacterBody3D in population.residents:
-		if not candidate.active:
+		# Use a known lobby for the staged camera angles; startup density no
+		# longer implies which resident is the first one still indoors.
+		if not candidate.active and candidate.home_building==&"building_01":
 			resident = candidate
 			break
 	var door: Node3D = population.entrances[resident.home_building]

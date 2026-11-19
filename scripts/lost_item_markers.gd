@@ -9,10 +9,19 @@ func track(pickup: Node3D, owner_id: String, item_instance_id: String) -> void:
 	if owner_id.is_empty() or not is_instance_valid(pickup): return
 	var key: String = pickup.pickup_id
 	markers[key] = {"pickup_id":key,"owner_id":owner_id,"item_instance_id":item_instance_id,"world_position":pickup.global_position}
+	if pickup.loss_dismissed:
+		markers[key].dismissed = true
+		markers[key].expires_at = pickup.loss_expires_at
 	if pickup.location_id!=&"overworld": markers[key].location_id=String(pickup.location_id)
 	_source_ids[key] = pickup.get_instance_id()
 	_sources[key] = weakref(pickup)
 	pickup.tree_exited.connect(_source_exited.bind(key,pickup.get_instance_id()),CONNECT_ONE_SHOT)
+	changed.emit()
+
+func dismiss(pickup: Node3D) -> void:
+	if not is_instance_valid(pickup) or not markers.has(pickup.pickup_id): return
+	markers[pickup.pickup_id].dismissed = true
+	markers[pickup.pickup_id].expires_at = pickup.loss_expires_at
 	changed.emit()
 
 func remove(pickup_id: String) -> void:

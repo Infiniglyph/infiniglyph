@@ -57,10 +57,17 @@ remain documented here; equipment and item arts remain available in inventory.
 
 Nearby interaction prompts, short notices/dialogue and encounter health appear
 only in their relevant context. Unclaimed death losses keep a bottom-screen
-`LOST GEAR` readout showing the nearest item's distance, LAT/LON grid address,
+`LOST GEAR` readout showing the latest item's distance, LAT/LON grid address,
 altitude and the total unclaimed count. It survives short notifications and
 respawns, restores from checkpoints and clears when the gear is recovered or
 removed. The readout moves above resident dialogue while someone is speaking.
+Hold **Select / View / Back** (or keyboard **B**) for **0.7 seconds** to dismiss
+the guide and start a **five-minute** disappearance countdown on all your current
+unclaimed death drops. Each timed pickup shows its remaining time in the world
+and can still be recovered before expiry. The deadline survives checkpoint
+reloads and time outside the item's area; holding again cannot extend it.
+A later death creates fresh guidance. A short tap still opens inventory; with
+lost gear visible, inventory opens on release so a hold does not open a menu.
 Start, Settings and inventory continue to run the world without pausing.
 
 ## Window glow and stars
@@ -1545,7 +1552,8 @@ your controller playtest; automated checks do not judge those subjective parts.
 | Special X / Y | Tap Q / R, attack on release | Tap X / Y, attack on release |
 | Modified special X / Y | Hold V, tap Q / R | Hold RT, tap X / Y |
 | Charged special (including modified) | Hold Q / R, then release | Hold X / Y, then release |
-| Inventory / equipment | Press B | Press View / Back / Select |
+| Inventory / equipment | Tap B | Tap View / Back / Select |
+| Dismiss lost-gear guide; start five-minute pickup expiry | Hold B for 0.7 s | Hold View / Back / Select for 0.7 s |
 | Talk / collect nearby loot / shop / challenge Greefer | Press G | Tap RT nearby |
 | Live system menu | Escape | Press Start |
 | Yield in a duel | Press G | Start menu: Yield sparring duel |
@@ -1611,9 +1619,13 @@ profiles stay with each identity through indoor visits and are distributed
 across all jobs and colors. Both use the same gait, collision and two mesh
 batches; the female outline adds four instanced rods.
 
-Forty-four start distributed over city routes; others
-begin indoors with staggered departures. Up to 64 can be outdoors at once. After
-several errands or pauses, residents walk into one of 22 building lobbies and
+Forty-four start distributed over city routes: 32 occupy eight outer-city
+neighborhoods and 12 begin around the hub. The remaining residents begin indoors
+with staggered departures. The total outdoor cap remains 64, leaving at most
+32 hub walkers while the outer groups remain present. Outer residents follow
+local routes and rest outdoors rather than crossing locked progression gates
+to reach a hub lobby. Hub errands favor quieter perimeter streets. After
+several errands or pauses, hub residents walk into one of 22 building lobbies and
 spend time indoors before returning. A rotating scheduler, doorway leases, local
 destination limits and varied routes prevent synchronized departures or a single
 plaza crowd. Identities, acquaintances, colors and conversation memory survive
@@ -1633,7 +1645,7 @@ the exchange naturally. Pickup collection and Ember's sparring invitation retain
 interaction priority. Conversation, inventory and the system menu leave all
 resident routines running.
 
-Pedestrians use a shared graph of **70 waypoints and 110 physical street links**,
+Pedestrians use a shared graph with hub and outer-neighborhood street links,
 validated against actual ground, curb heights and full capsule clearance. They
 avoid neighbours, yield personal space to the player, and make room when they
 observe nearby fighting with unobstructed sight. They use their own collision
@@ -1790,10 +1802,18 @@ does not remint lost gear. Nonlethal Ember rounds never apply this penalty.
 
 `LostItemMarkers.for_owner(owner_id)` supplies marker dictionaries with pickup ID,
 item identity and world position for a future map. A persistent bottom-screen
-readout locates the nearest unclaimed loss using the same grid as the main HUD;
+readout locates the latest undismissed loss using the same grid as the main HUD;
 a brief notice also reports new losses. Markers disappear when anyone collects the
 item or it is legitimately removed. Trading drops create no loss marker; acquired
 items belong to their new possessor and are not permanently tracked.
+Dismissed death drops retain their item identity and marker metadata until
+recovery or expiry. `dismissed` / `expires_at` marker fields hide their HUD guide;
+`loss_dismissed` / `loss_expires_at` checkpoint fields preserve the absolute
+deadline. The host owns disappearance even while that item's area is inactive.
+`loot_authority.dismissed_loss_lifetime` configures the default 300-second grace
+period. `tests/lost_gear_expiration.gd` checks the lifecycle and host boundaries;
+`tests/lost_gear_dismiss_input.gd` checks real Select/keyboard input, interruptions,
+checkpoint restoration and the first press after a death-choice screen.
 
 Normal local play automatically saves a versioned **whole checkpoint** at
 `user://inventory_v1.json`: owned instances, assignments and unclaimed world drops

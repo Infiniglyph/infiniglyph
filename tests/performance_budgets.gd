@@ -96,7 +96,11 @@ func run() -> void:
 	graphics.glow_quality = 2
 	graphics.shadow_budget = 4
 	graphics.apply_quality()
-	var resident: CharacterBody3D = population.active_residents[0]
+	var resident: CharacterBody3D
+	for candidate: CharacterBody3D in population.active_residents:
+		if population.place_neighborhood[population.nearest_id(candidate.position)]==&"hub":
+			resident = candidate
+			break
 	var profile: Dictionary = resident.profile.duplicate(true)
 	var visits: int = resident.visits
 	resident.wait = 0

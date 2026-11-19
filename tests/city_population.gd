@@ -56,9 +56,10 @@ func run() -> void:
 	var total := 0
 	for from: StringName in population.points:
 		for to: StringName in population.points:
+			if population.place_neighborhood[from]!=population.place_neighborhood[to]: continue
 			total += 1
 			if not population.graph.get_id_path(population.point_ids[from],population.point_ids[to]).is_empty(): reachable += 1
-	check(reachable==total,"All %d destination pairs are connected across the public street network" % total)
+	check(reachable==total,"All %d same-neighborhood destination pairs connect without crossing locked city gates" % total)
 	var social_reached: Dictionary = {}
 	var pending: Array = [population.residents[0].profile.id]
 	while not pending.is_empty():
@@ -71,7 +72,8 @@ func run() -> void:
 	var bodies := true
 	for resident: CharacterBody3D in population.residents:
 		attitudes[resident.profile.attitude] = true
-		bodies = bodies and resident.collision_layer==(4 if resident.active else 0) and resident.collision_mask==(13 if resident.active else 0) and not resident.is_in_group("combat_targets")
+		var physical: bool = resident.active and not resident.virtualized
+		bodies = bodies and resident.collision_layer==(4 if physical else 0) and resident.collision_mask==(13 if physical else 0) and not resident.is_in_group("combat_targets")
 	check(attitudes.size()==5,"Curiosity, friendship, pragmatism, prejudice and indifference coexist")
 	check(bodies and world.player.get_collision_mask_value(3),"Residents have physical capsules without entering combat target or architectural query layers")
 	check(population.residents[0].visual.get_child_count()==2,"Each pedestrian uses two mesh batches with no per-NPC retrieval service")

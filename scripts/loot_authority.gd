@@ -10,6 +10,7 @@ signal picked_up(inventory: Node, item: Resource)
 signal dropped(inventory: Node, item: Resource, pickup: Node3D)
 @export var host_enabled := true
 @export_range(0,1,0.01) var death_drop_probability := 0.15
+@export_range(1,3600,1) var dismissed_loss_lifetime := 300.0
 @export var pickup_radius := 2.6
 @export var session_id := "singleplayer"
 var validator: Callable
@@ -21,6 +22,8 @@ var _inventories: Dictionary = {}
 var _death_results: Dictionary = {}
 var _shops: Dictionary = {}
 var _busy := false
+var _loss_timers: Dictionary = {}
+var _loss_timer_clock := 0.0
 var location_roots: Dictionary = {}
 var respawn_glyphs: Node
 var active_location: StringName = &"overworld"
@@ -45,6 +48,45 @@ func _ready() -> void:
 	markers.name = "LostItemMarkers"
 	add_child(markers)
 	call_deferred("_adopt_editor_pickups")
+
+func _process(delta: float) -> void:
+	if not host_enabled or _busy or _loss_timers.is_empty(): return
+	_loss_timer_clock += delta
+	if _loss_timer_clock<1.0: return
+	_loss_timer_clock = 0.0
+	_expire_dismissed_losses(Time.get_unix_time_from_system())
+
+func _expire_dismissed_losses(now: float) -> void:
+	if not host_enabled or _busy: return
+	var expired := false
+	for key: String in _loss_timers.keys():
+		var pickup: Node3D = _loss_timers[key]
+		if not is_instance_valid(pickup) or pickups.get(key)!=pickup:
+			_loss_timers.erase(key)
+			continue
+		if pickup.loss_expires_at>now: continue
+		_loss_timers.erase(key)
+		pickups.erase(key)
+		markers.remove(key)
+		pickup.queue_free()
+		expired = true
+	if expired: changed.emit()
+
+func request_dismiss_lost_gear(inventory: Node) -> bool:
+	if not _authorized(&"dismiss_lost_gear",inventory,{}): return false
+	var deadline := Time.get_unix_time_from_system()+clampf(dismissed_loss_lifetime,1,3600)
+	var dismissed := false
+	_busy = true
+	for pickup: Node3D in pickups.values():
+		if not is_instance_valid(pickup) or pickup.claimed or pickup.pending or pickup.is_queued_for_deletion(): continue
+		if pickup.death_owner_id!=inventory.owner_id or pickup.loss_dismissed: continue
+		pickup.dismiss_loss(deadline)
+		_loss_timers[pickup.pickup_id] = pickup
+		markers.dismiss(pickup)
+		dismissed = true
+	_busy = false
+	if dismissed: changed.emit()
+	return dismissed
 
 func register_inventory(inventory: Node) -> bool:
 	if not is_instance_valid(inventory) or not Instance.valid_text(inventory.owner_id): return false
@@ -82,6 +124,9 @@ func request_pickup(inventory: Node, pickup: Node3D) -> bool:
 	if not _authorized(&"pickup",inventory,{"pickup_id":pickup.get("pickup_id")}): return false
 	var key: String = pickup.pickup_id
 	if pickups.get(key) != pickup or pickup.claimed or pickup.pending or pickup.is_queued_for_deletion(): return false
+	if pickup.loss_dismissed and pickup.loss_expires_at<=Time.get_unix_time_from_system():
+		_expire_dismissed_losses(Time.get_unix_time_from_system())
+		return false
 	var item: Resource = pickup.item_instance
 	if item == null or not str(item.owner_id).is_empty() or _held(item.instance_id): return false
 	var actor := actor_for(inventory)
@@ -98,6 +143,7 @@ func request_pickup(inventory: Node, pickup: Node3D) -> bool:
 		return false
 	notification.owner_id = inventory.owner_id
 	pickups.erase(key)
+	_loss_timers.erase(key)
 	markers.remove(key)
 	pickup.queue_free()
 	picked_up.emit(inventory,notification)
@@ -375,6 +421,7 @@ func register_pickup(pickup: Node3D) -> bool:
 
 func _record(pickup: Node3D) -> void:
 	pickups[pickup.pickup_id] = pickup
+	if pickup.loss_dismissed: _loss_timers[pickup.pickup_id] = pickup
 	pickup.tree_exited.connect(_pickup_exited.bind(pickup.pickup_id,pickup.get_instance_id()),CONNECT_ONE_SHOT)
 	if not pickup.death_owner_id.is_empty(): markers.track(pickup,pickup.death_owner_id,pickup.item_instance.instance_id)
 
@@ -383,6 +430,7 @@ func _pickup_exited(pickup_id: String, source_id: int) -> void:
 	if is_instance_valid(current) and current.get_instance_id() != source_id: return
 	if pickups.has(pickup_id):
 		pickups.erase(pickup_id)
+		_loss_timers.erase(pickup_id)
 		markers.remove(pickup_id)
 		changed.emit()
 
@@ -431,6 +479,7 @@ func validate_snapshot(snapshot: Array) -> bool:
 	for row in snapshot:
 		if not row is Dictionary or not row.get("pickup_id") is String or row.pickup_id.is_empty() or pickup_ids.has(row.pickup_id): return false
 		if not row.get("item") is Dictionary or not row.get("death_owner_id","") is String: return false
+		if Pickup.loss_timer_from_row(row).is_empty(): return false
 		if not row.get("position") is Array or row.position.size()!=3: return false
 		if not Instance.valid_text(row.get("location_id","overworld")): return false
 		var location:=StringName(row.get("location_id","overworld"))
@@ -452,6 +501,9 @@ func serialize_world() -> Array[Dictionary]:
 		var point := pickup.global_position
 		var row: Dictionary={"pickup_id":pickup.pickup_id,"item":pickup.item_instance.to_dict(),"position":[point.x,point.y,point.z],"death_owner_id":pickup.death_owner_id}
 		if pickup.location_id!=&"overworld": row.location_id=String(pickup.location_id)
+		if pickup.loss_dismissed:
+			row.loss_dismissed = true
+			row.loss_expires_at = pickup.loss_expires_at
 		result.append(row)
 	return result
 
@@ -459,6 +511,8 @@ func restore_world(snapshot: Array) -> bool:
 	if not host_enabled or _busy or not validate_snapshot(snapshot): return false
 	var candidates: Array[Node3D] = []
 	for row: Dictionary in snapshot:
+		var timer := Pickup.loss_timer_from_row(row)
+		if timer.dismissed and timer.expires_at<=Time.get_unix_time_from_system(): continue
 		var point := Vector3(float(row.position[0]),float(row.position[1]),float(row.position[2]))
 		var location:=StringName(row.get("location_id","overworld"))
 		var floor := supported_position(point,location)
@@ -469,10 +523,12 @@ func restore_world(snapshot: Array) -> bool:
 		if candidate == null:
 			for pending in candidates: pending.queue_free()
 			return false
+		if timer.dismissed: candidate.dismiss_loss(timer.expires_at)
 		candidates.append(candidate)
 	var previous: Array = pickups.values()
 	_busy = true
 	pickups.clear()
+	_loss_timers.clear()
 	markers.clear()
 	for candidate in candidates:
 		candidate.activate()

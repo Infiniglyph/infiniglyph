@@ -9,12 +9,50 @@ const Neon = preload("res://scripts/neon.gd")
 var item_instance: Resource
 var pickup_id := ""
 var death_owner_id := ""
+var loss_dismissed := false
+var loss_expires_at := 0.0
 var location_id: StringName = &"overworld"
 var claimed := false
 var pending := false
 var _glyph: Node3D
 var _glyph_clock := 0.0
 var solid: StaticBody3D
+var _expiry_label: Label3D
+var _expiry_label_clock := 0.0
+
+static func loss_timer_from_row(row: Dictionary) -> Dictionary:
+	# Optional fields preserve older checkpoints. Absolute time prevents a
+	# checkpoint reload or inactive dungeon from restarting a dismissed loss.
+	var dismissed: Variant = row.get("loss_dismissed",false)
+	var expires: Variant = row.get("loss_expires_at",0.0)
+	if not dismissed is bool or not (expires is float or expires is int): return {}
+	var deadline := float(expires)
+	if not is_finite(deadline) or deadline<0: return {}
+	if dismissed and (deadline<=0 or str(row.get("death_owner_id","")).is_empty()): return {}
+	if not dismissed and deadline!=0: return {}
+	return {"dismissed":dismissed,"expires_at":deadline}
+
+func dismiss_loss(deadline: float) -> void:
+	if death_owner_id.is_empty() or loss_dismissed: return
+	loss_dismissed = true
+	loss_expires_at = deadline
+	_refresh_expiry_label()
+
+func _refresh_expiry_label() -> void:
+	if not loss_dismissed or not is_inside_tree(): return
+	if not is_instance_valid(_expiry_label):
+		_expiry_label = Label3D.new()
+		_expiry_label.name = "LossExpiry"
+		_expiry_label.position.y = 1.08
+		_expiry_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		_expiry_label.font_size = 24
+		_expiry_label.pixel_size = .004
+		_expiry_label.modulate = Color("ffb957")
+		_expiry_label.outline_size = 5
+		_expiry_label.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(_expiry_label)
+	var seconds := maxi(0,int(ceil(loss_expires_at-Time.get_unix_time_from_system())))
+	_expiry_label.text = "DISAPPEARS IN %d:%02d" % [seconds/60,seconds%60]
 
 static func new_id() -> String:
 	return Crypto.new().generate_random_bytes(16).hex_encode()
@@ -29,6 +67,7 @@ func _ready() -> void:
 	Neon.prepare()
 	name = "ItemPickup_"+pickup_id.left(8)
 	add_to_group("item_pickups")
+	_refresh_expiry_label()
 	# A small, solid plinth and faceted crystal share a single static body.
 	solid = StaticBody3D.new()
 	solid.disable_mode = CollisionObject3D.DISABLE_MODE_KEEP_ACTIVE
@@ -107,6 +146,11 @@ func _build_remnant(properties: Dictionary) -> void:
 	_glyph.add_child(Neon.lines(paths,Neon.shared_material(Color(properties.glyph_color))))
 
 func _process(delta: float) -> void:
+	if loss_dismissed:
+		_expiry_label_clock += delta
+		if _expiry_label_clock>=1.0:
+			_expiry_label_clock = 0.0
+			_refresh_expiry_label()
 	if not is_instance_valid(_glyph): return
 	_glyph_clock+=delta
 	_glyph.rotation.y+=delta*.65

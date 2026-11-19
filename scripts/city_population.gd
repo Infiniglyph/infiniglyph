@@ -15,6 +15,10 @@ var reserved_outdoors := 0 # Street-combat proxies reserve their civilian slot.
 var active_residents: Array[CharacterBody3D] = []
 var entrances: Dictionary = {}
 var public_places: Array[StringName] = []
+var neighborhood_places: Dictionary = {}
+var place_neighborhood: Dictionary = {}
+var outer_neighborhoods: Array[StringName] = []
+var initial_street_residents: Dictionary = {}
 var rng := RandomNumberGenerator.new()
 var elapsed := 0.0
 var indoor_entries := 0
@@ -87,6 +91,7 @@ func node_at(id: StringName, at: Vector3, title: String = "") -> void:
 		return
 	var index := graph.get_available_point_id()
 	points[id] = result.point
+	place_neighborhood[id] = &"hub"
 	point_ids[id] = index
 	names[id] = title if title!="" else "the avenue"
 	graph.add_point(index,result.point)
@@ -149,13 +154,20 @@ func build() -> void:
 			connect_places(previous,id)
 			connect_places(id,StringName(side+"_"+spec[0]))
 			previous = id
+	build_quiet_streets()
+	build_outer_neighborhoods()
 	public_places.assign(points.keys())
+	for id: StringName in public_places:
+		var neighborhood: StringName = place_neighborhood[id]
+		if not neighborhood_places.has(neighborhood): neighborhood_places[neighborhood] = []
+		neighborhood_places[neighborhood].append(id)
 	for door: Node3D in get_tree().get_nodes_in_group("resident_entrances"):
 		var at: Vector3 = door.outside()
 		var candidates: Array = points.keys()
 		candidates.sort_custom(func(a: StringName,b: StringName): return points[a].distance_squared_to(at)<points[b].distance_squared_to(at))
 		var links: Array[StringName] = []
 		for candidate: StringName in candidates:
+			if place_neighborhood[candidate]!=&"hub": continue
 			if points[candidate].distance_to(at)>65: continue
 			if segment_clear(at,points[candidate]): links.append(candidate)
 			if links.size()==2: break
@@ -182,6 +194,12 @@ func build() -> void:
 		colors[i] = colors[j]
 		colors[j] = swap
 	var homes: Array = entrances.keys()
+	var startup_budget := maxi(0,mini(max_outdoors,initial_outdoors))
+	# These residents have street-side routines in the wider city. Their small,
+	# independent networks never route through a locked progression gate or back
+	# to a hub-only lobby. Identities, contacts and combat remain on the same body.
+	var relocated := mini(32,mini(startup_budget,maxi(0,profiles.size()-18))) if not outer_neighborhoods.is_empty() else 0
+	var relocated_start := profiles.size()-relocated
 	for i in range(profiles.size()):
 		var resident := Resident.new()
 		resident.population = self
@@ -189,29 +207,104 @@ func build() -> void:
 		resident.profile["serial"] = i
 		resident.profile["color_name"] = colors[i%colors.size()]
 		resident.profile["tint"] = Profiles.PALETTE[colors[i%colors.size()]]*rng.randf_range(0.87,1)
+		if i>=relocated_start:
+			var district: StringName = outer_neighborhoods[((i-relocated_start)/2)%outer_neighborhoods.size()]
+			var stops: Array = neighborhood_places[district]
+			var home: StringName = stops[(i-relocated_start)%stops.size()]
+			resident.profile["neighborhood"] = district
+			resident.profile.home = home
+			resident.profile.routine = [stops[(i+2)%stops.size()],stops[(i+5)%stops.size()],home]
+			resident.profile.meeting = stops[0]
 		resident.home_building = homes[(i*7)%homes.size()]
-		resident.indoor_left = rng.randf_range(3,65)
+		resident.indoor_left = 0.5 if resident.profile.has("neighborhood") else rng.randf_range(3,65)
 		resident.position = entrances[resident.home_building].concealed()
 		add_child(resident)
 		residents.append(resident)
 		by_id[resident.profile.id] = resident
-	# Spread the initial street population over real route segments, not a plaza pile.
-	for i in range(mini(max_outdoors,mini(initial_outdoors,residents.size()))):
-		var resident: CharacterBody3D = residents[i]
-		for attempt in range(80):
-			var edge := edges[rng.randi_range(0,edges.size()-1)]
-			var at := graph.get_point_position(edge.x).lerp(graph.get_point_position(edge.y),rng.randf_range(0.12,0.88))
-			var floor := floor_at(at)
-			if floor.is_empty() or not clear_at(floor.point): continue
-			var crowded := at.distance_to(player.position)<2
-			for other: CharacterBody3D in active_residents:
-				if other.position.distance_to(at)<2: crowded = true
-			if crowded: continue
-			resident.activate(floor.point)
-			resident.wait = rng.randf_range(0.1,3)
-			break
+	# Give relocated identities real outdoor routes from startup. They replace
+	# hub street slots rather than increasing the total outdoor population budget.
+	for i in range(relocated_start,residents.size()):
+		spawn_on_street(residents[i],residents[i].profile.neighborhood)
+	for i in range(mini(relocated_start,maxi(0,startup_budget-active_residents.size()))):
+		spawn_on_street(residents[i],&"hub")
+	advance_simulation_lod(0)
 	rebuild_neighbours()
 	ready_for_visitors = true
+
+func build_quiet_streets() -> void:
+	# Ground-level perimeter streets already exist behind the skyline. They
+	# spread hub errands beyond the tutorial plaza without changing architecture.
+	for side: String in ["west","east"]:
+		var sign_x := -1.0 if side=="west" else 1.0
+		var approach := StringName(side+"_quiet_approach")
+		node_at(approach,Vector3(sign_x*68.5,0,16),"the outer avenue")
+		connect_places(StringName(side+"_outer"),approach)
+		var previous: StringName
+		for z in [-104,-72,-40,-8,16,48,80,104]:
+			var id := StringName(side+"_quiet_"+str(z))
+			node_at(id,Vector3(sign_x*102,0,z),"the outer promenade")
+			if previous!=&"": connect_places(previous,id)
+			if z==16: connect_places(approach,id)
+			previous = id
+		var north := StringName(side+"_quiet_north")
+		node_at(north,Vector3(sign_x*14,0,-104),"the northern cross street")
+		connect_places(StringName(side+"_inner_north"),north)
+		connect_places(north,StringName(side+"_quiet_-104"))
+		var south := StringName(side+"_quiet_south")
+		node_at(south,Vector3(sign_x*3.5,0,104),"the south avenue")
+		connect_places(&"south_w" if side=="west" else &"south_e",south)
+		connect_places(south,StringName(side+"_quiet_104"))
+	connect_places(&"west_quiet_north",&"east_quiet_north")
+	connect_places(&"west_quiet_south",&"east_quiet_south")
+
+func build_outer_neighborhoods() -> void:
+	if get_parent().get_node_or_null("WiderWorld")==null: return
+	# Walk the existing 64 m city block pavements. Independent neighborhoods
+	# preserve the actual closed road gates; residents do not teleport across them.
+	for base: Vector2 in [Vector2(-320,-192),Vector2(-320,128),Vector2(-128,256),Vector2(128,256),Vector2(256,128),Vector2(256,-192),Vector2(128,-320),Vector2(-128,-320)]:
+		var neighborhood := StringName("city_%d_%d" % [int(base.x),int(base.y)])
+		var route_points: Array[Vector3] = []
+		for offset: Vector2 in [Vector2(10,10),Vector2(32,10),Vector2(54,10),Vector2(54,32),Vector2(54,54),Vector2(32,54),Vector2(10,54),Vector2(10,32)]:
+			route_points.append(Vector3(base.x+offset.x,0,base.y+offset.y))
+		var valid := true
+		for i in range(route_points.size()):
+			if not segment_clear(route_points[i],route_points[(i+1)%route_points.size()]): valid = false
+		if not valid:
+			push_warning("No clear resident circuit in outer block "+String(neighborhood))
+			continue
+		for i in range(route_points.size()):
+			var id := StringName(String(neighborhood)+"_"+str(i))
+			node_at(id,route_points[i],"the outer city streets")
+			place_neighborhood[id] = neighborhood
+			if i>0: connect_places(StringName(String(neighborhood)+"_"+str(i-1)),id)
+		connect_places(StringName(String(neighborhood)+"_7"),StringName(String(neighborhood)+"_0"))
+		outer_neighborhoods.append(neighborhood)
+
+func spawn_on_street(resident: CharacterBody3D, neighborhood: StringName, concealed_only: bool = false) -> bool:
+	var options: Array[Vector2i] = []
+	for edge: Vector2i in edges:
+		var at := graph.get_point_position(edge.x).lerp(graph.get_point_position(edge.y),0.5)
+		if place_neighborhood[nearest_id(at)]!=neighborhood: continue
+		# Startup errands leave the plaza clear for the tutorial's existing actors.
+		if neighborhood==&"hub" and Vector2(at.x,at.z).length()<35: continue
+		options.append(edge)
+	if options.is_empty(): return false
+	for attempt in range(80):
+		var edge := options[rng.randi_range(0,options.size()-1)]
+		var at := graph.get_point_position(edge.x).lerp(graph.get_point_position(edge.y),rng.randf_range(0.12,0.88))
+		var floor := floor_at(at)
+		if floor.is_empty() or not clear_at(floor.point): continue
+		if concealed_only and not hidden_from_player(floor.point): continue
+		if not spawn_space_free(resident,floor.point): continue
+		var crowded := at.distance_to(player.position)<2
+		for other: CharacterBody3D in active_residents:
+			if other.position.distance_to(at)<2: crowded = true
+		if crowded: continue
+		resident.activate(floor.point)
+		if not concealed_only: initial_street_residents[resident.profile.id] = true
+		resident.wait = rng.randf_range(0.1,3)
+		return true
+	return false
 
 func rebuild_neighbours() -> void:
 	var buckets: Dictionary = {}
@@ -236,13 +329,14 @@ func goal_load(id: StringName) -> int:
 	return count
 
 func choose_destination(resident: CharacterBody3D) -> StringName:
-	if resident.outdoor_stops>=resident.stops_before_indoor:
+	var neighborhood: StringName = place_neighborhood[nearest_id(resident.position)]
+	if neighborhood==&"hub" and resident.outdoor_stops>=resident.stops_before_indoor:
 		var doors: Array = entrances.keys()
 		doors.sort_custom(func(a: StringName,b: StringName): return points[a].distance_squared_to(resident.position)<points[b].distance_squared_to(resident.position))
 		if rng.randf()<0.3 and goal_load(resident.home_building)<2: return resident.home_building
 		for id: StringName in doors:
 			if goal_load(id)<2: return id
-	var choices: Array = public_places.duplicate()
+	var choices: Array = neighborhood_places.get(neighborhood,public_places).duplicate()
 	choices.sort_custom(func(a: StringName,b: StringName): return points[a].distance_squared_to(resident.position)<points[b].distance_squared_to(resident.position))
 	var candidates: Array[StringName] = []
 	for id: StringName in choices:
@@ -252,8 +346,8 @@ func choose_destination(resident: CharacterBody3D) -> StringName:
 		if candidates.size()==8: break
 	# Personal routines still influence errands, without synchronizing the whole city.
 	var personal: StringName = resident.profile.routine[rng.randi_range(0,2)]
-	if rng.randf()<0.25 and points.has(personal) and goal_load(personal)<3: return personal
-	return candidates[rng.randi_range(0,candidates.size()-1)] if not candidates.is_empty() else resident.profile.home
+	if rng.randf()<0.15 and points.has(personal) and place_neighborhood[personal]==neighborhood and goal_load(personal)<3: return personal
+	return candidates[rng.randi_range(0,candidates.size()-1)] if not candidates.is_empty() else nearest_id(resident.position)
 
 func hidden_from_player(at: Vector3) -> bool:
 	var camera: Camera3D = get_viewport().get_camera_3d()
@@ -288,12 +382,34 @@ func spawn_space_free(resident: CharacterBody3D, at: Vector3) -> bool:
 func service_indoors(delta: float) -> void:
 	var start := _indoor_cursor
 	_indoor_cursor = (_indoor_cursor+1)%residents.size()
+	var pending_street_slots := 0
+	var waiting: Array[CharacterBody3D] = []
+	for resident: CharacterBody3D in residents:
+		if not resident.active and resident.profile.has("neighborhood") and not is_inf(resident.indoor_left): pending_street_slots += 1
 	for offset in range(residents.size()):
 		var index := (start+offset)%residents.size()
 		var resident: CharacterBody3D = residents[index]
 		if resident.active: continue
 		resident.indoor_left -= delta
-		if resident.indoor_left>0 or active_residents.size()+reserved_outdoors>=max_outdoors: continue
+		if resident.indoor_left<=0: waiting.append(resident)
+	# Longer perimeter walks must not let a few returners repeatedly take the
+	# available hub slots while other identities never get an outdoor turn.
+	waiting.sort_custom(func(a: CharacterBody3D,b: CharacterBody3D):
+		var a_turns: int = a.exits+(1 if initial_street_residents.has(a.profile.id) else 0)
+		var b_turns: int = b.exits+(1 if initial_street_residents.has(b.profile.id) else 0)
+		if a_turns!=b_turns: return a_turns<b_turns
+		return (int(a.profile.serial)-start+residents.size())%residents.size()<(int(b.profile.serial)-start+residents.size())%residents.size())
+	for resident: CharacterBody3D in waiting:
+		if active_residents.size()+reserved_outdoors>=max_outdoors: continue
+		if resident.profile.has("neighborhood"):
+			# A blocked startup placement retries its own streets out of view.
+			# Combat suspensions use INF and remain owned by the combat adapter.
+			if spawn_on_street(resident,resident.profile.neighborhood,true): pending_street_slots -= 1
+			else: resident.indoor_left = 1.0
+			continue
+		# A delayed street placement keeps its slot; a lobby exit must not take
+		# that last space and leave the outer identity waiting indefinitely.
+		if active_residents.size()+reserved_outdoors+pending_street_slots>=max_outdoors: continue
 		var door: Node3D = entrances[resident.home_building]
 		if not door.available() or not hidden_from_player(door.concealed()): continue
 		if not spawn_space_free(resident,door.concealed()): continue
@@ -313,7 +429,7 @@ func service_indoors(delta: float) -> void:
 		var distance_from_player := resident.global_position-player.global_position
 		if simulation_lod_enabled and Vector2(distance_from_player.x,distance_from_player.z).length()>physical_range+160:
 			resident.set_virtualized(true)
-		_indoor_cursor = (index+1)%residents.size()
+		_indoor_cursor = (int(resident.profile.serial)+1)%residents.size()
 
 func place_name(id: StringName) -> String:
 	return names.get(id,"the avenue")

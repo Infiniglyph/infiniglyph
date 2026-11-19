@@ -3,6 +3,7 @@ extends RefCounted
 const Inventory = preload("res://scripts/inventory.gd")
 const Instance = preload("res://scripts/item_instance.gd")
 const Equipment = preload("res://scripts/equipment_database.gd")
+const Pickup = preload("res://scripts/item_pickup.gd")
 const VERSION := 1
 const POLICY := "singleplayer_checkpoint"
 const MAX_WORLD_DROPS := 4096
@@ -69,12 +70,20 @@ static func decode(data: Variant) -> Dictionary:
 		if item == null or not item.owner_id.is_empty() or identities.has(item.instance_id): return {}
 		var death_owner: Variant = entry.get("death_owner_id","")
 		if not Instance.valid_text(death_owner,true): return {}
+		var timer := Pickup.loss_timer_from_row(entry)
+		if timer.is_empty(): return {}
 		identities[item.instance_id] = true
 		pickup_ids[String(entry.pickup_id)] = true
 		if Equipment.is_retired(item.item_type_id): continue
 		drops.append({"pickup_id":String(entry.pickup_id),"item":item.to_dict(),"position":position,"death_owner_id":String(death_owner)})
+		if timer.dismissed:
+			drops[-1].loss_dismissed = true
+			drops[-1].loss_expires_at = timer.expires_at
 		if not String(death_owner).is_empty():
 			markers.append({"instance_id":item.instance_id,"owner_id":String(death_owner),"position":position.duplicate()})
+			if timer.dismissed:
+				markers[-1].dismissed = true
+				markers[-1].expires_at = timer.expires_at
 		if entry.has("location_id"):
 			if not Instance.valid_text(entry.location_id): return {}
 			if entry.location_id!="overworld": drops[-1].location_id=String(entry.location_id)

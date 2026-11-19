@@ -7,6 +7,7 @@ const Catalog = preload("res://scripts/item_catalog.gd")
 const TowerShop = preload("res://scripts/tower_shop.gd")
 const Regions = preload("res://scripts/world_regions.gd")
 const Shields = preload("res://scripts/shield_glyphs.gd")
+const LOST_GEAR_HOLD_TIME := .7
 var actor: CharacterBody3D
 var controls: Node
 var duel: CanvasLayer
@@ -38,6 +39,10 @@ var resident_dialogue: Label
 var _resident_speaker: WeakRef
 var _resident_time := 0.0
 var _held_pickup_cooldown := 0.0
+var _inventory_sources: Dictionary = {}
+var _inventory_pending := false
+var _inventory_hold_elapsed := 0.0
+var _inventory_hold_fired := false
 
 func networked() -> bool:
 	if not is_inside_tree(): return live_session
@@ -104,6 +109,9 @@ func _ready() -> void:
 	loot.changed.connect(_dirty)
 	loot.picked_up.connect(_picked_up)
 	loot.markers.changed.connect(_refresh_losses)
+	Input.joy_connection_changed.connect(_inventory_pad_connection_changed)
+	actor.defeated.connect(func(): _cancel_inventory_hold(true))
+	actor.respawned.connect(func(): _cancel_inventory_hold(true))
 	_refresh_losses()
 	_dirty()
 
@@ -151,19 +159,73 @@ func _label(layer: CanvasLayer, at: Vector2, color: Color) -> Label:
 	layer.add_child(label)
 	return label
 
+func _inventory_allowed() -> bool:
+	if _checkpoint_pending or actor.transition_locked: return false
+	if is_instance_valid(actor.respawn_selector) and actor.respawn_selector.waiting: return false
+	if is_instance_valid(actor.get_parent().get("start_menu")) and actor.get_parent().start_menu.is_open: return false
+	if is_instance_valid(duel) and duel.dialogue_open: return false
+	if is_instance_valid(boss_encounter) and boss_encounter.dialogue_open: return false
+	if is_instance_valid(kyren_encounter) and kyren_encounter.dialogue_open: return false
+	return true
+
+func _inventory_token(event: InputEvent) -> String:
+	if event is InputEventJoypadButton: return "pad:%d:%d" % [event.device,event.button_index]
+	if event is InputEventKey: return "key:%d" % (event.physical_keycode if event.physical_keycode!=KEY_NONE else event.keycode)
+	return "inventory_action"
+
+func _toggle_inventory() -> void:
+	if not _inventory_allowed(): return
+	if shop.is_open: shop.close_menu()
+	ui.toggle()
+
+func _cancel_inventory_hold(clear_sources: bool = false) -> void:
+	_inventory_pending = false
+	_inventory_hold_elapsed = 0
+	_inventory_hold_fired = false
+	if clear_sources: _inventory_sources.clear()
+
 func _input(event: InputEvent) -> void:
-	if event.is_action_pressed("inventory_toggle") and not event.is_echo():
-		get_viewport().set_input_as_handled()
-		if _checkpoint_pending: return
-		if actor.transition_locked: return
-		if is_instance_valid(actor.get_parent().get("start_menu")) and actor.get_parent().start_menu.is_open: return
-		if is_instance_valid(duel) and duel.dialogue_open: return
-		if is_instance_valid(boss_encounter) and boss_encounter.dialogue_open: return
-		if is_instance_valid(kyren_encounter) and kyren_encounter.dialogue_open: return
-		if shop.is_open: shop.close_menu()
-		ui.toggle()
+	if not event.is_action("inventory_toggle"): return
+	get_viewport().set_input_as_handled()
+	if event.is_echo(): return
+	var token := _inventory_token(event)
+	if event.is_pressed():
+		if _inventory_sources.has(token): return
+		var first := _inventory_sources.is_empty()
+		_inventory_sources[token] = true
+		if not first or not _inventory_allowed(): return
+		if loss_hint.visible and not ui.is_open and not shop.is_open and controls.gameplay_enabled and actor.health>0:
+			_inventory_pending = true
+			_inventory_hold_elapsed = 0
+			_inventory_hold_fired = false
+		else: _toggle_inventory()
+	else:
+		if not _inventory_sources.has(token): return
+		_inventory_sources.erase(token)
+		if not _inventory_sources.is_empty(): return
+		var tap := _inventory_pending and not _inventory_hold_fired
+		_cancel_inventory_hold()
+		if tap: _toggle_inventory()
+
+func _advance_inventory_hold(delta: float) -> void:
+	if not _inventory_pending or _inventory_hold_fired: return
+	if not _inventory_allowed() or ui.is_open or shop.is_open or not controls.gameplay_enabled or actor.health<=0 or not loss_hint.visible:
+		_cancel_inventory_hold(true)
+		return
+	_inventory_hold_elapsed += maxf(0,delta)
+	if _inventory_hold_elapsed<LOST_GEAR_HOLD_TIME: return
+	_inventory_hold_fired = true
+	if loot.request_dismiss_lost_gear(actor.inventory):
+		_refresh_losses()
+		var minutes := ceili(float(loot.dismissed_loss_lifetime)/60)
+		show_notice("Lost gear hidden. Unclaimed drops disappear in %d minutes." % minutes,5)
+	else: show_notice("Lost gear could not be dismissed.")
+
+func _inventory_pad_connection_changed(_device: int, connected: bool) -> void:
+	if not connected: _cancel_inventory_hold(true)
 
 func _opened() -> void:
+	_cancel_inventory_hold()
 	_previous_mouse = Input.mouse_mode
 	controls.set_gameplay_enabled(false)
 	actor.weapon_combat.cancel()
@@ -257,6 +319,7 @@ func _collect_while_writing(delta: float) -> void:
 
 func _process(delta: float) -> void:
 	if not is_instance_valid(ui) or _checkpoint_pending: return
+	_advance_inventory_hold(delta)
 	_collect_while_writing(delta)
 	if controls.consume_heal():
 		if controls.gameplay_enabled and not ui.is_open:
@@ -321,9 +384,9 @@ func show_notice(message: String, duration: float = 3.0) -> void:
 
 func _refresh_losses() -> void:
 	if _exiting or not is_inside_tree() or not is_instance_valid(actor) or not actor.is_inside_tree(): return
-	var entries: Array = loot.markers.for_owner(actor.inventory.owner_id)
+	var entries: Array = loot.markers.for_owner(actor.inventory.owner_id).filter(func(entry: Dictionary): return not entry.get("dismissed",false))
 	if entries.size()>_loss_count:
-		show_notice("Lost gear remains where you fell. %d unclaimed." % entries.size(),6)
+		show_notice("Lost gear: %d unclaimed. Hold Select / B to dismiss." % entries.size(),6)
 	_loss_count = entries.size()
 	loss_hint.visible = not entries.is_empty()
 	loss_hint.text = ""
@@ -429,7 +492,9 @@ func seed_demo_loot() -> void:
 	loot.register_pickup(weapon)
 
 func _notification(what: int) -> void:
-	if what == NOTIFICATION_APPLICATION_FOCUS_OUT and is_instance_valid(ui) and ui.is_open: ui.close_menu()
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		_cancel_inventory_hold(true)
+		if is_instance_valid(ui) and ui.is_open: ui.close_menu()
 	if what == NOTIFICATION_WM_CLOSE_REQUEST and persistence_enabled and not networked(): save_checkpoint()
 
 func _exit_tree() -> void:
