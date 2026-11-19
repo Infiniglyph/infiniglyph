@@ -1742,11 +1742,30 @@ no colliders and keeps the existing owned Body item.
 
 Press **View / Back / Select** (Godot `JOY_BUTTON_BACK`, button 4) or keyboard
 **B** to open the field kit. Inventory has six categories and eight rows per page;
-Equipment shows the four D-pad assignments and a Body clothing slot. Left stick/D-pad or arrows navigate,
+Equipment shows the four D-pad assignments, Body, Head, Hands, Legs and two rings. Left stick/D-pad or arrows navigate,
 **A / Enter** opens item actions, **B / Escape** backs out, **LB/RB** changes tabs,
 and **LT/RT** or Left/Right changes categories. Use the Equip action to assign an
 owned weapon to any direction; use Drop to choose a stack quantity or drop one
 specific weapon. Mouse buttons work too. **F5 / Save** writes a checkpoint.
+
+The owned-item list also uses the Tower Exchange's weapon groups: Daggers,
+Swords, Heavy, Polearms, Paired, Other, Scribe, Discs and Paintbrushes. Armour can
+be filtered by Body, Head, Hands, Legs or stored patterns; consumables by Health,
+Shield or Respawn Glyphs; Miscellaneous by Rings or Other. Choose a type from the
+dropdown, press controller **Y**, or use **F / Shift+F** to cycle forward/backward.
+The Exchange and inventory share the weapon-group definitions, including the
+original longsword/shield under Swords.
+
+Click the search box or press **/** to search owned names and readable item types.
+Search intersects the selected category and type. **Enter / Escape** leaves text
+editing; **Reset** clears both filters. Filters remain when closing/reopening or
+visiting Equipment; changing category starts at All with an empty search. Exact
+item selection clears restrictive filters to reveal that instance. Every result
+still represents an owned instance, with its normal equip, use, drop and host
+validation rules. Empty results cannot act on a previous item, and removing an
+item while its actions are open closes those actions. Rows remain bounded to
+eight per page. `tests/inventory_filters.gd` and `tests/inventory_search_input.gd`
+cover filtering, live ownership changes and actual text/controller routing.
 
 Inventory keeps the world running in both solo and network play and suppresses
 local gameplay inputs only. Opening cancels

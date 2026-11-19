@@ -66,6 +66,7 @@ func _ready() -> void:
 	add_child(ui)
 	ui.opened.connect(_opened)
 	ui.closed.connect(_closed)
+	ui.type_filter.get_popup().window_input.connect(_popup_inventory_input)
 	shop = TowerShop.new()
 	shop.session = self
 	add_child(shop)
@@ -185,6 +186,11 @@ func _cancel_inventory_hold(clear_sources: bool = false) -> void:
 	if clear_sources: _inventory_sources.clear()
 
 func _input(event: InputEvent) -> void:
+	# Search owns its text keys. In particular, typing B must not also toggle
+	# the inventory, whichever node receives the input event first.
+	if event is InputEventKey and (ui.search_focused() or (ui.is_open and ui.type_filter.get_popup().visible)):
+		_inventory_sources.erase(_inventory_token(event))
+		return
 	if not event.is_action("inventory_toggle"): return
 	get_viewport().set_input_as_handled()
 	if event.is_echo(): return
@@ -206,6 +212,13 @@ func _input(event: InputEvent) -> void:
 		var tap := _inventory_pending and not _inventory_hold_fired
 		_cancel_inventory_hold()
 		if tap: _toggle_inventory()
+
+func _popup_inventory_input(event: InputEvent) -> void:
+	# The native type menu has its own input viewport. Forward View/Select to
+	# the same press/release owner so it still closes the inventory there.
+	if event is InputEventJoypadButton and event.is_action("inventory_toggle"):
+		ui.type_filter.get_popup().set_input_as_handled()
+		_input(event)
 
 func _advance_inventory_hold(delta: float) -> void:
 	if not _inventory_pending or _inventory_hold_fired: return

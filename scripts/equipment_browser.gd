@@ -4,6 +4,7 @@ const Database = preload("res://scripts/equipment_database.gd")
 const Geometry = preload("res://scripts/equipment_geometry.gd")
 const Preview = preload("res://scripts/equipment_preview.gd")
 const Catalog = preload("res://scripts/item_catalog.gd")
+const Filters = preload("res://scripts/equipment_filters.gd")
 const PAGE_SIZE := 6
 var shop: CanvasLayer
 var buttons: Array[Button] = []
@@ -109,7 +110,7 @@ func set_category(value: String) -> void:
 	page = 0
 	selected = &""
 	filter.clear()
-	var choices: Array = ["ALL","DAGGERS","SWORDS","HEAVY","POLEARMS","PAIRED","OTHER","SCRIBE","DISCS","PAINTBRUSHES"] if category=="weapons" else ["ALL","BODY","HEAD","HANDS","LEGS"] if category=="armour" else ["ALL","GLYPHS","RINGS"]
+	var choices: Array = Filters.WEAPON_NAMES if category=="weapons" else ["ALL","BODY","HEAD","HANDS","LEGS"] if category=="armour" else ["ALL","GLYPHS","RINGS"]
 	for choice: String in choices: filter.add_item(choice)
 	filter.select(0)
 
@@ -121,8 +122,7 @@ func matches(entry: Dictionary) -> bool:
 	if filter.selected==0: return true
 	if category=="armour": return fam==["","body","head","hands","legs"][filter.selected]
 	if category=="items": return fam==("consumable" if filter.selected==1 else "ring")
-	var sets: Array = [[],["dagger"],["sword","curved_sword","katana"],["axe","hammer","greatsword"],["spear","halberd","scythe"],["twin_blades","fist"],["staff","chime","whip"],["scribe"],["disc","dual_disc"],["paintbrush"]]
-	return fam in sets[filter.selected]
+	return Filters.weapon_matches(fam,filter.selected)
 
 func cycle_filter() -> void:
 	filter.select((filter.selected+1)%filter.item_count)

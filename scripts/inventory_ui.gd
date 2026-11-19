@@ -4,6 +4,7 @@ const Catalog = preload("res://scripts/item_catalog.gd")
 const Library = preload("res://scripts/weapon_library.gd")
 const Database = preload("res://scripts/equipment_database.gd")
 const ItemType = preload("res://scripts/inventory_item_type.gd")
+const Filters = preload("res://scripts/equipment_filters.gd")
 const CATEGORIES := [&"weapons",&"cosmetics",&"consumables",&"materials",&"key_items",&"misc"]
 const CATEGORY_NAMES := ["WEAPONS","ARMOR / COSMETICS","CONSUMABLES","MATERIALS","KEY ITEMS","MISCELLANEOUS"]
 const CATEGORY_GLYPHS := ["/|","<>" ,"+","#","*","::"]
@@ -31,6 +32,9 @@ var filtered_ids: Array[String] = []
 var mode: StringName = &""
 var item_rows: Array[Button] = []
 var category_buttons: Array[Button] = []
+var query: LineEdit
+var type_filter: OptionButton
+var _filter_bar: VBoxContainer
 var tab_buttons: Array[Button] = []
 var equipment_buttons: Array[Button] = []
 var _modal_buttons: Array[Button] = []
@@ -200,6 +204,35 @@ func _build() -> void:
 	content.add_child(list_column)
 	_list_title = _label("",17,CYAN)
 	list_column.add_child(_list_title)
+	_filter_bar = VBoxContainer.new()
+	_filter_bar.add_theme_constant_override("separation",6)
+	list_column.add_child(_filter_bar)
+	var search_row := HBoxContainer.new()
+	_filter_bar.add_child(search_row)
+	query = LineEdit.new()
+	query.placeholder_text = "Search owned items...  [ / ]"
+	query.max_length = 96
+	query.clear_button_enabled = true
+	query.custom_minimum_size.y = 34
+	query.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	query.add_theme_font_size_override("font_size",14)
+	query.text_changed.connect(_search_changed)
+	search_row.add_child(query)
+	var reset := _button("RESET",reset_filters,34)
+	reset.add_theme_font_size_override("font_size",13)
+	search_row.add_child(reset)
+	var type_row := HBoxContainer.new()
+	type_row.add_theme_constant_override("separation",8)
+	_filter_bar.add_child(type_row)
+	type_row.add_child(_label("TYPE",13,MUTED))
+	type_filter = OptionButton.new()
+	type_filter.custom_minimum_size.y = 34
+	type_filter.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	type_filter.add_theme_font_size_override("font_size",14)
+	type_filter.item_selected.connect(select_filter)
+	type_row.add_child(type_filter)
+	type_row.add_child(_label("Y / F",13,MUTED))
+	_set_filter_choices()
 	_row_scroll = ScrollContainer.new()
 	_row_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_row_scroll.follow_focus = true
@@ -315,9 +348,11 @@ func close_menu() -> void:
 	if not is_open: return
 	is_open = false
 	mode = &""
+	type_filter.get_popup().hide()
 	_modal.hide()
 	_screen.hide()
 	set_process(false)
+	query.release_focus()
 	closed.emit()
 
 func toggle() -> void:
@@ -352,6 +387,7 @@ func _equipped_slots(iid: String) -> Array[StringName]:
 	return result
 
 func select_tab(index: int) -> void:
+	query.release_focus()
 	tab_index = posmod(index,2)
 	selected_index = 0
 	page = 0
@@ -365,8 +401,45 @@ func select_category(index: int) -> void:
 	selected_index = 0
 	page = 0
 	selected_iid = ""
+	_set_filter_choices()
+	_clear_query()
 	_close_modal()
 	refresh()
+
+func _set_filter_choices() -> void:
+	type_filter.clear()
+	for title: String in Filters.choices(CATEGORIES[category_index]): type_filter.add_item(title)
+	type_filter.select(0)
+	type_filter.disabled = type_filter.item_count==1
+
+func _clear_query() -> void:
+	query.set_block_signals(true)
+	query.text = ""
+	query.set_block_signals(false)
+	query.release_focus()
+
+func _search_changed(_text: String) -> void:
+	_close_modal()
+	page = 0
+	selected_index = 0
+	selected_iid = ""
+	refresh()
+
+func select_filter(index: int) -> void:
+	type_filter.select(clampi(index,0,type_filter.item_count-1))
+	query.release_focus()
+	_search_changed(query.text)
+
+func cycle_filter(direction: int = 1) -> void:
+	if tab_index!=0 or not mode.is_empty(): return
+	select_filter(posmod(type_filter.selected+direction,type_filter.item_count))
+
+func reset_filters() -> void:
+	_clear_query()
+	select_filter(0)
+
+func search_focused() -> bool:
+	return is_open and tab_index==0 and mode.is_empty() and query.has_focus()
 
 func select_item(iid: String) -> void:
 	var item: Resource = inventory.get_item(iid)
@@ -374,6 +447,9 @@ func select_item(iid: String) -> void:
 	if definition == null: return
 	tab_index = 0
 	category_index = maxi(0,CATEGORIES.find(definition.category))
+	_set_filter_choices()
+	_clear_query()
+	_close_modal()
 	selected_iid = iid
 	refresh()
 
@@ -383,14 +459,19 @@ func refresh() -> void:
 	if not is_open: return
 	for i in range(tab_buttons.size()): _mark(tab_buttons[i],i==tab_index)
 	for i in range(category_buttons.size()): _mark(category_buttons[i],i==category_index and tab_index==0)
+	_filter_bar.visible = tab_index==0
+	var previous_iid := selected_iid
 	_clear_rows()
 	if tab_index==1: _refresh_equipment()
 	else: _refresh_items()
+	# A pickup/use/drop elsewhere may remove the inspected instance while its
+	# actions are open. Never let that action silently target the next result.
+	if selected_iid!=previous_iid and not mode.is_empty(): _close_modal()
 	_inspect()
 	if tab_index==1 and not _scroll_queued:
 		_scroll_queued = true
 		call_deferred("_scroll_to_equipment")
-	_help.text = "A / ENTER: actions    B / ESC: back    LB / RB: tabs    LT / RT or LEFT / RIGHT: categories    F5: save"
+	_help.text = "A / ENTER: actions   B / ESC: back   LB / RB: tabs   LT / RT or LEFT / RIGHT: categories\nY / F: type   /: search   PGUP / PGDN or RIGHT STICK: details   F5: save" if tab_index==0 else "A / ENTER: change equipment   B / ESC: back   LB / RB: tabs   F5: save\nPGUP / PGDN or RIGHT STICK: inspection details"
 
 func _scroll_to_equipment() -> void:
 	_scroll_queued = false
@@ -409,10 +490,14 @@ func _clear_rows() -> void:
 
 func _refresh_items() -> void:
 	filtered_ids.clear()
+	var search := query.text.strip_edges().to_lower().replace("_"," ")
 	for iid in inventory.items:
 		var item: Resource = inventory.get_item(String(iid))
 		var definition := _definition(item)
-		if definition != null and definition.category==CATEGORIES[category_index]: filtered_ids.append(String(iid))
+		if definition==null or definition.category!=CATEGORIES[category_index]: continue
+		if not Filters.matches(definition,type_filter.selected): continue
+		if not search.is_empty() and not Filters.searchable_text(definition).contains(search): continue
+		filtered_ids.append(String(iid))
 	filtered_ids.sort_custom(func(a: String,b: String):
 		var left := _item_name(a)
 		var right := _item_name(b)
@@ -431,6 +516,7 @@ func _refresh_items() -> void:
 	if visible_ids.is_empty():
 		_empty_label.show()
 		_empty_label.text = "No "+CATEGORY_NAMES[category_index].to_lower()+" in your field kit."
+		if type_filter.selected>0 or not search.is_empty(): _empty_label.text = "No matching owned items.\n\nTry another type or reset the filters."
 		if category_index==1: _empty_label.text += "\n\nWear equipment in its matching appearance slot."
 	for index in range(visible_ids.size()):
 		var iid := visible_ids[index]
@@ -570,6 +656,7 @@ func activate_selection() -> void:
 	_modal_choice("BACK",_close_modal)
 
 func _begin_modal(next_mode: StringName, title: String) -> void:
+	query.release_focus()
 	mode = next_mode
 	_modal_index = 0
 	_modal_buttons.clear()
@@ -695,6 +782,7 @@ func _drop() -> void:
 
 func navigate(direction: Vector2) -> void:
 	if not is_open: return
+	query.release_focus()
 	if not mode.is_empty():
 		if mode==&"quantity" and direction.x!=0:
 			_adjust_quantity(int(signf(direction.x)))
@@ -726,6 +814,14 @@ func back() -> void:
 
 func _input(event: InputEvent) -> void:
 	if not is_open: return
+	# Native text editing and dropdown navigation must run before gameplay-menu
+	# shortcuts, including B, WASD, F, Space and the arrow keys.
+	if type_filter.get_popup().visible: return
+	if event is InputEventKey and search_focused():
+		if event.pressed and event.keycode in [KEY_ESCAPE,KEY_ENTER,KEY_KP_ENTER,KEY_TAB]:
+			query.release_focus()
+			get_viewport().set_input_as_handled()
+		return
 	var handled := true
 	if event is InputEventKey:
 		if not event.pressed: return
@@ -745,6 +841,8 @@ func _input(event: InputEvent) -> void:
 			KEY_ENTER,KEY_KP_ENTER,KEY_SPACE: activate_selection()
 			KEY_ESCAPE,KEY_B: back()
 			KEY_TAB: select_tab(tab_index+1)
+			KEY_F: if mode.is_empty(): cycle_filter(-1 if event.shift_pressed else 1)
+			KEY_SLASH: if tab_index==0 and mode.is_empty(): query.grab_focus()
 			KEY_F5: save_requested.emit()
 			KEY_PAGEUP: _detail_scroll.scroll_vertical -= 160
 			KEY_PAGEDOWN: _detail_scroll.scroll_vertical += 160
@@ -764,6 +862,7 @@ func _input(event: InputEvent) -> void:
 			JOY_BUTTON_B: back()
 			JOY_BUTTON_LEFT_SHOULDER: if mode.is_empty(): select_tab(tab_index-1)
 			JOY_BUTTON_RIGHT_SHOULDER: if mode.is_empty(): select_tab(tab_index+1)
+			JOY_BUTTON_Y: cycle_filter()
 			_: handled = false
 	elif event is InputEventJoypadMotion:
 		if event.axis in [JOY_AXIS_LEFT_X,JOY_AXIS_LEFT_Y]:
