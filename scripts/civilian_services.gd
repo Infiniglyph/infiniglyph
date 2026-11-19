@@ -75,8 +75,8 @@ func _make_keeper(id: String, title: String, role: String, anchor: Node3D, tint:
 	_people.append(person)
 
 func _make_adventurer(id: String, seat: Dictionary, tint: Color, greeting: String) -> void:
-	# Ambient residents reuse the existing batched sitting rig and claim real
-	# seats. Full independent errands and economic decisions remain future work.
+	# Seated residents keep their real seat while their persistent identity can
+	# pursue lightweight background goals outside this visible interaction.
 	var anchor:=Marker3D.new()
 	establishments.add_child(anchor)
 	anchor.global_position=seat.point-Vector3.UP*.946
@@ -124,8 +124,21 @@ func nearest() -> Dictionary:
 func interact() -> bool:
 	current=nearest()
 	if current.is_empty(): return false
+	var society: Node=world.get("civilization")
+	var id:=_speaker_id()
+	if is_instance_valid(society) and not id.is_empty(): society.record_interaction(id,"conversation","player")
 	_home()
 	return true
+
+func _speaker_id() -> String:
+	var legacy:=""
+	match String(current.get("kind","")):
+		"reception": legacy="guild_receptionist"
+		"bartender": legacy="tavern_bartender"
+		"adventurer": legacy=String(current.get("id",""))
+	var society: Node=world.get("civilization")
+	if legacy.is_empty() or not is_instance_valid(society) or not society.ready_for_simulation: return ""
+	return String(society.registry.slots.get("service/"+legacy,""))
 
 func _choice(text: String, call: Callable, enabled: bool = true) -> Dictionary:
 	return {"text":text,"call":call,"enabled":enabled}
@@ -161,7 +174,22 @@ func _home() -> void:
 		"table":
 			body+="\nA shared table for meals and conversation. Food placement is reserved for a later update."
 			options.append(_choice("Eat / drink from inventory",_food_list))
+	if not _speaker_id().is_empty(): options.append(_choice("Ask about their plans",_plans))
 	menu.show_page(String(current.label).to_upper(),body,options)
+
+func _plans() -> void:
+	var society: Node=world.get("civilization")
+	var id:=_speaker_id()
+	if not is_instance_valid(society) or id.is_empty(): return
+	var record: Dictionary=society.registry.records[id]
+	var plans:="I'm taking time for "+String(record.current_goal).replace("_"," ")+"."
+	if record.current_goal=="idle": plans="I'm deciding what to do next."
+	if float(record.relationships.get("player",0))<-.2: plans="I remember our trouble. Keep your distance."
+	var text:=String(record.name)+"\n\n"+plans
+	if not String(record.guild).is_empty(): text+="\nI have ties with the Adventurers Guild."
+	for memory: Dictionary in record.memories:
+		if memory.type in ["work","meal","guild","social","combat"]: text+="\n"+String(memory.summary); break
+	menu.show_page("CONVERSATION",text,[],_home)
 
 func _rent(index: int) -> void:
 	var ok: bool=economy.rent(index)
@@ -262,4 +290,11 @@ func _process(delta: float) -> void:
 		person.visible=world.dungeon_travel.active_location==world.dungeon_travel.OUTSIDE and person.global_position.distance_to(world.player.global_position)<70
 		if person.visible: person.get_child(0).animate(.1,0,menu.is_open)
 
-func reset_state() -> bool: return economy.restore(initial_state)
+func reset_state() -> bool:
+	var before: Dictionary=economy.serialize()
+	if not economy.restore(initial_state): return false
+	var society: Node=world.get("civilization")
+	if is_instance_valid(society) and not society.restore(null):
+		economy.restore(before)
+		return false
+	return true

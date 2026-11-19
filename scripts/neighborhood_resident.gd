@@ -5,6 +5,8 @@ const Profiles = preload("res://scripts/resident_profiles.gd")
 var life: Node3D
 var record: Dictionary
 var profile: Dictionary
+var code_form_id := ""
+var social_cooldown := 0.0
 var visual: Node3D
 var caption: Label3D
 var light: OmniLight3D
@@ -34,6 +36,7 @@ func _ready() -> void:
 	add_to_group("vehicle_wave_targets")
 	global_position = record.point
 	profile = record.profile
+	code_form_id=String(record.get("code_form_id",""))
 	wait = float(record.get("wait",0))
 	name = profile.name
 	collision_layer = 4
@@ -91,6 +94,7 @@ func set_virtualized(value: bool) -> bool:
 
 func advance_virtual(delta: float) -> void:
 	if not virtualized or record.get("combat",false): return
+	social_cooldown=maxf(0,social_cooldown-delta)
 	record.wait = wait
 	var before := global_position
 	var shown_at := visual.global_position
@@ -123,20 +127,26 @@ func _process(delta: float) -> void:
 
 func talk() -> void:
 	record.meetings += 1
+	if is_instance_valid(life.civilization) and life.civilization.autonomy!=null: life.civilization.autonomy.on_talk(self)
 	if is_instance_valid(life.reactions) and life.reactions.is_annoyed(self):
 		life.reactions.answer_annoyed(self)
 		return
 	caption.text = Profiles.GREETINGS[profile.attitude] if record.meetings==1 else Profiles.AGAIN[profile.attitude]
+	if record.meetings>1 and is_instance_valid(life.civilization) and life.civilization.autonomy!=null:
+		var memory_line: String=life.civilization.autonomy.dialogue_line(self)
+		if not memory_line.is_empty(): caption.text=memory_line
 	wait = 6
 	state = "talking"
 
 func _physics_process(delta: float) -> void:
+	social_cooldown=maxf(0,social_cooldown-delta)
 	wait = maxf(0,wait-delta)
 	var route: PackedVector3Array = record.route
 	var goal: Vector3 = route[record.cursor]
 	var offset := goal-global_position
 	offset.y = 0
 	if offset.length()<0.6 and wait<=0:
+		if is_instance_valid(life.civilization) and life.civilization.autonomy!=null: life.civilization.autonomy.on_arrival(self)
 		record.cursor = (record.cursor+1)%route.size()
 		wait = 1.0+float(record.id%5)
 		state = "taking a break"
@@ -163,4 +173,4 @@ func _physics_process(delta: float) -> void:
 	if _pose_clock>=life.pose_interval(global_position):
 		visual.animate(_pose_clock,Vector2(velocity.x,velocity.z).length(),wait>0 and record.meetings>0)
 		_pose_clock = 0
-	caption.visible = wait>0 and record.meetings>0 and distance<8
+	caption.visible = wait>0 and (record.meetings>0 or state=="chatting") and distance<8

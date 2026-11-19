@@ -35,6 +35,23 @@ room deconstruction, rental expiry and checkpoint reloads. All menus stay live.
 [Civilian establishments guide](docs/CIVILIAN_ESTABLISHMENTS.md) covers controls,
 prices, conservation of coins, storage, room instances and current placeholders.
 
+## Persistent Code Form civilians
+
+City residents, regional pedestrians, drivers and guild/tavern staff now have
+individual persistent identities, motivations, memories, relationships and goals.
+They choose local errands or lightweight background work, meals, trade, social
+visits and guild activities. Conversations reflect remembered encounters; service
+staff offer **Ask about their plans**. The world continues inside instances.
+
+The civilian clock runs at one real hour per game day. Code Forms start with
+100 game years, gain another 100 per level, and receive 100 Glyph Coins every
+30 game days. Combat death retains the person; lifetime expiry creates one new
+individual and preserves the old economic history. The player, bosses and
+dungeon enemies receive no civilian XP, levels or lifetime mechanics.
+
+[Code Form civilization guide](docs/CODE_FORM_CIVILIZATION.md) describes the
+configuration, save migration, transaction rules, simulation limits and tests.
+
 ## Repository and recovery
 
 The standalone project is published at

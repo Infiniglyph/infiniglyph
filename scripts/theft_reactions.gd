@@ -40,6 +40,19 @@ func _ready() -> void:
 	if is_instance_valid(population): population.reactions = self
 	actor.defeated.connect(reset_hostility)
 	actor.respawned.connect(reset_hostility)
+	actor.weapon_combat.contact_resolved.connect(_player_contact)
+
+func _player_contact(report: Dictionary) -> void:
+	# Credit an observed lethal contact, not every bystander when the player
+	# dies from a fall or a different opponent while civilians are pursuing.
+	if float(report.get("damage",0))<=0 or actor.health>0: return
+	var attacker: Node=report.get("attacker")
+	if not is_instance_valid(attacker): return
+	for key: String in fighters:
+		if fighters[key]!=attacker: continue
+		var original: Node=entries[key].source.get_ref()
+		if is_instance_valid(original): _civilian_event(original,"victory")
+		return
 
 func _clear_anger(entry: Dictionary) -> void:
 	var provoked: bool = entry.anger>0 or entry.assault or not String(entry.line).is_empty()
@@ -86,6 +99,29 @@ func bind_source(source: CharacterBody3D) -> void:
 	var key := key_for(source)
 	if entries.has(key): entries[key].source = weakref(source)
 
+func _civilization() -> Node:
+	if is_instance_valid(population) and is_instance_valid(population.civilization): return population.civilization
+	if is_instance_valid(life) and is_instance_valid(life.civilization): return life.civilization
+	return null
+
+func _civilian_event(source: Node, kind: String) -> void:
+	var society:=_civilization()
+	if is_instance_valid(society) and society.autonomy!=null: society.autonomy.on_combat(source,kind)
+
+func retire_source(source: CharacterBody3D) -> void:
+	# Expiration retires the old individual's adapter, not their economic history.
+	# A deferred defeat callback cannot restore a body after its entry is removed.
+	var key:=key_for(source)
+	if fighters.has(key): finish_fighter(key,true)
+	var entry: Dictionary=entries.get(key,{})
+	if entry.is_empty(): return
+	if is_instance_valid(entry.get("bubble")): entry.bubble.queue_free()
+	if entry.suspended:
+		if entry.regional: source.record.combat=false
+		else: source.population.reserved_outdoors=maxi(0,source.population.reserved_outdoors-1)
+	entries.erase(key)
+	_sync_player()
+
 func civilian_health(source: CharacterBody3D) -> float:
 	var entry: Dictionary = entries.get(key_for(source),{})
 	return float(entry.get("health",Combat.BASE_HEALTH))
@@ -128,6 +164,7 @@ func receive_assault(source: CharacterBody3D, amount: float, origin: Vector3, at
 	if entry.dead or entry.suspended or fighters.has(key): return 0
 	var applied := minf(amount,float(entry.health))
 	entry.health -= applied
+	_civilian_event(source,"assault")
 	var serial := int(incoming.get("attack_serial",-1))
 	if serial<0 or serial!=int(entry.last_attack):
 		entry.last_attack = serial
@@ -155,6 +192,7 @@ func receive_assault(source: CharacterBody3D, amount: float, origin: Vector3, at
 	add_child(number)
 	number.global_position = source.global_position+Vector3.UP*1.5
 	if entry.health<=0:
+		_civilian_event(source,"defeated")
 		_suspend_source(entry,source)
 		entry.dead = true
 		entry.respawn = respawn_delay
@@ -216,6 +254,7 @@ func react(source: CharacterBody3D, owner: bool, tier: int = 0) -> void:
 	entry.source = weakref(source)
 	entry.tier = tier
 	_raise_anger(entry,_theft_gain(source,key,owner))
+	_civilian_event(source,"theft")
 	entry.speech = 5.5
 	var lines: Array = OWNER_LINES if owner else WITNESS_LINES
 	entry.line = lines[absi(key.hash()+int(entry.anger))%lines.size()]
@@ -286,6 +325,9 @@ func finish_fighter(key: String, defeated: bool = false, expected: Node = null) 
 	# Preserve the NPC's death instead of restoring a zero-HP hostile civilian.
 	defeated = defeated or fighter.dead or fighter.health<=0
 	var entry: Dictionary = entries[key]
+	var original: Node=entry.source.get_ref()
+	if is_instance_valid(original):
+		if defeated: _civilian_event(original,"defeated")
 	if actor.target_lock.opponent==fighter: actor.target_lock.clear()
 	entry.last_position = fighter.global_position
 	entry.health = fighter.health
@@ -310,6 +352,15 @@ func restore_source(entry: Dictionary, at_spawn: bool) -> bool:
 	var source: CharacterBody3D = entry.source.get_ref()
 	if not is_instance_valid(source): return false
 	var at: Vector3 = entry.spawn if at_spawn else entry.get("last_position",entry.spawn)
+	if at_spawn:
+		var society:=_civilization()
+		if is_instance_valid(society):
+			var identity: String=society.id_for_source(source)
+			if not identity.is_empty():
+				var descriptor: Dictionary=society.registry.combat_respawn(identity)
+				if descriptor.get("location")=="overworld":
+					var point: Array=descriptor.position
+					at=Vector3(float(point[0]),float(point[1]),float(point[2]))
 	# Delay reconstitution if another body/structure occupies the spawn.
 	var query := PhysicsShapeQueryParameters3D.new()
 	var capsule := CapsuleShape3D.new()

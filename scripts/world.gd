@@ -25,7 +25,10 @@ const RespawnGlyphs = preload("res://scripts/respawn_glyphs.gd")
 var respawn_glyphs: Node
 const DungeonTravel = preload("res://scripts/dungeon_travel.gd")
 const CivilianServices = preload("res://scripts/civilian_services.gd")
+const Civilization = preload("res://scripts/code_form_civilization.gd")
 var civilian_services: Node
+var civilization: Node
+@export var civilization_enabled := true
 var dungeon_travel: Node
 var graphics: Node
 var theft_reactions: Node3D
@@ -196,6 +199,10 @@ func _ready() -> void:
 		civilian_services.world=self
 		add_child(civilian_services)
 	if is_instance_valid(dungeon_travel): dungeon_travel.configure()
+	if civilization_enabled and is_instance_valid(civilian_services):
+		civilization=Civilization.new()
+		civilization.world=self
+		add_child(civilization)
 	if not inventory_session.networked():
 		respawn_glyphs=RespawnGlyphs.new()
 		respawn_glyphs.world=self

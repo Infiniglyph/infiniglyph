@@ -9,6 +9,7 @@ const Profiles = preload("res://scripts/resident_profiles.gd")
 @export var population_seed := 0
 var player: CharacterBody3D
 var reactions: Node3D
+var civilization: Node # Explicit civilians only; the controller supplies this after census.
 var duel: CanvasLayer
 var residents: Array[CharacterBody3D] = []
 var reserved_outdoors := 0 # Street-combat proxies reserve their civilian slot.
@@ -336,6 +337,9 @@ func choose_destination(resident: CharacterBody3D) -> StringName:
 		if rng.randf()<0.3 and goal_load(resident.home_building)<2: return resident.home_building
 		for id: StringName in doors:
 			if goal_load(id)<2: return id
+	if is_instance_valid(civilization) and civilization.autonomy!=null:
+		var chosen: StringName=civilization.autonomy.choose_destination(resident)
+		if not chosen.is_empty(): return chosen
 	var choices: Array = neighborhood_places.get(neighborhood,public_places).duplicate()
 	choices.sort_custom(func(a: StringName,b: StringName): return points[a].distance_squared_to(resident.position)<points[b].distance_squared_to(resident.position))
 	var candidates: Array[StringName] = []
@@ -540,6 +544,7 @@ func converse(a: CharacterBody3D, b: CharacterBody3D) -> void:
 		b.reply = "They haven't stopped me from finishing my day."
 	b.reply_time = 2.9
 	social_events += 1
+	if is_instance_valid(civilization) and civilization.autonomy!=null: civilization.autonomy.on_converse(a,b)
 
 func _physics_process(delta: float) -> void:
 	if not ready_for_visitors: return

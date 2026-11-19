@@ -104,6 +104,8 @@ func run() -> void:
 	world = load("res://scenes/main.tscn").instantiate()
 	world.inventory_persistence_enabled = false
 	world.world_memory_enabled = false
+	# This fixture isolates fixed service prices and treasury settlement.
+	world.civilization_enabled = false
 	world.district_life_enabled = false
 	world.boss_encounters_enabled = false
 	world.dungeon_enemies_enabled = false

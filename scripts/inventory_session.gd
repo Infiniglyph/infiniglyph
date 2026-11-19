@@ -7,6 +7,7 @@ const Catalog = preload("res://scripts/item_catalog.gd")
 const TowerShop = preload("res://scripts/tower_shop.gd")
 const Regions = preload("res://scripts/world_regions.gd")
 const Shields = preload("res://scripts/shield_glyphs.gd")
+const CheckpointEncoder = preload("res://scripts/checkpoint_encoder.gd")
 const LOST_GEAR_HOLD_TIME := .7
 var actor: CharacterBody3D
 var controls: Node
@@ -25,6 +26,8 @@ var shop: CanvasLayer
 @export var live_session := false
 var _loading := false
 var _save_queued := false
+var _save_again := false
+var _encoder := CheckpointEncoder.new()
 var _previous_mouse := Input.MOUSE_MODE_CAPTURED
 var _hint_clock := 0.0
 var _notice_time := 0.0
@@ -132,6 +135,10 @@ func _load_initial_checkpoint() -> void:
 	await get_tree().physics_frame
 	await get_tree().process_frame
 	if not is_inside_tree(): return
+	var civilization: Node=actor.get_parent().get("civilization")
+	while is_instance_valid(civilization) and not civilization.ready_for_simulation:
+		await get_tree().physics_frame
+		if not is_inside_tree(): return
 	var loaded := load_checkpoint()
 	if not loaded:
 		_checkpoint_usable = false
@@ -344,6 +351,7 @@ func _collect_while_writing(delta: float) -> void:
 		controls.claim_weapon_modifier()
 
 func _process(delta: float) -> void:
+	_poll_autosave()
 	if not is_instance_valid(ui) or _checkpoint_pending: return
 	_advance_inventory_hold(delta)
 	_collect_while_writing(delta)
@@ -451,25 +459,73 @@ func _refresh_losses() -> void:
 	loss_hint.text = "LOST GEAR  %.0f m  |  %s  |  ALT %.0f m  |  %d unclaimed" % [distance,Regions.grid_label(Regions.grid_at(point)),point.y,entries.size()]
 
 func _dirty() -> void:
-	if _exiting or not is_inside_tree() or _loading or _checkpoint_pending or not persistence_enabled or networked() or _save_queued: return
+	if _exiting or not is_inside_tree() or _loading or _checkpoint_pending or not persistence_enabled or networked(): return
+	var society: Node=actor.get_parent().get("civilization")
+	# Background commerce is checkpointed with the coalesced society clock.
+	# Player purchases still request a save as soon as their transaction ends.
+	if is_instance_valid(society) and society.transaction_active(): return
+	if _save_queued:
+		_save_again=true
+		return
 	_save_queued = true
 	call_deferred("_autosave")
 
 func _autosave() -> void:
-	_save_queued = false
-	if is_inside_tree() and not _exiting and persistence_enabled and not networked(): save_checkpoint("",true)
+	if not _save_queued or _encoder.pending(): return
+	if not is_inside_tree() or _exiting or not persistence_enabled or networked(): _save_queued=false; return
+	_save_again=false
+	var snapshot:=_capture_checkpoint()
+	if snapshot.is_empty(): _save_queued=false; return
+	var error: Error=_encoder.start(snapshot)
+	if error!=OK:
+		_save_queued=false
+		show_notice("Inventory autosave could not be prepared; current items remain in memory.",6)
+
+func _poll_autosave() -> void:
+	if not _encoder.ready(): return
+	var result: Dictionary=_encoder.take_result()
+	if _exiting or not persistence_enabled or networked(): _save_queued=false; _save_again=false; return
+	var error:=int(result.get("error",ERR_INVALID_DATA))
+	if error==OK: error=Store._commit_encoded(save_path,result.bytes)
+	_save_queued=false
+	if error!=OK: show_notice("Inventory autosave failed; current items remain in memory.",6)
+	if _save_again:
+		_save_again=false
+		_dirty()
+
+func _discard_autosave() -> void:
+	_encoder.finish(true)
+	_save_queued=false
+	_save_again=false
+
+func _capture_checkpoint() -> Dictionary:
+	if _exiting or _loading or _checkpoint_pending or not is_inside_tree() or loot.transaction_active() or networked(): return {}
+	var civilization: Node=actor.get_parent().get("civilization")
+	if is_instance_valid(civilization) and (not civilization.ready_for_simulation or civilization.transaction_active()): return {}
+	var location: String=String(dungeon_travel.active_location) if is_instance_valid(dungeon_travel) else "overworld"
+	var state: Dictionary=dungeon_travel.location_state() if is_instance_valid(dungeon_travel) else {}
+	var civilian: Dictionary=civilian_services.economy.serialize() if is_instance_valid(civilian_services) else {}
+	var society: Dictionary=civilization.serialize() if is_instance_valid(civilization) else {}
+	var snapshot: Dictionary={"version":Store.VERSION,"policy":Store.POLICY,"session_id":loot.session_id,"inventory":actor.inventory.serialize(),"world_drops":loot.serialize_world(),"markers":[]}
+	if location!="overworld": snapshot.location_context=location
+	if not state.is_empty(): snapshot.location_state=state
+	if not civilian.is_empty(): snapshot.civilian_state=civilian
+	if not society.is_empty(): snapshot.civilization_state=society
+	return snapshot
 
 func save_checkpoint(path: String = "", silent: bool = false) -> bool:
 	if _exiting or _loading or _checkpoint_pending or not is_inside_tree(): return false
 	if loot.transaction_active(): return false
+	var civilization: Node=actor.get_parent().get("civilization")
+	if is_instance_valid(civilization) and (not civilization.ready_for_simulation or civilization.transaction_active()): return false
 	if networked():
 		show_notice("Session ownership is saved by the host.")
 		return false
+	_discard_autosave()
 	var destination := path if not path.is_empty() else save_path
-	var location: String=String(dungeon_travel.active_location) if is_instance_valid(dungeon_travel) else "overworld"
-	var state: Dictionary=dungeon_travel.location_state() if is_instance_valid(dungeon_travel) else {}
-	var civilian: Dictionary=civilian_services.economy.serialize() if is_instance_valid(civilian_services) else {}
-	var snapshot: Dictionary = Store.encode(actor.inventory,loot.serialize_world(),[],loot.session_id,location,state,civilian)
+	# One validation in Store.store is sufficient for this authority-owned
+	# capture; avoid validating thousands of civilian records twice per save.
+	var snapshot: Dictionary=_capture_checkpoint()
 	var error: Error = Store.store(destination,snapshot)
 	if error != OK:
 		show_notice("Inventory save failed; current items remain in memory.",6)
@@ -479,6 +535,8 @@ func save_checkpoint(path: String = "", silent: bool = false) -> bool:
 
 func load_checkpoint(path: String = "") -> bool:
 	if networked() or loot.transaction_active(): return false
+	var civilization: Node=actor.get_parent().get("civilization")
+	if is_instance_valid(civilization) and (not civilization.ready_for_simulation or civilization.transaction_active()): return false
 	var source := path if not path.is_empty() else save_path
 	var snapshot: Dictionary = Store.load_snapshot(source)
 	if snapshot.is_empty() or snapshot.session_id != loot.session_id or snapshot.inventory.owner_id != actor.inventory.owner_id: return false
@@ -486,12 +544,15 @@ func load_checkpoint(path: String = "") -> bool:
 	if is_instance_valid(dungeon_travel):
 		if not dungeon_travel.can_load_location(location): return false
 	elif location!=&"overworld": return false
+	_discard_autosave()
 	var owned_before: Dictionary = actor.inventory.serialize()
 	var world_before: Array = loot.serialize_world()
 	var civilian_before: Dictionary=civilian_services.economy.serialize() if is_instance_valid(civilian_services) else {}
+	var society_before: Dictionary=civilization.serialize() if is_instance_valid(civilization) else {}
 	_loading = true
 	var ok: bool = actor.inventory.restore(snapshot.inventory)
 	if ok and is_instance_valid(civilian_services): ok=civilian_services.economy.restore(snapshot.get("civilian_state",civilian_services.initial_state))
+	if ok and is_instance_valid(civilization): ok=civilization.restore(snapshot.get("civilization_state"),false)
 	var world_changed := false
 	if ok:
 		ok = loot.restore_world(snapshot.world_drops)
@@ -500,9 +561,15 @@ func load_checkpoint(path: String = "") -> bool:
 	if not ok:
 		actor.inventory.restore(owned_before)
 		if is_instance_valid(civilian_services): civilian_services.economy.restore(civilian_before)
+		if is_instance_valid(civilization): civilization.restore(society_before,false)
 		# restore_world is already atomic on rejection. Replacing untouched
 		# drops here would leave duplicate pending colliders until frame end.
 		if world_changed: loot.restore_world(world_before)
+	if ok and is_instance_valid(civilization) and _checkpoint_pending:
+		# Catch-up runs once at startup, after the whole checkpoint has committed.
+		var saved_at: float=float(snapshot.get("civilization_state",{}).get("saved_unix",Time.get_unix_time_from_system()))
+		if not civilization.advance_real(maxf(0,Time.get_unix_time_from_system()-saved_at),true):
+			show_notice("World restored. Offline simulation could not advance: "+String(civilization.last_error),10)
 	_loading = false
 	return ok
 
@@ -543,3 +610,4 @@ func _notification(what: int) -> void:
 
 func _exit_tree() -> void:
 	_exiting = true
+	_encoder.finish(true)

@@ -10,6 +10,7 @@ var actor: CharacterBody3D
 var regions: Node3D
 var session: Node
 var reactions: Node3D
+var civilization: Node
 var vehicles: Dictionary = {}
 var people: Dictionary = {}
 var vehicle_records: Array[Dictionary] = []
@@ -53,6 +54,12 @@ func profile_for(id: int, driver: bool = false) -> Dictionary:
 	profile.tint = Profiles.PALETTE[colors[id%colors.size()]]
 	return profile
 
+func driver_profile(id: int) -> Dictionary:
+	var profile:=profile_for(id,true)
+	profile.code_form_slot="driver/"+str(id)
+	profile.code_form_id=""
+	return profile
+
 func point(x: float, z: float) -> Vector3:
 	return Vector3(x,Regions.surface_at(x,z)+0.04,z)
 
@@ -92,20 +99,20 @@ func build() -> void:
 			driveways[key] = batch
 		driveways[key].box(at+Vector3.UP*0.025,Vector3(3.4,0.05,7.4),"Driveway",Color(0.06,0.4,0.45))
 		var id := vehicle_records.size()
-		vehicle_records.append({"id":id,"kind":["car","motorcycle","truck"][id%3],"point":at+Vector3.UP*0.12,"yaw":0.0,"traffic":false,"taken":false,"route":PackedVector3Array(),"cursor":0,"color":Profiles.PALETTE.values()[id%11],"driver":profile_for(id,true)})
+		vehicle_records.append({"id":id,"kind":["car","motorcycle","truck"][id%3],"point":at+Vector3.UP*0.12,"yaw":0.0,"traffic":false,"taken":false,"route":PackedVector3Array(),"cursor":0,"color":Profiles.PALETTE.values()[id%11],"driver":driver_profile(id)})
 	for batch: Node3D in driveways.values(): batch.commit()
 	_built = true
 	refresh_active()
 
 func add_person(route: PackedVector3Array, cursor: int, at: Vector3) -> void:
 	var id := resident_records.size()
-	resident_records.append({"id":id,"profile":profile_for(id),"point":at,"route":route,"cursor":(cursor+1)%route.size(),"meetings":0,"checked":false,"valid":true})
+	resident_records.append({"id":id,"code_form_slot":"region/"+str(id),"code_form_id":"","profile":profile_for(id),"point":at,"route":route,"cursor":(cursor+1)%route.size(),"meetings":0,"checked":false,"valid":true})
 
 func add_traffic(route: PackedVector3Array) -> void:
 	var id := vehicle_records.size()
 	var start := id%4
 	var forward := route[(start+1)%4]-route[start]
-	vehicle_records.append({"id":id,"kind":["car","motorcycle","truck"][id%3],"point":route[start],"yaw":atan2(forward.x,forward.z),"traffic":true,"taken":false,"route":route,"cursor":(start+1)%4,"color":Profiles.PALETTE.values()[id%11],"driver":profile_for(id,true)})
+	vehicle_records.append({"id":id,"kind":["car","motorcycle","truck"][id%3],"point":route[start],"yaw":atan2(forward.x,forward.z),"traffic":true,"taken":false,"route":route,"cursor":(start+1)%4,"color":Profiles.PALETTE.values()[id%11],"driver":driver_profile(id)})
 
 func clear_vehicle(at: Vector3, size: Vector3, excluded: Array[RID]) -> bool:
 	_vehicle_box.size = size
@@ -217,6 +224,7 @@ func spawn_person(record: Dictionary) -> CharacterBody3D:
 	resident.position = record.point
 	add_child(resident)
 	people[record.id] = resident
+	if is_instance_valid(civilization) and civilization.autonomy!=null: civilization.autonomy.bind_source(resident)
 	return resident
 
 func eject_driver(vehicle: CharacterBody3D, at: Vector3) -> CharacterBody3D:
@@ -236,7 +244,9 @@ func eject_driver(vehicle: CharacterBody3D, at: Vector3) -> CharacterBody3D:
 		if not pedestrian_clear(candidate): break
 		destination = candidate
 	var route := PackedVector3Array([at,destination])
-	var record := {"id":id,"profile":vehicle.record.driver.duplicate(true),"point":at,"route":route,"cursor":0,"meetings":0,"checked":true,"valid":true}
+	# Ejection changes the driver's physical representation, never their identity.
+	var driver: Dictionary=vehicle.record.driver
+	var record := {"id":id,"code_form_slot":driver.get("code_form_slot","driver/"+str(vehicle.record.id)),"code_form_id":driver.get("code_form_id",""),"profile":driver.duplicate(true),"point":at,"spawn":at,"route":route,"cursor":0,"meetings":0,"checked":true,"valid":true}
 	resident_records.append(record)
 	# Evict one distant pose if the neighborhood is already at budget.
 	if people.size()>=resident_budget:
@@ -285,6 +295,7 @@ func _physics_process(delta: float) -> void:
 	if _clock<0.5: return
 	var elapsed := _clock
 	_clock = 0
+	_social_tick()
 	# Distant traffic advances a lightweight route record, with no mesh/physics.
 	for record: Dictionary in vehicle_records:
 		if vehicles.has(record.id) or not record.traffic or record.taken: continue
@@ -311,9 +322,31 @@ func advance_journey(record: Dictionary, delta: float) -> void:
 	var distance: float = record.point.distance_to(route[record.cursor])
 	if distance<=speed*delta:
 		record.point = route[record.cursor]
+		if is_instance_valid(civilization) and civilization.autonomy!=null: civilization.autonomy.on_regional_arrival(record)
 		record.cursor = (record.cursor+1)%route.size()
 		record.wait = 1.0+float(record.id%5)
 	else:
 		record.point = record.point.move_toward(route[record.cursor],speed*delta)
 		if maxf(absf(record.point.x),absf(record.point.z))>704:
 			record.point.y = Regions.surface_at(record.point.x,record.point.z)+0.04
+
+func _social_tick() -> void:
+	if not is_instance_valid(civilization) or civilization.autonomy==null: return
+	var nearby: Array=people.values()
+	for i in range(nearby.size()):
+		var a: CharacterBody3D=nearby[i]
+		if a.virtualized or a.wait>0 or a.social_cooldown>0 or a.record.get("combat",false): continue
+		if is_instance_valid(reactions) and reactions.is_annoyed(a): continue
+		for j in range(i+1,nearby.size()):
+			var b: CharacterBody3D=nearby[j]
+			if b.virtualized or b.wait>0 or b.social_cooldown>0 or b.record.get("combat",false): continue
+			if a.global_position.distance_to(b.global_position)>2.6: continue
+			if is_instance_valid(reactions) and reactions.is_annoyed(b): continue
+			var ray:=PhysicsRayQueryParameters3D.create(a.combat_point(),b.combat_point(),1,[a.get_rid(),b.get_rid()])
+			if not get_world_3d().direct_space_state.intersect_ray(ray).is_empty(): continue
+			for pair: Array in [[a,b],[b,a]]:
+				pair[0].caption.text="Good to see you, "+String(pair[1].profile.name)+"."
+				pair[0].wait=3.5; pair[0].record.wait=3.5
+				pair[0].social_cooldown=30; pair[0].state="chatting"
+			civilization.autonomy.on_converse(a,b)
+			return # At most one visible social exchange per district service tick.

@@ -3,6 +3,7 @@ const Visual = preload("res://scripts/resident_visual.gd")
 const Profiles = preload("res://scripts/resident_profiles.gd")
 var population: Node3D
 var profile: Dictionary
+var code_form_id := ""
 var visual: Node3D
 var caption: Label3D
 var nameplate: Label3D
@@ -220,11 +221,13 @@ func arrived() -> void:
 		return
 	arrivals += 1
 	outdoor_stops += 1
+	if is_instance_valid(population.civilization) and population.civilization.autonomy!=null: population.civilization.autonomy.on_arrival(self)
 	wait = population.rng.randf_range(2.5,7)
 	state = "checking lamps" if profile.role=="lamp tender" else ("tending the court" if profile.role=="gardener" else "taking a break")
 
 func talk() -> String:
 	visits += 1
+	if is_instance_valid(population.civilization) and population.civilization.autonomy!=null: population.civilization.autonomy.on_talk(self)
 	if is_instance_valid(population.reactions) and population.reactions.is_annoyed(self): return population.reactions.answer_annoyed(self)
 	reply_time = 0
 	population.speaker = self
@@ -241,6 +244,9 @@ func talk() -> String:
 	elif visits%3==1:
 		text = "I'm heading to %s. %s" % [population.place_name(goal),"The lamps need checking." if profile.role=="lamp tender" else ("I like having a familiar route." if profile.role=="resident" else "There is always something to do.")]
 	else: text = "Ember spars by the eastern sentries. Ask first. The rest of us need the street."
+	if visits>1 and reaction_time<=0 and is_instance_valid(population.civilization) and population.civilization.autonomy!=null:
+		var memory_line: String=population.civilization.autonomy.dialogue_line(self)
+		if not memory_line.is_empty(): text=memory_line
 	wait = maxf(wait,5.5)
 	state = "talking"
 	face(population.player.global_position,1)

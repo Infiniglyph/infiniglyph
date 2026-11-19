@@ -53,9 +53,10 @@ exported on their service nodes; item definitions supply the catalog entries.
 
 ## Coins and persistence
 
-There is one explicit opening blessing: the existing 100 natural resident
-identities, receptionist, bartender and two seated adventurers each receive
-100 coins. The receptionist and bartender transfer their own opening shares
+The original opening blessing covers the 100 city residents, receptionist,
+bartender and two seated adventurers. The Code Form civilization extends that
+census to regional pedestrians and drivers, each receiving 100 coins once.
+The receptionist and bartender transfer their own opening shares
 into their respective business treasuries. Visiting players start at zero.
 The opening census uses stable profile IDs, independent of deferred NPC-body
 construction. Loading a checkpoint restores its ledger without reissuing coins.
@@ -64,8 +65,10 @@ Rent, crystal sales and food purchases transfer existing coins. Insufficient
 funds/capacity, invalid ownership and reentrant transactions fail without moving
 items or money. A bounded transaction journal and replayable audit base record
 issuance and transfers; validation checks the total against issued supply.
-`bless_cycle()` is the explicit future issuance hook. There is no automatic
-recurring blessing because the game has no shared calendar scheduler yet.
+The shared civilian clock now calls `bless_cycle()` every 30 game days. One real
+hour is one game day; each active Code Form receives the same 100-coin payment.
+See [Code Form civilization](CODE_FORM_CIVILIZATION.md) for lifetime, replacement,
+transaction XP, currency destruction and migration rules.
 
 The single-player checkpoint stores the ledger, rental deadline, all three
 room inventories and Guild stock alongside owned inventory and world drops.
@@ -107,11 +110,12 @@ expired room checkpoint returns to the hallway and retains its storage/drops.
 ## Current boundaries
 
 The contract board is a visible placeholder without active quests. Sleep is
-configurable timed recovery; it does not advance a calendar. Tables expose
+configurable timed recovery; the civilian clock advances normally. Tables expose
 consumption and reserve future food placement. The two seated adventurers
-provide short conversations and occupy real seats; autonomous adventuring,
-economic decisions and social schedules are future work. Keepers use static
-service roles and lightweight idle gestures. This authority and private lodging
+provide short conversations and occupy real seats. Their Code Form identities
+now participate in lightweight goals, memories, relationships and economic
+decisions; physical quest expeditions remain future work. Keepers retain static
+service positions and lightweight idle gestures. This authority and private lodging
 flow is enabled in single-player, matching the existing dungeon travel boundary.
 
 No dynamic point lights or heavyweight libraries were added. Public architecture

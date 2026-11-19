@@ -5,17 +5,21 @@ const Instance = preload("res://scripts/item_instance.gd")
 const Equipment = preload("res://scripts/equipment_database.gd")
 const Pickup = preload("res://scripts/item_pickup.gd")
 const Economy = preload("res://scripts/civilian_economy.gd")
+const Civilization = preload("res://scripts/code_form_civilization.gd")
 const VERSION := 1
 const POLICY := "singleplayer_checkpoint"
 const MAX_WORLD_DROPS := 4096
-const MAX_SAVE_BYTES := 8*1024*1024
+# The persistent civilian census can legitimately exceed the old item-only
+# eight MiB ceiling. Per-record and population bounds still validate contents.
+const MAX_SAVE_BYTES := 128*1024*1024
 
-static func encode(inventory: Node, world_drops: Array = [], markers: Array = [], session_id: String = "singleplayer", location: String = "overworld", location_state: Dictionary = {}, civilian_state: Dictionary = {}) -> Dictionary:
+static func encode(inventory: Node, world_drops: Array = [], markers: Array = [], session_id: String = "singleplayer", location: String = "overworld", location_state: Dictionary = {}, civilian_state: Dictionary = {}, civilization_state: Dictionary = {}) -> Dictionary:
 	if inventory == null or not inventory.has_method("serialize"): return {}
 	var data: Dictionary={"version":VERSION,"policy":POLICY,"session_id":session_id,"inventory":inventory.serialize(),"world_drops":world_drops,"markers":markers}
 	if location!="overworld": data.location_context=location
 	if not location_state.is_empty(): data.location_state=location_state
 	if not civilian_state.is_empty(): data.civilian_state=civilian_state
+	if not civilization_state.is_empty(): data.civilization_state=civilization_state
 	return decode(data)
 
 static func decode(data: Variant) -> Dictionary:
@@ -98,13 +102,37 @@ static func decode(data: Variant) -> Dictionary:
 		var civilian:=Economy.validate(data.civilian_state,owned,drops)
 		if civilian.is_empty(): return {}
 		decoded.civilian_state=civilian
+	if data.has("civilization_state"):
+		if not decoded.has("civilian_state"): return {}
+		var society:=Civilization.validate(data.civilization_state)
+		if society.is_empty(): return {}
+		# Civilization.validate already canonicalized the complete registry.
+		# Rebuilding and validating that model twice more makes large saves stall.
+		var model: Dictionary=society.registry
+		var active: Array=model.slots.values()
+		var paid: Array=decoded.civilian_state.active_ids.duplicate()
+		active.sort()
+		paid.sort()
+		if active!=paid: return {}
+		var historical: Array=model.records.keys()
+		var accounts: Array=decoded.civilian_state.natural_ids.duplicate()
+		historical.sort(); accounts.sort()
+		if historical!=accounts: return {}
+		var blessing_interval: float=float(model.config.blessing_days)*float(model.config.day_seconds)
+		if int(decoded.civilian_state.last_cycle)!=floori(model.world_seconds/blessing_interval): return {}
+		decoded.civilization_state=society
 	return decoded
 
 static func store(path: String, snapshot: Dictionary) -> Error:
 	var validated := decode(snapshot)
 	if validated.is_empty(): return ERR_INVALID_DATA
-	var text := JSON.stringify(validated,"",true,true)
-	if text.to_utf8_buffer().size()>MAX_SAVE_BYTES: return ERR_OUT_OF_MEMORY
+	return _commit_encoded(path,JSON.stringify(validated,"",true,true).to_utf8_buffer())
+
+static func _commit_encoded(path: String, bytes: PackedByteArray) -> Error:
+	# Internal commit boundary: callers must have validated this immutable
+	# encoding with Store.decode or CheckpointEncoder. Never accepts live state.
+	if bytes.is_empty(): return ERR_INVALID_DATA
+	if bytes.size()>MAX_SAVE_BYTES: return ERR_OUT_OF_MEMORY
 	var absolute := ProjectSettings.globalize_path(path)
 	var directory_error := DirAccess.make_dir_recursive_absolute(absolute.get_base_dir())
 	if directory_error != OK: return directory_error
@@ -112,7 +140,7 @@ static func store(path: String, snapshot: Dictionary) -> Error:
 	var backup := absolute+".bak"
 	var file := FileAccess.open(temporary,FileAccess.WRITE)
 	if file == null: return FileAccess.get_open_error()
-	file.store_string(text)
+	file.store_buffer(bytes)
 	file.flush()
 	var write_error := file.get_error()
 	file.close()
