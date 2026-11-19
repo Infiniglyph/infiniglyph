@@ -878,6 +878,13 @@ meshes and restores their original materials afterwards. It never dissolves
 the player or scales physics. Movement, attacks and damage are gated for the
 brief transition, with no loading splash or progress bar.
 
+Combat body/arm posing also observes this transition lock. Entering clears its
+additive overlay and stance anchors; ready poses resume on the fresh locomotion
+pose after arrival. This keeps drawn Manuscripts and Paintbrushes upright during
+both doorway phases instead of stacking their ready lean while gait is frozen.
+Weapon selection, drawn/sheathed state, health and equipment are preserved.
+`tests/dungeon_drawn_weapons.gd` samples the actual joints through entry and exit.
+
 `scripts/respawn_context.gd` resolves the existing death pipeline's destination.
 Without placed glyphs, outdoor deaths use `TemporaryHomeSpawn` at the original
 city spawn and dungeon deaths use `DungeonFrontDoorSpawn`. Placed Respawn Glyphs

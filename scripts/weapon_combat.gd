@@ -455,12 +455,15 @@ func cancel() -> void:
 	active_move = {}
 	_queued.clear()
 	actor.visual.clear_combat_pose()
-	if actor.dodge.active:
+	var immediate: bool = actor.dodge.active or actor.get("transition_locked")==true
+	if immediate:
 		_arm_release_remaining = 0
 		_natural_pole_weight = 0
 		_arm_bends.clear()
 		_arm_reaches.clear()
-	body.release(actor.dodge.active)
+		_katana_gripping = false
+		_pose_weight = 0
+	body.release(immediate)
 	if actor.dodge.active and parry_remaining>0:
 		parry_remaining = 0
 		changed.emit()
@@ -650,6 +653,9 @@ func advance_stagger(delta: float) -> void:
 func _physics_process(delta: float) -> void:
 	_combo_remaining = maxf(0,_combo_remaining-delta)
 	advance_stagger(delta)
+	# Travel pins Player before locomotion restores the previous combat overlay.
+	# Applying another ready/body/arm pose here would compound it every frame.
+	if actor.get("transition_locked")==true: return
 	var world_actions: Node = actor.get("world_actions")
 	if is_instance_valid(world_actions) and world_actions.attached():
 		world_actions.apply_pose()
@@ -919,7 +925,7 @@ func solve_arm(id: String, target_local: Vector3, weight: float) -> void:
 	actor.visual.combat_rotation(hinge,local.get_rotation_quaternion(),weight)
 
 func apply_pose(delta: float) -> void:
-	if visual_frozen(): return
+	if actor.get("transition_locked")==true or visual_frozen(): return
 	_arm_pose_delta = maxf(0,delta)
 	var attacking := not active_move.is_empty()
 	var guarding: bool = actor.combat.blocking and not is_staggered()

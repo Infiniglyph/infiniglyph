@@ -81,6 +81,10 @@ func release(immediate: bool = false) -> void:
 			spring.velocity = Vector3.ZERO
 		_guarding = false
 		_guard_time = 0
+		_scribe_ready = false
+		_ready_time = 0
+		_gym_active = false
+		_spin_base = 0
 		phase_label = "rest"
 
 func floor_contact(point: Vector3) -> Dictionary:
