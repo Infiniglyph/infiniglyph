@@ -58,6 +58,8 @@ func placement(item_type: StringName) -> Dictionary:
 	if is_instance_valid(actor.world_actions) and actor.world_actions.attached(): return {}
 	if actor.weapon_combat.is_staggered() or not actor.weapon_combat.active_move.is_empty(): return {}
 	var location: StringName=loot.location_for(actor)
+	# Rented lodgings can expire; they are not permanent reconstruction points.
+	if is_instance_valid(world.dungeon_travel) and world.dungeon_travel.is_rental(location): return {}
 	var floor: Dictionary=loot.supported_position(actor.global_position,location)
 	if floor.is_empty() or absf(actor.global_position.y-float(floor.point.y))>.22: return {}
 	var point: Vector3=floor.point+Vector3.UP*.025
@@ -111,7 +113,11 @@ func begin_choice() -> bool:
 		if not record_safe(record): continue
 		var place: String="Open world" if record.location=="overworld" else "Pyramid / "+world.dungeon_travel.interior.floor_label(Data.point(record))
 		_add_choice(key,("Home Respawn Glyph" if key=="home" else "Respawn Glyph")+"  |  "+place)
-	_add_choice("default","Default spawn  |  "+("Pyramid entrance" if loot.active_location!=&"overworld" else "Open world"))
+	var default_label := "Open world"
+	if is_instance_valid(world.dungeon_travel):
+		if world.dungeon_travel.is_rental(): default_label="Guild hallway"
+		elif world.dungeon_travel.is_pyramid(): default_label="Pyramid entrance"
+	_add_choice("default","Default spawn  |  "+default_label)
 	_cursor=0
 	_stick_delay=0
 	_screen.show()

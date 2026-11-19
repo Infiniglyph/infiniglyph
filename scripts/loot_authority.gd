@@ -27,6 +27,7 @@ var _loss_timer_clock := 0.0
 var location_roots: Dictionary = {}
 var respawn_glyphs: Node
 var active_location: StringName = &"overworld"
+var external_transaction_guard: Callable
 
 func location_for(actor: Node3D) -> StringName:
 	for id: StringName in location_roots:
@@ -39,7 +40,7 @@ func _space(location: StringName = &"") -> PhysicsDirectSpaceState3D:
 	return get_world_3d().direct_space_state
 
 func transaction_active() -> bool:
-	return _busy
+	return _busy or (external_transaction_guard.is_valid() and bool(external_transaction_guard.call()))
 
 func _ready() -> void:
 	name = "LootAuthority"
@@ -103,7 +104,7 @@ func actor_for(inventory: Node) -> Node3D:
 	return inventory.get_parent() as Node3D
 
 func _authorized(operation: StringName, inventory: Node, payload: Dictionary) -> bool:
-	if not host_enabled or _busy or not register_inventory(inventory): return false
+	if not host_enabled or transaction_active() or not register_inventory(inventory): return false
 	if not is_instance_valid(actor_for(inventory)): return false
 	if actor_for(inventory).get("transition_locked")==true: return false
 	return not validator.is_valid() or bool(validator.call(operation,inventory,payload))

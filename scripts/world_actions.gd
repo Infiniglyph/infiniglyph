@@ -93,7 +93,7 @@ func add_seat(volume: Dictionary) -> void:
 		forward = Vector3(-signf(at.x-center_x),0,0)
 	if forward.is_zero_approx(): forward = Vector3.RIGHT
 	forward = volume.get("forward",forward)
-	seats.append({"point":at+Vector3.UP*(shape.size.y*0.5+0.045+SEATED_HIP_LIFT)+forward*SEATED_FORWARD_OFFSET,"forward":forward,"occupant":null})
+	seats.append({"point":at+Vector3.UP*(shape.size.y*0.5+0.045+SEATED_HIP_LIFT)+forward*SEATED_FORWARD_OFFSET,"forward":forward,"occupant":null,"world":actor.get_world_3d()})
 
 func attached() -> bool:
 	return not seat.is_empty() or is_instance_valid(vehicle)
@@ -108,11 +108,13 @@ func nearest() -> Dictionary:
 	var result: Dictionary = {}
 	if is_instance_valid(life):
 		for candidate: CharacterBody3D in life.vehicles.values():
+			if candidate.get_world_3d()!=actor.get_world_3d(): continue
 			var d := actor.global_position.distance_to(candidate.global_position)
 			if candidate.health>0 and d<best and absf(candidate.signed_speed)<2.5 and visible_between(actor.combat_point(),candidate.global_position+Vector3.UP):
 				best = d
 				result = {"kind":"vehicle","target":candidate,"label":("take " if candidate.has_driver else "drive ")+candidate.kind}
 	for candidate: Dictionary in seats:
+		if candidate.get("world")!=actor.get_world_3d(): continue
 		var d: float = actor.combat_point().distance_to(candidate.point)
 		if d<best and candidate.occupant==null and visible_between(actor.combat_point(),candidate.point+candidate.forward*0.5+Vector3.UP*0.5):
 			best = d
@@ -308,6 +310,13 @@ func apply_pose() -> void:
 	visual.pelvis.position = Vector3(0,0.946,0)
 	visual.pelvis.rotation = Vector3.ZERO
 	visual.chest.rotation = Vector3(-0.06,0,0)
+	if seat.get("bed",false):
+		visual.pelvis.rotation.x=-PI*.5
+		visual.chest.rotation=Vector3.ZERO
+		for joint: Node3D in visual.joints.values():
+			joint.rotation=Vector3.ZERO
+			joint.get_node("Hinge").rotation=Vector3.ZERO
+		return
 	if is_instance_valid(vehicle):
 		var contacts: Dictionary = vehicle.rider_anchors()
 		visual.chest.rotation.x = contacts.chest_pitch

@@ -4,16 +4,18 @@ const Inventory = preload("res://scripts/inventory.gd")
 const Instance = preload("res://scripts/item_instance.gd")
 const Equipment = preload("res://scripts/equipment_database.gd")
 const Pickup = preload("res://scripts/item_pickup.gd")
+const Economy = preload("res://scripts/civilian_economy.gd")
 const VERSION := 1
 const POLICY := "singleplayer_checkpoint"
 const MAX_WORLD_DROPS := 4096
 const MAX_SAVE_BYTES := 8*1024*1024
 
-static func encode(inventory: Node, world_drops: Array = [], markers: Array = [], session_id: String = "singleplayer", location: String = "overworld", location_state: Dictionary = {}) -> Dictionary:
+static func encode(inventory: Node, world_drops: Array = [], markers: Array = [], session_id: String = "singleplayer", location: String = "overworld", location_state: Dictionary = {}, civilian_state: Dictionary = {}) -> Dictionary:
 	if inventory == null or not inventory.has_method("serialize"): return {}
 	var data: Dictionary={"version":VERSION,"policy":POLICY,"session_id":session_id,"inventory":inventory.serialize(),"world_drops":world_drops,"markers":markers}
 	if location!="overworld": data.location_context=location
 	if not location_state.is_empty(): data.location_state=location_state
+	if not civilian_state.is_empty(): data.civilian_state=civilian_state
 	return decode(data)
 
 static func decode(data: Variant) -> Dictionary:
@@ -92,6 +94,10 @@ static func decode(data: Variant) -> Dictionary:
 	var decoded: Dictionary={"version":VERSION,"policy":POLICY,"session_id":String(data.session_id),"inventory":owned,"world_drops":drops,"markers":markers}
 	if data.get("location_context","overworld")!="overworld": decoded.location_context=String(data.location_context)
 	if not state.is_empty(): decoded.location_state=state
+	if data.has("civilian_state"):
+		var civilian:=Economy.validate(data.civilian_state,owned,drops)
+		if civilian.is_empty(): return {}
+		decoded.civilian_state=civilian
 	return decoded
 
 static func store(path: String, snapshot: Dictionary) -> Error:

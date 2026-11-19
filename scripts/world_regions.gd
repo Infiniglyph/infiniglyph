@@ -6,6 +6,7 @@ const Gate = preload("res://scripts/outward_gate.gd")
 const Neon = preload("res://scripts/neon.gd")
 const KyrenHome = preload("res://scripts/kyren_homestead.gd")
 const Pyramid = preload("res://scripts/pyramid_exterior.gd")
+const Establishments = preload("res://scripts/civilian_establishments.gd")
 const HALF_EXTENT := 1152
 const CHUNK_SIZE := 256
 const TERRAIN_STEP := 16
@@ -25,6 +26,7 @@ var counts := {"city":0,"homes":0,"farms":0,"trees":0,"rocks":0}
 var build_ms := 0
 var kyren_home: Node3D
 var pyramid: Node3D
+var establishments: Node3D
 
 static func code(x: int, z: int, salt: int = 0) -> int:
 	# No shared/global RNG state: changing the map cannot reroll NPC identities.
@@ -121,6 +123,7 @@ func _ready() -> void:
 					if radius<128: continue # Preserve the complete original hub.
 					if KyrenHome.reserves_plot(at): continue
 					if Pyramid.reserves_plot(at): continue
+					if Establishments.reserves_plot(at): continue
 					var seed := code(floori(at.x/64),floori(at.z/64))
 					if radius<CITY_EDGE: build_city(chunk,at,seed)
 					elif radius<SUBURB_EDGE: build_suburb(chunk,at,seed)
@@ -137,6 +140,10 @@ func _ready() -> void:
 	pyramid.position=Vector3(Pyramid.CENTER.x,height_at(Pyramid.CENTER.x,Pyramid.CENTER.z),Pyramid.CENTER.z)
 	add_child(pyramid)
 	destinations.append({"name":"Pyramid","point":pyramid.arrival_anchor.global_position})
+	establishments = Establishments.new()
+	add_child(establishments)
+	destinations.append({"name":"Adventurers Guild","point":establishments.guild_entry.global_position})
+	destinations.append({"name":"Electron Tavern","point":establishments.tavern_entry.global_position})
 	build_ms = Time.get_ticks_msec()-started
 
 func build_terrain(chunk: Node3D) -> void:

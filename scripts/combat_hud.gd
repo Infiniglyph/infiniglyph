@@ -56,7 +56,8 @@ func _refresh_grid() -> void:
 	if not is_instance_valid(actor): return
 	var context: Node=actor.get("respawn_context")
 	if is_instance_valid(context) and context.active_location!=&"overworld":
-		grid_marker.text="PYRAMID  /  "+context.floor_label
+		var travel: Node=actor.get_parent().get("dungeon_travel")
+		grid_marker.text=travel.location_label(context.active_location,actor.global_position) if is_instance_valid(travel) else "PYRAMID  /  "+context.floor_label
 		_grid_ready=false
 		return
 	var cell := Regions.grid_at(actor.global_position)

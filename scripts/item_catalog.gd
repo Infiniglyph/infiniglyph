@@ -48,6 +48,8 @@ static func _prepare() -> void:
 		var id: StringName=&"respawn_glyph" if kind=="respawn" else &"home_respawn_glyph"
 		_add(id,"Respawn Glyph" if kind=="respawn" else "Home Respawn Glyph","Place from Inventory on clear ground to bind a reusable reconstruction point. Choose between your Respawn Glyph, Home Respawn Glyph, and default spawn on death. One active point of each kind; placing another replaces the previous point of that kind.",&"consumables",20,false,true,true,{"respawn_kind":kind})
 	_add(&"signal_tonic","Signal Tonic","An amber pulse sealed in glass, awaiting a purpose.",&"consumables",20)
+	_add(&"electron_meal","Electron Meal","A warm lattice of nourishing charge, prepared at the tavern. Eat over two seconds to recover 60 HP.",&"consumables",20,false,true,true,{"civilian_food":true,"price":8,"consumption_duration":2.0,"healing":60})
+	_add(&"electron_draught","Electron Draught","A bright, gently fizzing measure of refined electrons. Drink over three seconds to recover 120 HP.",&"consumables",20,false,true,true,{"civilian_food":true,"price":12,"consumption_duration":3.0,"healing":120})
 	_add(&"civic_key","Civic Access Glyph","A civic credential keyed to its current bearer.",&"key_items",1,false,false,false)
 	_add(&"cyan_mantle","Cyan Mantle Pattern","An encoded weave of cyan light.",&"cosmetics",1)
 	_add(&"eternal_scribe_robes","Eternal Scribe Robes","Dark open-front robes from The Infinite Library, edged in silver with a scholar's hood and living mathematical inscriptions. Cosmetic clothing; equip in Body.",&"cosmetics",1,true,true,true,{"cosmetic_slot":"body","robe_id":"eternal_scribe"})

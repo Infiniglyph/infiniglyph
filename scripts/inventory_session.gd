@@ -17,6 +17,7 @@ var boss_encounter: Node
 var kyren_encounter: Node
 var world_actions: Node3D
 var dungeon_travel: Node
+var civilian_services: Node
 var ui: CanvasLayer
 var shop: CanvasLayer
 @export var persistence_enabled := true
@@ -176,6 +177,7 @@ func _inventory_token(event: InputEvent) -> String:
 
 func _toggle_inventory() -> void:
 	if not _inventory_allowed(): return
+	if is_instance_valid(civilian_services) and civilian_services.menu.is_open: civilian_services.menu.close_menu()
 	if shop.is_open: shop.close_menu()
 	ui.toggle()
 
@@ -257,7 +259,10 @@ func can_talk() -> bool:
 	if is_instance_valid(dungeon_travel):
 		if dungeon_travel.busy: return false
 		if dungeon_travel.focused_door()!=null: return true
-		if dungeon_travel.inside(): return loot.nearest_pickup(actor)!=null
+		if dungeon_travel.is_pyramid(): return loot.nearest_pickup(actor)!=null
+		if dungeon_travel.is_rental():
+			return not civilian_services.nearest().is_empty() or loot.nearest_pickup(actor)!=null or not world_actions.nearest().is_empty()
+	if is_instance_valid(civilian_services) and not civilian_services.nearest().is_empty(): return true
 	if is_instance_valid(kyren_encounter):
 		if kyren_encounter.active: return false
 		if kyren_encounter.can_talk(): return true
@@ -279,8 +284,15 @@ func interact() -> void:
 		if dungeon_travel.busy: return
 		var item: Node3D=loot.nearest_pickup(actor)
 		if item==null and dungeon_travel.interact(): return
-		if dungeon_travel.inside():
+		if dungeon_travel.is_pyramid():
 			if item!=null: loot.request_pickup(actor.inventory,item)
+			return
+		if dungeon_travel.is_rental():
+			# Outdoor conversation/exchange helpers cache physical actors. Only
+			# this room's services, loot and world-scoped furniture belong here.
+			if item!=null: loot.request_pickup(actor.inventory,item)
+			elif world_actions.attached(): world_actions.leave()
+			elif not civilian_services.interact(): world_actions.interact()
 			return
 	if is_instance_valid(kyren_encounter):
 		if kyren_encounter.active: return
@@ -290,6 +302,7 @@ func interact() -> void:
 	if is_instance_valid(world_actions) and world_actions.attached():
 		world_actions.leave()
 		return
+	if is_instance_valid(civilian_services) and loot.nearest_pickup(actor)==null and civilian_services.interact(): return
 	if is_instance_valid(boss_encounter):
 		if boss_encounter.active: return
 		if boss_encounter.can_challenge():
@@ -360,9 +373,18 @@ func _process(delta: float) -> void:
 		if door!=null and loot.nearest_pickup(actor)==null:
 			hint.text="G / tap RT: "+door.prompt
 			return
-		if dungeon_travel.inside():
+		if dungeon_travel.is_pyramid():
 			var item: Node3D=loot.nearest_pickup(actor)
 			if item!=null: hint.text="G / RT: collect "+item.interaction_name()
+			return
+		if dungeon_travel.is_rental():
+			var item: Node3D=loot.nearest_pickup(actor)
+			var service: Dictionary=civilian_services.nearest()
+			var furniture: Dictionary=world_actions.nearest()
+			if item!=null: hint.text="G / RT: collect "+item.interaction_name()
+			elif world_actions.attached(): hint.text="G / tap RT / move / jump: stand up"
+			elif not service.is_empty(): hint.text="G / tap RT: "+String(service.label)
+			elif not furniture.is_empty(): hint.text="G / tap RT: "+String(furniture.label)
 			return
 	if is_instance_valid(kyren_encounter):
 		if kyren_encounter.active: return
@@ -379,6 +401,7 @@ func _process(delta: float) -> void:
 	if pickup != null:
 		var definition: Resource = Catalog.get_definition(pickup.item_instance.item_type_id)
 		hint.text = "G / RT: collect %s  x%d" % [definition.display_name,pickup.item_instance.quantity]
+	elif is_instance_valid(civilian_services) and not civilian_services.nearest().is_empty(): hint.text="G / tap RT: "+String(civilian_services.nearest().label)
 	elif shop.can_use(actor): hint.text = "G / tap RT: Tower Exchange"
 	elif is_instance_valid(world_actions) and not world_actions.nearest().is_empty(): hint.text = "G / tap RT: "+world_actions.nearest().label
 	elif not duel.can_talk() and is_instance_valid(population):
@@ -415,7 +438,11 @@ func _refresh_losses() -> void:
 	loss_hint.offset_bottom = loss_hint.offset_top+26
 	var location:=StringName(nearest.get("location_id","overworld"))
 	if is_instance_valid(dungeon_travel) and location!=dungeon_travel.active_location:
-		loss_hint.text="LOST GEAR  |  %s  |  return through the pyramid doorway  |  %d unclaimed" % ["PYRAMID" if location!=&"overworld" else "OPEN WORLD",entries.size()]
+		var route := "return through the guild room door" if dungeon_travel.is_rental(location) or dungeon_travel.is_rental() else "return through the pyramid doorway"
+		loss_hint.text="LOST GEAR  |  %s  |  %s  |  %d unclaimed" % [dungeon_travel.location_label(location,point),route,entries.size()]
+		return
+	if is_instance_valid(dungeon_travel) and dungeon_travel.is_rental(location):
+		loss_hint.text="LOST GEAR  %.0f m  |  %s  |  %d unclaimed" % [distance,dungeon_travel.location_label(location,point),entries.size()]
 		return
 	if location!=&"overworld":
 		var floor_text: String=dungeon_travel.interior.floor_label(point) if is_instance_valid(dungeon_travel) else ""
@@ -441,7 +468,8 @@ func save_checkpoint(path: String = "", silent: bool = false) -> bool:
 	var destination := path if not path.is_empty() else save_path
 	var location: String=String(dungeon_travel.active_location) if is_instance_valid(dungeon_travel) else "overworld"
 	var state: Dictionary=dungeon_travel.location_state() if is_instance_valid(dungeon_travel) else {}
-	var snapshot: Dictionary = Store.encode(actor.inventory,loot.serialize_world(),[],loot.session_id,location,state)
+	var civilian: Dictionary=civilian_services.economy.serialize() if is_instance_valid(civilian_services) else {}
+	var snapshot: Dictionary = Store.encode(actor.inventory,loot.serialize_world(),[],loot.session_id,location,state,civilian)
 	var error: Error = Store.store(destination,snapshot)
 	if error != OK:
 		show_notice("Inventory save failed; current items remain in memory.",6)
@@ -460,8 +488,10 @@ func load_checkpoint(path: String = "") -> bool:
 	elif location!=&"overworld": return false
 	var owned_before: Dictionary = actor.inventory.serialize()
 	var world_before: Array = loot.serialize_world()
+	var civilian_before: Dictionary=civilian_services.economy.serialize() if is_instance_valid(civilian_services) else {}
 	_loading = true
 	var ok: bool = actor.inventory.restore(snapshot.inventory)
+	if ok and is_instance_valid(civilian_services): ok=civilian_services.economy.restore(snapshot.get("civilian_state",civilian_services.initial_state))
 	var world_changed := false
 	if ok:
 		ok = loot.restore_world(snapshot.world_drops)
@@ -469,6 +499,7 @@ func load_checkpoint(path: String = "") -> bool:
 	if ok and is_instance_valid(dungeon_travel): ok=dungeon_travel.restore_location(location,snapshot.get("location_state",{}))
 	if not ok:
 		actor.inventory.restore(owned_before)
+		if is_instance_valid(civilian_services): civilian_services.economy.restore(civilian_before)
 		# restore_world is already atomic on rejection. Replacing untouched
 		# drops here would leave duplicate pending colliders until frame end.
 		if world_changed: loot.restore_world(world_before)

@@ -1,11 +1,15 @@
 extends Node
-## Persistent player/services; separate World3Ds hold the two environment scenes.
+## Persistent player/services; independent World3Ds hold each environment.
 const Encounters = preload("res://scripts/pyramid_encounters.gd")
 var encounters: Node3D
 const Interior = preload("res://scripts/pyramid_interior.gd")
 const Doorway = preload("res://scripts/dungeon_doorway.gd")
 const Respawn = preload("res://scripts/respawn_context.gd")
 const Manifest = preload("res://scripts/environment_manifest.gd")
+const RentalRoom = preload("res://scripts/private_room_interior.gd")
+var room_ids: Array[StringName] = []
+var room_contents: Dictionary = {}
+var room_support: Dictionary = {}
 const OUTSIDE: StringName = &"overworld"
 const OUT_TIME := .7
 const IN_TIME := .85
@@ -108,7 +112,80 @@ func configure() -> void:
 	for ui: Node in [world.sparring_duel,world.boss_encounter,world.kyren_encounter]:
 		if is_instance_valid(ui): _outside_ui.append({"node":ui,"mode":ui.process_mode,"visible":ui.visible})
 	world.inventory_session.dungeon_travel=self
+	_configure_rentals()
+	respawns.default_resolver = _rental_respawn
 	ready_for_travel=true
+
+func _configure_rentals() -> void:
+	var services: Node=world.get("civilian_services")
+	if not is_instance_valid(services): return
+	for index in range(3):
+		var id:=StringName("rental/"+world.player.inventory.owner_id+"/"+str(index))
+		room_ids.append(id)
+		var viewport:=SubViewport.new()
+		viewport.name="RentalSpace"+str(index+1)
+		viewport.size=Vector2i(2,2)
+		viewport.render_target_update_mode=SubViewport.UPDATE_DISABLED
+		viewport.world_3d=World3D.new()
+		add_child(viewport)
+		var root:=Node3D.new()
+		root.name="RentalState"+str(index+1)
+		viewport.add_child(root)
+		contexts[id]=root
+		root.hide()
+		root.process_mode=Node.PROCESS_MODE_DISABLED
+		# Collision-only support uses the same room recipe. Saved drops on a
+		# bed or desk must validate even before that bedroom is first rendered.
+		var support: StaticBody3D=RentalRoom.create_support()
+		root.add_child(support)
+		room_support[id]=support
+		var door:=Doorway.new()
+		door.location_id=id
+		door.destination_id=OUTSIDE
+		door.prompt="return to the guild hallway"
+		door.position=Vector3(0,1.25,5.5)
+		root.add_child(door)
+		doors.append(door)
+		var entrance:=Doorway.new()
+		entrance.location_id=OUTSIDE
+		entrance.destination_id=id
+		entrance.prompt="enter private room "+str(index+1)
+		services.establishments.room_exit[index].add_child(entrance)
+		doors.append(entrance)
+		respawns.minimum_heights[id]=-12.0
+
+func is_pyramid() -> bool: return active_location==pyramid_id
+func is_rental(id: StringName = &"") -> bool: return (active_location if id==&"" else id) in room_ids
+func room_number(id: StringName = &"") -> int: return room_ids.find(active_location if id==&"" else id)
+
+func location_label(id: StringName, point: Vector3 = Vector3.ZERO) -> String:
+	if id==OUTSIDE: return "OPEN WORLD"
+	if is_rental(id): return "GUILD ROOM "+str(room_number(id)+1)
+	return "PYRAMID / "+interior.floor_label(point)
+
+func _build_room(id: StringName) -> void:
+	if room_contents.has(id): return
+	var content:=RentalRoom.new()
+	contexts[id].add_child(content)
+	room_contents[id]=content
+	room_support[id].collision_layer=0
+	_retain_support(content)
+	for seat: Dictionary in content.seats: world.world_actions.seats.append(seat)
+
+func _unload_room(id: StringName) -> void:
+	if not room_contents.has(id): return
+	var content: Node3D=room_contents[id]
+	for seat: Dictionary in content.seats: world.world_actions.seats.erase(seat)
+	contexts[id].remove_child(content)
+	content.queue_free()
+	room_contents.erase(id)
+	room_support[id].collision_layer=1
+
+func _rental_respawn() -> Variant:
+	if not is_rental(): return null
+	var index:=room_number()
+	_set_location(OUTSIDE)
+	return world.civilian_services.establishments.room_arrivals[index].global_position
 
 func _retain_support(scene: Node3D) -> void:
 	# Dormant scripts/AI stop, but saved drops must still validate against their
@@ -137,6 +214,9 @@ func focused_door() -> Node3D:
 func interact() -> bool:
 	var door:=focused_door()
 	if door==null: return false
+	if is_rental(door.destination_id) and not world.civilian_services.economy.can_enter(room_number(door.destination_id)):
+		world.inventory_session.show_notice("This private room needs an active rental. Speak to reception.")
+		return true
 	busy=true
 	_destination=door.destination_id
 	_phase=0
@@ -156,12 +236,14 @@ func interact() -> bool:
 	return true
 
 func _set_location(id: StringName, through_door: bool = false) -> void:
-	if through_door:
+	var previous:=active_location
+	if through_door and (previous==pyramid_id or id==pyramid_id):
 		var from: Node3D=world.wider_world.pyramid.entrance_anchor if active_location==OUTSIDE else interior.spawn_anchor
 		var to: Node3D=world.wider_world.pyramid.entrance_anchor if id==OUTSIDE else interior.spawn_anchor
 		var turn:=wrapf(to.global_rotation.y-from.global_rotation.y,-PI,PI)
 		world.player.visual.global_basis=Basis(Vector3.UP,turn)*world.player.visual.global_basis
 		world.camera_rig.yaw=wrapf(world.camera_rig.yaw+turn,-PI,PI)
+	if is_rental(id): _build_room(id)
 	active_location=id
 	respawns.active_location=id
 	world.loot.active_location=id
@@ -170,6 +252,9 @@ func _set_location(id: StringName, through_door: bool = false) -> void:
 	interior.visible=id==pyramid_id
 	outside_root.process_mode=Node.PROCESS_MODE_INHERIT if id==OUTSIDE and not busy else Node.PROCESS_MODE_DISABLED
 	interior.process_mode=Node.PROCESS_MODE_INHERIT if id==pyramid_id and not busy else Node.PROCESS_MODE_DISABLED
+	for room_id in room_ids:
+		contexts[room_id].visible=room_id==id
+		contexts[room_id].process_mode=Node.PROCESS_MODE_INHERIT if room_id==id and not busy else Node.PROCESS_MODE_DISABLED
 	for record in _outside_ui:
 		if not is_instance_valid(record.node): continue
 		record.node.process_mode=record.mode if id==OUTSIDE else Node.PROCESS_MODE_DISABLED
@@ -179,6 +264,8 @@ func _set_location(id: StringName, through_door: bool = false) -> void:
 	actor.target_lock.clear()
 	actor.visual.clear_combat_pose()
 	actor.global_position=world.wider_world.pyramid.arrival_anchor.global_position if id==OUTSIDE else interior.spawn_anchor.global_position
+	if is_rental(id): actor.global_position=room_contents[id].spawn_anchor.global_position
+	elif id==OUTSIDE and is_rental(previous): actor.global_position=world.civilian_services.establishments.room_arrivals[room_number(previous)].global_position
 	actor.velocity=Vector3.ZERO
 	actor.fall_damage.reset()
 	actor.unstuck.reset_history()
@@ -193,25 +280,39 @@ func _set_location(id: StringName, through_door: bool = false) -> void:
 		interior.update_visibility(actor.global_position,true)
 		respawns.floor_label=interior.floor_label(actor.global_position)
 	if is_instance_valid(encounters): encounters.set_active(id==pyramid_id)
+	if is_rental(previous) and previous!=id: _unload_room(previous)
 	world.inventory_session._hint_clock=0
 	world.inventory_session._refresh_losses()
 
 func location_state() -> Dictionary:
-	var state: Dictionary=interior.saved_state(world.player,world.camera_rig.yaw) if inside() else {}
-	if inside() and is_instance_valid(encounters) and not encounters.defeated_ids.is_empty(): state.enemy_defeats=encounters.defeated_ids.keys()
-	if inside() and is_instance_valid(encounters):
+	var state: Dictionary=interior.saved_state(world.player,world.camera_rig.yaw) if is_pyramid() else {}
+	if is_rental():
+		var at: Vector3=world.player.global_position
+		state={"position":[at.x,at.y,at.z],"yaw":world.camera_rig.yaw}
+	if is_pyramid() and is_instance_valid(encounters) and not encounters.defeated_ids.is_empty(): state.enemy_defeats=encounters.defeated_ids.keys()
+	if is_pyramid() and is_instance_valid(encounters):
 		var boss: Dictionary=encounters.b8.snapshot() if is_instance_valid(encounters.b8) else encounters.boss_state
 		if not boss.is_empty(): state.ahkmet=boss
 	return state
 
 func restore_location(id: StringName, state: Dictionary = {}) -> bool:
 	if not can_load_location(id): return false
+	if is_rental(id) and not world.civilian_services.economy.can_enter(room_number(id)):
+		var index:=room_number(id)
+		_set_location(OUTSIDE)
+		world.player.global_position=world.civilian_services.establishments.room_arrivals[index].global_position
+		world.player.visual.rebase_after_phase()
+		world.camera_rig.reset_follow()
+		return true
 	if is_instance_valid(encounters):
 		if id==pyramid_id:
 			encounters.boss_state=state.get("ahkmet",{}).duplicate()
 			encounters.restore_defeats(state.get("enemy_defeats",[]))
 		else: encounters.reset_run() # Discard legacy clears saved after an exit too.
 	if active_location!=id: _set_location(id)
+	if is_rental(id):
+		world.camera_rig.yaw=float(state.get("yaw",world.camera_rig.yaw))
+		world.camera_rig.reset_follow()
 	if id==pyramid_id:
 		var actor: CharacterBody3D=world.player
 		actor.dodge.cancel()
@@ -229,8 +330,8 @@ func restore_location(id: StringName, state: Dictionary = {}) -> bool:
 func _process(delta: float) -> void:
 	if not ready_for_travel: return
 	_cooldown=maxf(0,_cooldown-delta)
-	if not inside(): _outside_camera.global_transform=world.camera_rig.camera.global_transform
-	elif not busy:
+	if active_location==OUTSIDE: _outside_camera.global_transform=world.camera_rig.camera.global_transform
+	elif is_pyramid() and not busy:
 		if interior.update_visibility(world.player.global_position): world.inventory_session._dirty()
 		respawns.floor_label=interior.floor_label(world.player.global_position)
 	if not busy: return

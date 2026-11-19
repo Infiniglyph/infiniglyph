@@ -23,6 +23,18 @@ Pass `-GodotPath "path\to\Godot.exe"` to use another installation.
 The launcher opens a normal visible game window. Press Start / Escape for the
 live system menu, or Alt+F4 to close the game.
 
+## Guild, tavern and private lodging
+
+The two-story **Adventurers Guild** is at `LAT 010N / LON 002W`; the separate
+**Tavern** is at `LAT 014N / LON 001W`. Walk inside either public building and
+use **G / tap RT** at reception, the bar, a notice board, table or chair.
+Sell monster crystals to reception to earn Glyph Coins, then rent an upstairs
+private room or buy electron meals and drinks. Private-room storage survives
+room deconstruction, rental expiry and checkpoint reloads. All menus stay live.
+
+[Civilian establishments guide](docs/CIVILIAN_ESTABLISHMENTS.md) covers controls,
+prices, conservation of coins, storage, room instances and current placeholders.
+
 ## Repository and recovery
 
 The standalone project is published at

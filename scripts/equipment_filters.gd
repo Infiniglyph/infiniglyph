@@ -29,7 +29,7 @@ static func matches(definition: Resource, index: int) -> bool:
 			if index==5: return not definition.is_equippable
 			return definition.is_equippable and properties.get("cosmetic_slot","")==["","body","head","hands","legs"][index]
 		&"consumables":
-			var kind := 1 if properties.has("healing") else 2 if properties.has("shield_capacity") else 3 if properties.has("respawn_kind") else 4
+			var kind := 1 if properties.has("healing") and not properties.get("civilian_food",false) else 2 if properties.has("shield_capacity") else 3 if properties.has("respawn_kind") else 4
 			return kind==index
 		&"misc":
 			var ring: bool = family(definition)=="ring" or properties.get("cosmetic_slot")=="ring"

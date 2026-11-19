@@ -368,6 +368,9 @@ func _refresh_summary() -> void:
 	var count: int = inventory.items.size() if is_instance_valid(inventory) else 0
 	var hp := "HP %d / %d   |   " % [ceili(actor.weapon_combat.health),ceili(actor.weapon_combat.max_health)] if is_instance_valid(actor) and actor.get("weapon_combat") != null else ""
 	_summary.text = hp+"%d ITEMS" % count
+	if is_instance_valid(actor) and is_instance_valid(actor.get_parent()):
+		var services: Node=actor.get_parent().get("civilian_services")
+		if is_instance_valid(services): _summary.text+="  |  %d COINS" % services.economy.balance(services.economy.player_account)
 
 func _definition(item: Resource) -> Resource:
 	return Catalog.get_definition(item.item_type_id) if item != null else null
@@ -642,6 +645,7 @@ func activate_selection() -> void:
 	var definition := _definition(item)
 	if definition==null: return
 	_begin_modal(&"actions",definition.display_name)
+	if definition.custom_properties.has("civilian_food"): _modal_choice("EAT / DRINK",_use_food)
 	if definition.custom_properties.has("respawn_kind"): _modal_choice("PLACE RESPAWN GLYPH HERE",_use_respawn)
 	if definition.custom_properties.has("shield_capacity"): _modal_choice("USE SHIELD GLYPH",_use_shield)
 	if definition.category==&"weapons" and definition.is_equippable: _modal_choice("EQUIP TO DIRECTION",_choose_slot)
@@ -710,6 +714,13 @@ func _use_respawn() -> void:
 	_close_modal()
 	refresh()
 	set_status("Respawn glyph placed. Choose it when you die; it remains reusable." if success else "Stand on clear, solid ground to place this glyph.",not success)
+
+func _use_food() -> void:
+	var services: Node=actor.get_parent().get("civilian_services")
+	var success: bool=is_instance_valid(services) and services.consume_food(selected_iid)
+	_close_modal()
+	refresh()
+	set_status("Recovery has begun." if success else "Cannot consume that now.",not success)
 
 func _use_shield() -> void:
 	var success: bool=is_instance_valid(loot) and loot.request_shield_glyph(inventory,selected_iid)

@@ -51,7 +51,7 @@ func run() -> void:
 	var life: Node3D = world.district_life
 	var graphics: Node = world.graphics
 	var menu: CanvasLayer = world.start_menu
-	var district: Node3D = world.get_node("CentralDistrict")
+	var district: Node3D = world.dungeon_travel.outside_root.get_node("CentralDistrict")
 	var collider_count := district.find_children("*","CollisionShape3D",true,false).size()
 	var batcher: Node3D = district.visual_batches
 	check(batcher.source_count>100 and batcher.batch_count<batcher.source_count/2,"Static props are consolidated into small immutable render batches")
