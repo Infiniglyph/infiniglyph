@@ -7,6 +7,10 @@ const Doorway = preload("res://scripts/dungeon_doorway.gd")
 const Respawn = preload("res://scripts/respawn_context.gd")
 const Manifest = preload("res://scripts/environment_manifest.gd")
 const RentalRoom = preload("res://scripts/private_room_interior.gd")
+const WondersHall = preload("res://scripts/glyphic_wonders_hall.gd")
+var wonders_id: StringName
+var hall_content: Node3D
+var hall_support: StaticBody3D
 var room_ids: Array[StringName] = []
 var room_contents: Dictionary = {}
 var room_support: Dictionary = {}
@@ -113,8 +117,42 @@ func configure() -> void:
 		if is_instance_valid(ui): _outside_ui.append({"node":ui,"mode":ui.process_mode,"visible":ui.visible})
 	world.inventory_session.dungeon_travel=self
 	_configure_rentals()
+	_configure_wonders()
 	respawns.default_resolver = _rental_respawn
 	ready_for_travel=true
+
+func _configure_wonders() -> void:
+	wonders_id=StringName("glyphic_wonders/"+world.player.inventory.owner_id)
+	var viewport:=SubViewport.new()
+	viewport.name="GlyphicWondersSpace"
+	viewport.size=Vector2i(2,2)
+	viewport.render_target_update_mode=SubViewport.UPDATE_DISABLED
+	viewport.world_3d=World3D.new()
+	add_child(viewport)
+	var root:=Node3D.new()
+	root.name="GlyphicWondersState"
+	viewport.add_child(root)
+	contexts[wonders_id]=root
+	root.hide()
+	root.process_mode=Node.PROCESS_MODE_DISABLED
+	hall_support=WondersHall.create_support()
+	root.add_child(hall_support)
+	var exit:=Doorway.new()
+	exit.name="GlyphicWondersExitInteraction"
+	exit.location_id=wonders_id
+	exit.destination_id=OUTSIDE
+	exit.prompt="leave Glyphic Wonders"
+	exit.position=Vector3(0,1.25,65)
+	root.add_child(exit)
+	doors.append(exit)
+	var entrance:=Doorway.new()
+	entrance.name="GlyphicWondersEntranceInteraction"
+	entrance.location_id=OUTSIDE
+	entrance.destination_id=wonders_id
+	entrance.prompt="enter Glyphic Wonders"
+	world.wider_world.glyphic_wonders.entrance_anchor.add_child(entrance)
+	doors.append(entrance)
+	respawns.minimum_heights[wonders_id]=-12.0
 
 func _configure_rentals() -> void:
 	var services: Node=world.get("civilian_services")
@@ -155,11 +193,13 @@ func _configure_rentals() -> void:
 		respawns.minimum_heights[id]=-12.0
 
 func is_pyramid() -> bool: return active_location==pyramid_id
+func is_wonders(id: StringName = &"") -> bool: return (active_location if id==&"" else id)==wonders_id and not wonders_id.is_empty()
 func is_rental(id: StringName = &"") -> bool: return (active_location if id==&"" else id) in room_ids
 func room_number(id: StringName = &"") -> int: return room_ids.find(active_location if id==&"" else id)
 
 func location_label(id: StringName, point: Vector3 = Vector3.ZERO) -> String:
 	if id==OUTSIDE: return "OPEN WORLD"
+	if is_wonders(id): return "GLYPHIC WONDERS"
 	if is_rental(id): return "GUILD ROOM "+str(room_number(id)+1)
 	return "PYRAMID / "+interior.floor_label(point)
 
@@ -181,7 +221,28 @@ func _unload_room(id: StringName) -> void:
 	room_contents.erase(id)
 	room_support[id].collision_layer=1
 
+func _build_hall() -> void:
+	if is_instance_valid(hall_content): return
+	hall_content=WondersHall.new()
+	contexts[wonders_id].add_child(hall_content)
+	hall_support.collision_layer=0
+	_retain_support(hall_content)
+	var service: Node=world.get("glyphic_wonders")
+	if is_instance_valid(service): service.attach_hall(hall_content)
+
+func _unload_hall() -> void:
+	if not is_instance_valid(hall_content): return
+	var service: Node=world.get("glyphic_wonders")
+	if is_instance_valid(service): service.detach_hall()
+	contexts[wonders_id].remove_child(hall_content)
+	hall_content.queue_free()
+	hall_content=null
+	hall_support.collision_layer=1
+
 func _rental_respawn() -> Variant:
+	if is_wonders():
+		_set_location(OUTSIDE)
+		return world.wider_world.glyphic_wonders.arrival_anchor.global_position
 	if not is_rental(): return null
 	var index:=room_number()
 	_set_location(OUTSIDE)
@@ -244,6 +305,7 @@ func _set_location(id: StringName, through_door: bool = false) -> void:
 		world.player.visual.global_basis=Basis(Vector3.UP,turn)*world.player.visual.global_basis
 		world.camera_rig.yaw=wrapf(world.camera_rig.yaw+turn,-PI,PI)
 	if is_rental(id): _build_room(id)
+	if is_wonders(id): _build_hall()
 	active_location=id
 	respawns.active_location=id
 	world.loot.active_location=id
@@ -255,6 +317,9 @@ func _set_location(id: StringName, through_door: bool = false) -> void:
 	for room_id in room_ids:
 		contexts[room_id].visible=room_id==id
 		contexts[room_id].process_mode=Node.PROCESS_MODE_INHERIT if room_id==id and not busy else Node.PROCESS_MODE_DISABLED
+	if contexts.has(wonders_id):
+		contexts[wonders_id].visible=is_wonders(id)
+		contexts[wonders_id].process_mode=Node.PROCESS_MODE_INHERIT if is_wonders(id) and not busy else Node.PROCESS_MODE_DISABLED
 	for record in _outside_ui:
 		if not is_instance_valid(record.node): continue
 		record.node.process_mode=record.mode if id==OUTSIDE else Node.PROCESS_MODE_DISABLED
@@ -266,6 +331,8 @@ func _set_location(id: StringName, through_door: bool = false) -> void:
 	actor.global_position=world.wider_world.pyramid.arrival_anchor.global_position if id==OUTSIDE else interior.spawn_anchor.global_position
 	if is_rental(id): actor.global_position=room_contents[id].spawn_anchor.global_position
 	elif id==OUTSIDE and is_rental(previous): actor.global_position=world.civilian_services.establishments.room_arrivals[room_number(previous)].global_position
+	elif is_wonders(id): actor.global_position=hall_content.spawn_anchor.global_position
+	elif id==OUTSIDE and is_wonders(previous): actor.global_position=world.wider_world.glyphic_wonders.arrival_anchor.global_position
 	actor.velocity=Vector3.ZERO
 	actor.fall_damage.reset()
 	actor.unstuck.reset_history()
@@ -281,12 +348,13 @@ func _set_location(id: StringName, through_door: bool = false) -> void:
 		respawns.floor_label=interior.floor_label(actor.global_position)
 	if is_instance_valid(encounters): encounters.set_active(id==pyramid_id)
 	if is_rental(previous) and previous!=id: _unload_room(previous)
+	if is_wonders(previous) and previous!=id: _unload_hall()
 	world.inventory_session._hint_clock=0
 	world.inventory_session._refresh_losses()
 
 func location_state() -> Dictionary:
 	var state: Dictionary=interior.saved_state(world.player,world.camera_rig.yaw) if is_pyramid() else {}
-	if is_rental():
+	if is_rental() or is_wonders():
 		var at: Vector3=world.player.global_position
 		state={"position":[at.x,at.y,at.z],"yaw":world.camera_rig.yaw}
 	if is_pyramid() and is_instance_valid(encounters) and not encounters.defeated_ids.is_empty(): state.enemy_defeats=encounters.defeated_ids.keys()
@@ -311,6 +379,16 @@ func restore_location(id: StringName, state: Dictionary = {}) -> bool:
 		else: encounters.reset_run() # Discard legacy clears saved after an exit too.
 	if active_location!=id: _set_location(id)
 	if is_rental(id):
+		world.camera_rig.yaw=float(state.get("yaw",world.camera_rig.yaw))
+		world.camera_rig.reset_follow()
+	if is_wonders(id):
+		var actor: CharacterBody3D=world.player
+		actor.dodge.cancel()
+		actor.global_position=hall_content.resolve_saved_position(state,actor)
+		actor.velocity=Vector3.ZERO
+		actor.fall_damage.reset()
+		actor.unstuck.reset_history()
+		actor.visual.rebase_after_phase()
 		world.camera_rig.yaw=float(state.get("yaw",world.camera_rig.yaw))
 		world.camera_rig.reset_follow()
 	if id==pyramid_id:

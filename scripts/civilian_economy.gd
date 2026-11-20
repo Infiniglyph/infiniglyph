@@ -3,6 +3,7 @@ extends Node
 const Inventory = preload("res://scripts/inventory.gd")
 const Instance = preload("res://scripts/item_instance.gd")
 const Catalog = preload("res://scripts/item_catalog.gd")
+const WonderStock = preload("res://scripts/glyphic_wonders_stock.gd")
 const ROOM_COUNT := 3
 const COIN_CAP := 1000000000
 const JOURNAL_LIMIT := 128
@@ -15,6 +16,7 @@ const FOOD := [&"electron_meal",&"electron_draught"]
 signal changed
 signal food_consumed(inventory: Node, effects: Dictionary)
 signal commerce_committed(receipt: Dictionary)
+signal wonder_purchase_committed(token: String,buyer: String)
 @export var host_enabled := true
 @export_range(1,100000,1) var rental_price := 30
 @export_range(1,604800,1) var rental_duration := 3600.0
@@ -31,6 +33,9 @@ var external_transaction_guard: Callable
 var npc_validator: Callable
 var merchant_ids := {"guild":"guild_receptionist","tavern":"tavern_bartender"}
 var wonder_offers := {"cyan_mantle":5}
+var wonder_shop_attached := false
+var wonder_authorizer: Callable
+var _used_wonder_tokens: Dictionary = {}
 var owner_id := ""
 var player_account := ""
 var guild_account := "business:guild"
@@ -204,6 +209,9 @@ func npc_service_wage(id: String,service_key: String,serial: int) -> bool:
 	return accepted
 
 func purchase_wonder(id: String,type: StringName = &"cyan_mantle") -> bool:
+	# Keep pre-shop logical worlds compatible, without a cheap alternate route
+	# around an attached shop's current merchandise and authoritative quotes.
+	if wonder_shop_attached or wonder_authorizer.is_valid(): return false
 	if not _npc_allowed(id,&"purchase_wonder",{"id":id,"type_id":type}): return false
 	var price: Variant = wonder_offers.get(String(type))
 	if not Instance.whole_number(price,1,100000): return false
@@ -213,7 +221,37 @@ func purchase_wonder(id: String,type: StringName = &"cyan_mantle") -> bool:
 	if sequence>=COIN_CAP or balance(account)<int(price): return false
 	return _purchase_item(npc_store(id),type,{"kind":"destroy","from":account,"amount":int(price),"reason":"Glyphic Wonders purchase"},"wonder",[id],"glyphic_wonders")
 
-func _purchase_item(store: Node,type: StringName,event: Dictionary,context: String,participants: Array,counterpart: String) -> bool:
+func _authorized_wonder(buyer: String,quote: Dictionary) -> Dictionary:
+	if not wonder_shop_attached or not wonder_authorizer.is_valid() or not host_enabled or _busy or _externally_busy(): return {}
+	# Authorizers are callbacks too: keep nested purchases/saves out until the
+	# canonical current quote has been obtained and checked.
+	_busy = true
+	var authorized: Variant=wonder_authorizer.call(buyer,quote.duplicate(true))
+	_busy = false
+	if not authorized is Dictionary or not Instance.valid_text(authorized.get("type_id"),false,128) or not Instance.valid_text(authorized.get("token"),false,128) or not Instance.whole_number(authorized.get("price"),1,WonderStock.MAX_PRICE): return {}
+	var token:=String(authorized.token)
+	var type:=StringName(authorized.type_id)
+	if _used_wonder_tokens.has(token) or _used_wonder_tokens.size()>=MAX_SERVICE_TOKENS or WonderStock.price_for(type)!=int(authorized.price): return {}
+	return {"type_id":type,"price":int(authorized.price),"token":token,"buyer":buyer}
+
+func buy_wonder(quote: Dictionary,inventory: Node) -> bool:
+	if not _valid_inventory(inventory): return false
+	var authorized:=_authorized_wonder(owner_id,quote)
+	if authorized.is_empty(): return false
+	return _commit_wonder(inventory,player_account,authorized,[])
+
+func npc_buy_wonder(id: String,quote: Dictionary) -> bool:
+	if not _npc_allowed(id,&"npc_buy_wonder",{"id":id,"quote":quote}): return false
+	var authorized:=_authorized_wonder(id,quote)
+	if authorized.is_empty(): return false
+	return _commit_wonder(npc_store(id),resident_account(id),authorized,[id])
+
+func _commit_wonder(store: Node,account: String,authorized: Dictionary,participants: Array) -> bool:
+	var price:=int(authorized.price)
+	if not host_enabled or _busy or _externally_busy() or sequence>=COIN_CAP or balance(account)<price: return false
+	return _purchase_item(store,authorized.type_id,{"kind":"destroy","from":account,"amount":price,"reason":"Glyphic Wonders purchase"},"wonder",participants,"glyphic_wonders",authorized)
+
+func _purchase_item(store: Node,type: StringName,event: Dictionary,context: String,participants: Array,counterpart: String,wonder_commit: Dictionary = {}) -> bool:
 	if store==null: return false
 	var item: Resource = Catalog.create(type)
 	var shadow := _shadow(store)
@@ -230,9 +268,12 @@ func _purchase_item(store: Node,type: StringName,event: Dictionary,context: Stri
 	var accepted: bool = store.add_item(item)
 	if accepted:
 		accepted = _append_event(event)
-		if not accepted: store.restore(before)
+	if not accepted: store.restore(before)
 	store.set_block_signals(blocked)
 	if accepted:
+		if not wonder_commit.is_empty():
+			_used_wonder_tokens[wonder_commit.token]=true
+			wonder_purchase_committed.emit(String(wonder_commit.token),String(wonder_commit.buyer))
 		if not blocked: store.changed.emit()
 		_receipt(context,int(event.amount),participants,counterpart)
 		changed.emit()

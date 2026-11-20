@@ -2,6 +2,7 @@ extends RefCounted
 ## Civilian decisions and model actions; existing pedestrian/combat systems own bodies.
 const Profiles = preload("res://scripts/resident_profiles.gd")
 const Neon = preload("res://scripts/neon.gd")
+const Catalog = preload("res://scripts/item_catalog.gd")
 const BATCH_SIZE := 12
 const MAX_STATES := 8192
 const GOALS := ["work","trade","eat","socialize","explore","rest","train","guild","wonder"]
@@ -106,6 +107,45 @@ func _balance(id: String) -> int:
 	var economy=_economy()
 	return economy.balance("resident:"+id) if is_instance_valid(economy) else 0
 
+func _shop() -> Node:
+	var world=_world()
+	return world.get("glyphic_wonders") if is_instance_valid(world) else null
+
+func _shop_anchor() -> Node3D:
+	var world=_world()
+	if not is_instance_valid(world): return null
+	var regions=world.get("wider_world")
+	if not is_instance_valid(regions): return null
+	var exterior=regions.get("glyphic_wonders")
+	return exterior.get("arrival_anchor") if is_instance_valid(exterior) else null
+
+func shopping_position(id: String) -> Vector3:
+	var source:=_source(id)
+	if is_instance_valid(source): return source.global_position
+	var record: Dictionary=_regional_records.get(id,{})
+	return record.get("point",Vector3(INF,INF,INF))
+
+func _shopping_interest(record: Dictionary,coins: int) -> float:
+	var shop:=_shop()
+	if not is_instance_valid(shop): return 0.0
+	var stock=shop.get("stock")
+	if stock==null or not stock.has_method("offers"): return 0.0
+	var interest:=0.0
+	# Inspect the currently offered subset, never the developer exchange or an
+	# independent list of retail goods. Root commerce still validates the quote.
+	for offer: Dictionary in stock.offers():
+		if int(offer.get("price",0))<=0 or int(offer.price)>coins: continue
+		var definition: Resource=Catalog.get_definition(StringName(offer.get("type_id","")))
+		if definition==null: continue
+		var value:=.2+_motivation(record,"novelty")*.5
+		if String(definition.item_type_id).begins_with("health_glyph") or String(definition.item_type_id).begins_with("shield_glyph"):
+			value+=_motivation(record,"security")*.55+_motivation(record,"survival")*.35
+		elif definition.category==&"weapons": value+=_motivation(record,"mastery")*.7
+		elif definition.category==&"materials": value+=_motivation(record,"knowledge")*.45+_motivation(record,"wealth")*.25
+		else: value+=_motivation(record,"social")*.25+_motivation(record,"wealth")*.25
+		interest=maxf(interest,value)
+	return interest
+
 func choose_goal(record: Dictionary,state: Dictionary) -> String:
 	var coins:=_balance(String(record.id))
 	var hunger: float=state.hunger
@@ -127,7 +167,7 @@ func choose_goal(record: Dictionary,state: Dictionary) -> String:
 		"rest":.15+_motivation(record,"survival")*.55,
 		"train":.1+_motivation(record,"mastery")*1.4,
 		"guild":.1+_motivation(record,"loyalty")*(1.1 if String(record.get("guild","")).is_empty() else .2),
-		"wonder":(.15+_motivation(record,"novelty")*.5+_motivation(record,"wealth")*.25) if coins>=25 else 0.0}
+		"wonder":_shopping_interest(record,coins)}
 	scores.work+=urgency*.8
 	scores.guild+=urgency*.9
 	scores.explore+=urgency*.8
@@ -208,7 +248,9 @@ func perform_action(record: Dictionary,state: Dictionary,physical: bool) -> bool
 						success=economy.npc_sell_crystal(id,item.instance_id,1)
 						break
 		"wonder":
-			if is_instance_valid(economy): success=economy.purchase_wonder(id)
+			var shop:=_shop()
+			if is_instance_valid(shop): success=shop.npc_shop(record,physical)
+			if success: registry.remember(id,"shop","glyphic_wonders","Purchased an offered wonder with my own Glyph Coins.",.6)
 		"guild":
 			if String(record.get("guild","")).is_empty():
 				record.guild="adventurers_guild"
@@ -245,6 +287,7 @@ func choose_destination(resident: CharacterBody3D) -> StringName:
 	var selected: StringName=&""
 	var highest: float=-INF
 	var goal: String=record.current_goal
+	var shop_anchor:=_shop_anchor() if goal=="wonder" else null
 	for target: StringName in options:
 		if target==resident.goal or population.goal_load(target)>=3 or population.entrances.has(target): continue
 		var distance: float=population.points[target].distance_to(resident.position)
@@ -262,7 +305,12 @@ func choose_destination(resident: CharacterBody3D) -> StringName:
 			for peer: CharacterBody3D in population.active_residents:
 				if peer==resident or peer.goal!=target: continue
 				score+=maxf(0,float(record.relationships.get(_id(peer),0)))+(_motivation(record,"social")*.5)
-		elif goal in ["trade","eat","guild","wonder"]: score+=clampf(-population.points[target].z/80.0,0,2)
+		elif goal=="wonder" and is_instance_valid(shop_anchor):
+			# Stay on this resident's existing connected graph. A hub resident
+			# cannot invent a direct journey through locked progression gates.
+			var storefront: Vector3=population.to_local(shop_anchor.global_position)
+			score+=clampf(2.0-population.points[target].distance_to(storefront)/80.0,0,2)
+		elif goal in ["trade","eat","guild"]: score+=clampf(-population.points[target].z/80.0,0,2)
 		if score>highest: highest=score; selected=target
 	if not selected.is_empty(): _registry().set_goal(id,goal,String(selected))
 	return selected
@@ -296,6 +344,17 @@ func on_arrival(source: Node) -> void:
 func on_regional_arrival(record: Dictionary) -> void:
 	var id: String=record.get("code_form_id","")
 	var slot: String=record.get("code_form_slot","region/"+str(record.id))
+	var anchor:=_shop_anchor()
+	if not id.is_empty() and is_instance_valid(anchor) and record.point.distance_to(anchor.global_position)<1.5:
+		var individual: Dictionary=_registry().records.get(id,{}) if _registry()!=null else {}
+		if individual.is_empty() or not individual.get("active",false) or _unavailable(id): return
+		_registry().remember(id,"visit","glyphic_wonders","Visited the small storefront of Glyphic Wonders.",.6)
+		var state:=_state(id)
+		if individual.current_goal=="wonder" and _now()>=float(state.next_action):
+			state.next_action=_now()+60*_scale()
+			var source:=_source(id)
+			perform_action(individual,state,is_instance_valid(source) and not source.get("virtualized")==true)
+		return # Commerce alone awards shopping XP; passing a doorway does not.
 	_arrive(id,"place/"+slot+"/"+str(record.cursor))
 
 func on_talk(source: Node) -> void:

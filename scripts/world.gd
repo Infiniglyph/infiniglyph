@@ -26,8 +26,10 @@ var respawn_glyphs: Node
 const DungeonTravel = preload("res://scripts/dungeon_travel.gd")
 const CivilianServices = preload("res://scripts/civilian_services.gd")
 const Civilization = preload("res://scripts/code_form_civilization.gd")
+const GlyphicWonders = preload("res://scripts/glyphic_wonders.gd")
 var civilian_services: Node
 var civilization: Node
+var glyphic_wonders: Node
 @export var civilization_enabled := true
 var dungeon_travel: Node
 var graphics: Node
@@ -198,6 +200,9 @@ func _ready() -> void:
 		civilian_services=CivilianServices.new()
 		civilian_services.world=self
 		add_child(civilian_services)
+		glyphic_wonders=GlyphicWonders.new()
+		glyphic_wonders.world=self
+		add_child(glyphic_wonders)
 	if is_instance_valid(dungeon_travel): dungeon_travel.configure()
 	if civilization_enabled and is_instance_valid(civilian_services):
 		civilization=Civilization.new()

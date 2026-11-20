@@ -7,6 +7,7 @@ const Neon = preload("res://scripts/neon.gd")
 const KyrenHome = preload("res://scripts/kyren_homestead.gd")
 const Pyramid = preload("res://scripts/pyramid_exterior.gd")
 const Establishments = preload("res://scripts/civilian_establishments.gd")
+const WondersExterior = preload("res://scripts/glyphic_wonders_exterior.gd")
 const HALF_EXTENT := 1152
 const CHUNK_SIZE := 256
 const TERRAIN_STEP := 16
@@ -27,6 +28,7 @@ var build_ms := 0
 var kyren_home: Node3D
 var pyramid: Node3D
 var establishments: Node3D
+var glyphic_wonders: Node3D
 
 static func code(x: int, z: int, salt: int = 0) -> int:
 	# No shared/global RNG state: changing the map cannot reroll NPC identities.
@@ -125,6 +127,9 @@ func _ready() -> void:
 					if Pyramid.reserves_plot(at): continue
 					if Establishments.reserves_plot(at): continue
 					var seed := code(floori(at.x/64),floori(at.z/64))
+					if WondersExterior.reserves_plot(at):
+						_record_replaced_wonders_plot(at,seed,radius)
+						continue
 					if radius<CITY_EDGE: build_city(chunk,at,seed)
 					elif radius<SUBURB_EDGE: build_suburb(chunk,at,seed)
 					else: build_country(chunk,at,seed)
@@ -144,7 +149,23 @@ func _ready() -> void:
 	add_child(establishments)
 	destinations.append({"name":"Adventurers Guild","point":establishments.guild_entry.global_position})
 	destinations.append({"name":"Electron Tavern","point":establishments.tavern_entry.global_position})
+	glyphic_wonders=WondersExterior.new()
+	glyphic_wonders.position.y=height_at(WondersExterior.CENTER.x,WondersExterior.CENTER.z)
+	add_child(glyphic_wonders)
+	destinations.append({"name":"Glyphic Wonders","point":glyphic_wonders.arrival_anchor.global_position})
 	build_ms = Time.get_ticks_msec()-started
+
+func _record_replaced_wonders_plot(at: Vector3,seed: int,radius: float) -> void:
+	# Building ordinals also seed parked-driver identities. Preserve the old
+	# logical census in its original array order while replacing all scenery.
+	# The temporary batch never enters the scene/physics/rendering trees.
+	var scratch:=Chunk.new()
+	var lights_before:=lights.size()
+	if radius<CITY_EDGE: build_city(scratch,at,seed)
+	elif radius<SUBURB_EDGE: build_suburb(scratch,at,seed)
+	else: build_country(scratch,at,seed)
+	lights.resize(lights_before)
+	scratch.free()
 
 func build_terrain(chunk: Node3D) -> void:
 	var collision := PackedVector3Array()

@@ -52,6 +52,23 @@ dungeon enemies receive no civilian XP, levels or lifetime mechanics.
 [Code Form civilization guide](docs/CODE_FORM_CIVILIZATION.md) describes the
 configuration, save migration, transaction rules, simulation limits and tests.
 
+## Avat Ar and Glyphic Wonders
+
+**Glyphic Wonders** is at **LAT 038N / LON 007W**, beside the pyramid district.
+Use **G / tap RT** at its small storefront to enter an enormous separate hall.
+Avat Ar welcomes customers at the central counter; twelve spaced pedestals
+display a selection from the same catalogue as the Tower Exchange. Approach a
+pedestal to inspect and buy its item with **A / Enter**. **B / Escape** returns.
+
+The selection rotates every seven game days and survives leaving and reloading.
+Health Glyphs and all three Shield Glyph tiers are always sold at the counter.
+Purchases require real Glyph Coins and permanently remove those coins from
+circulation. Civilians shop using their own wallets. The Tower Exchange remains
+the player's development/testing interface.
+
+[Glyphic Wonders guide](docs/GLYPHIC_WONDERS.md) covers prices, persistence,
+instance boundaries, merchant presentation and verification.
+
 ## Repository and recovery
 
 The standalone project is published at

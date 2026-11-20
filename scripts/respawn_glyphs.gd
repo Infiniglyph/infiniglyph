@@ -59,7 +59,7 @@ func placement(item_type: StringName) -> Dictionary:
 	if actor.weapon_combat.is_staggered() or not actor.weapon_combat.active_move.is_empty(): return {}
 	var location: StringName=loot.location_for(actor)
 	# Rented lodgings can expire; they are not permanent reconstruction points.
-	if is_instance_valid(world.dungeon_travel) and world.dungeon_travel.is_rental(location): return {}
+	if is_instance_valid(world.dungeon_travel) and (world.dungeon_travel.is_rental(location) or world.dungeon_travel.is_wonders(location)): return {}
 	var floor: Dictionary=loot.supported_position(actor.global_position,location)
 	if floor.is_empty() or absf(actor.global_position.y-float(floor.point.y))>.22: return {}
 	var point: Vector3=floor.point+Vector3.UP*.025
@@ -116,6 +116,7 @@ func begin_choice() -> bool:
 	var default_label := "Open world"
 	if is_instance_valid(world.dungeon_travel):
 		if world.dungeon_travel.is_rental(): default_label="Guild hallway"
+		elif world.dungeon_travel.is_wonders(): default_label="Glyphic Wonders storefront"
 		elif world.dungeon_travel.is_pyramid(): default_label="Pyramid entrance"
 	_add_choice("default","Default spawn  |  "+default_label)
 	_cursor=0

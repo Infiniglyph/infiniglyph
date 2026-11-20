@@ -32,6 +32,13 @@ func frames(count: int = 2) -> void:
 		await physics_frame
 		await process_frame
 
+func transport_node_count() -> int:
+	var count:=world.find_children("*","",true,false).size()
+	# Autonomous purchases legitimately create persistent private goods stores
+	# while the player travels. They are separate from environment/portal leaks.
+	for store: Node in world.civilian_services.economy.npc_stores.values(): count-=1+store.find_children("*","",true,false).size()
+	return count
+
 func place(point: Vector3) -> void:
 	p.global_position=point
 	p.velocity=Vector3.ZERO
@@ -110,7 +117,7 @@ func run() -> void:
 	p.visual.retrieval.enabled=false
 	Input.mouse_mode=Input.MOUSE_MODE_VISIBLE
 	await frames(10)
-	check(travel.ready_for_travel and travel.contexts.size()==5 and travel.room_contents.is_empty() and not travel.inside(),"Prepared dungeon, original outdoors and three dormant rental identities stay separate")
+	check(travel.ready_for_travel and travel.contexts.size()==6 and travel.room_contents.is_empty() and not is_instance_valid(travel.hall_content) and not travel.inside(),"Prepared dungeon, original outdoors, three dormant rentals and shop identity stay separate")
 	check(travel.interior.get_world_3d()!=travel.outside_root.get_world_3d() and p.get_world_3d()==travel.outside_root.get_world_3d(),"Interior owns an independent World3D; outdoor player and architecture still share their original world")
 	check(travel.home_anchor.name==&"TemporaryHomeSpawn" and travel.home_anchor.global_position==p.spawn,"Open-world respawn uses a clearly identified temporary home, ready for a future property anchor")
 	check(p.weapon_combat.feedback==world.sparring_partner.weapon_combat.feedback,"Outdoor actors retain the player's shared combat impact pool after scenery separation")
@@ -242,12 +249,12 @@ func run() -> void:
 	world.inventory_session.live_session=false
 	await leave()
 	await frames(hz*2)
-	var nodes:=world.find_children("*","",true,false).size()
+	var nodes:=transport_node_count()
 	for i in range(3):
 		await enter()
 		await leave()
 	await frames(hz*2)
-	check(world.find_children("*","",true,false).size()==nodes and travel.contexts.size()==5 and travel.room_contents.is_empty() and travel._effect.pieces.is_empty() and travel._effect.effects.is_empty(),"Repeated entry/exit retains one interior, dormant rentals, fixed scene-node count and no orphaned transition materials")
+	check(transport_node_count()==nodes and travel.contexts.size()==6 and travel.room_contents.is_empty() and not is_instance_valid(travel.hall_content) and travel._effect.pieces.is_empty() and travel._effect.effects.is_empty(),"Repeated entry/exit retains fixed environment nodes, dormant rentals and shop, and no orphaned transition materials")
 	check(p.get_instance_id()==character_id and p.visual.get_instance_id()==visual_id and not paused,"Character identity and live simulation survive all travel, deaths and reloads")
 	world.queue_free()
 	controls.queue_free()

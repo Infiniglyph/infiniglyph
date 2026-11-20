@@ -6,6 +6,7 @@ const Equipment = preload("res://scripts/equipment_database.gd")
 const Pickup = preload("res://scripts/item_pickup.gd")
 const Economy = preload("res://scripts/civilian_economy.gd")
 const Civilization = preload("res://scripts/code_form_civilization.gd")
+const WonderStock = preload("res://scripts/glyphic_wonders_stock.gd")
 const VERSION := 1
 const POLICY := "singleplayer_checkpoint"
 const MAX_WORLD_DROPS := 4096
@@ -13,13 +14,14 @@ const MAX_WORLD_DROPS := 4096
 # eight MiB ceiling. Per-record and population bounds still validate contents.
 const MAX_SAVE_BYTES := 128*1024*1024
 
-static func encode(inventory: Node, world_drops: Array = [], markers: Array = [], session_id: String = "singleplayer", location: String = "overworld", location_state: Dictionary = {}, civilian_state: Dictionary = {}, civilization_state: Dictionary = {}) -> Dictionary:
+static func encode(inventory: Node, world_drops: Array = [], markers: Array = [], session_id: String = "singleplayer", location: String = "overworld", location_state: Dictionary = {}, civilian_state: Dictionary = {}, civilization_state: Dictionary = {}, stock_state: Dictionary = {}) -> Dictionary:
 	if inventory == null or not inventory.has_method("serialize"): return {}
 	var data: Dictionary={"version":VERSION,"policy":POLICY,"session_id":session_id,"inventory":inventory.serialize(),"world_drops":world_drops,"markers":markers}
 	if location!="overworld": data.location_context=location
 	if not location_state.is_empty(): data.location_state=location_state
 	if not civilian_state.is_empty(): data.civilian_state=civilian_state
 	if not civilization_state.is_empty(): data.civilization_state=civilization_state
+	if not stock_state.is_empty(): data.glyphic_wonders_state=stock_state
 	return decode(data)
 
 static func decode(data: Variant) -> Dictionary:
@@ -121,7 +123,22 @@ static func decode(data: Variant) -> Dictionary:
 		var blessing_interval: float=float(model.config.blessing_days)*float(model.config.day_seconds)
 		if int(decoded.civilian_state.last_cycle)!=floori(model.world_seconds/blessing_interval): return {}
 		decoded.civilization_state=society
+	if data.has("glyphic_wonders_state"):
+		if not decoded.has("civilian_state"): return {}
+		# Eligibility/price metadata touches the shared catalog. This validation
+		# stays on the main thread, including the async encoder's core capture.
+		var stock:=WonderStock.validate(data.glyphic_wonders_state)
+		if stock.is_empty(): return {}
+		if decoded.has("civilization_state") and not wonders_clock_matches(stock,decoded.civilization_state.registry): return {}
+		decoded.glyphic_wonders_state=stock
 	return decoded
+
+static func wonders_clock_matches(stock: Dictionary,registry: Dictionary) -> bool:
+	# Only canonical scalar fields are read here. Unlike Stock.validate, this
+	# cross-check is safe on a worker after main-thread catalog validation.
+	if float(stock.config.day_seconds)!=float(registry.config.day_seconds): return false
+	var interval: float=float(stock.config.day_seconds)*float(stock.config.interval_days)
+	return int(stock.cycle)==floori(float(registry.world_seconds)/interval)
 
 static func store(path: String, snapshot: Dictionary) -> Error:
 	var validated := decode(snapshot)

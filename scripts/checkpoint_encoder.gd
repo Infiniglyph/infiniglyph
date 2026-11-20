@@ -102,6 +102,7 @@ static func _encode(captured: Dictionary,society_bytes: PackedByteArray,has_soci
 		if history!=accounts: return _failure(ERR_INVALID_DATA)
 		var interval: float=float(model.config.blessing_days)*float(model.config.day_seconds)
 		if int(captured.civilian_state.last_cycle)!=floori(float(model.world_seconds)/interval): return _failure(ERR_INVALID_DATA)
+		if captured.has("glyphic_wonders_state") and not Store.wonders_clock_matches(captured.glyphic_wonders_state,model): return _failure(ERR_INVALID_DATA)
 		captured.civilization_state=society
 	var bytes: PackedByteArray=JSON.stringify(captured,"",true,true).to_utf8_buffer()
 	if bytes.size()>Store.MAX_SAVE_BYTES: return _failure(ERR_OUT_OF_MEMORY)

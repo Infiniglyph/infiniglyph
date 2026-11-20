@@ -194,6 +194,7 @@ func open_menu() -> void:
 	if session.ui.is_open: session.ui.close_menu()
 	if session.shop.is_open: session.shop.close_menu()
 	if is_instance_valid(session.civilian_services) and session.civilian_services.menu.is_open: session.civilian_services.menu.close_menu()
+	if is_instance_valid(session.glyphic_wonders) and session.glyphic_wonders.menu.is_open: session.glyphic_wonders.menu.close_menu()
 	if session.duel.dialogue_open: session.duel.answer(false)
 	if is_instance_valid(session.kyren_encounter) and session.kyren_encounter.dialogue_open: session.kyren_encounter.answer(false)
 	if is_instance_valid(session.boss_encounter) and session.boss_encounter.dialogue_open: session.boss_encounter.answer(false)
@@ -287,6 +288,7 @@ func _input(event: InputEvent) -> void:
 		if event is InputEventKey and session.ui.is_open: return
 		if event is InputEventKey and session.shop.is_open: return
 		if event is InputEventKey and is_instance_valid(session.civilian_services) and session.civilian_services.menu.is_open: return
+		if event is InputEventKey and is_instance_valid(session.glyphic_wonders) and session.glyphic_wonders.menu.is_open: return
 		get_viewport().set_input_as_handled()
 		if is_open: _back()
 		else: open_menu()

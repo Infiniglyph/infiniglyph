@@ -19,12 +19,14 @@ var kyren_encounter: Node
 var world_actions: Node3D
 var dungeon_travel: Node
 var civilian_services: Node
+var glyphic_wonders: Node
 var ui: CanvasLayer
 var shop: CanvasLayer
 @export var persistence_enabled := true
 @export var save_path := "user://inventory_v1.json"
 @export var live_session := false
 var _loading := false
+var _restoring_checkpoint := false
 var _save_queued := false
 var _save_again := false
 var _encoder := CheckpointEncoder.new()
@@ -185,6 +187,7 @@ func _inventory_token(event: InputEvent) -> String:
 func _toggle_inventory() -> void:
 	if not _inventory_allowed(): return
 	if is_instance_valid(civilian_services) and civilian_services.menu.is_open: civilian_services.menu.close_menu()
+	if is_instance_valid(glyphic_wonders) and glyphic_wonders.menu.is_open: glyphic_wonders.menu.close_menu()
 	if shop.is_open: shop.close_menu()
 	ui.toggle()
 
@@ -266,6 +269,7 @@ func can_talk() -> bool:
 	if is_instance_valid(dungeon_travel):
 		if dungeon_travel.busy: return false
 		if dungeon_travel.focused_door()!=null: return true
+		if dungeon_travel.is_wonders(): return loot.nearest_pickup(actor)!=null or not glyphic_wonders.nearest().is_empty()
 		if dungeon_travel.is_pyramid(): return loot.nearest_pickup(actor)!=null
 		if dungeon_travel.is_rental():
 			return not civilian_services.nearest().is_empty() or loot.nearest_pickup(actor)!=null or not world_actions.nearest().is_empty()
@@ -291,6 +295,10 @@ func interact() -> void:
 		if dungeon_travel.busy: return
 		var item: Node3D=loot.nearest_pickup(actor)
 		if item==null and dungeon_travel.interact(): return
+		if dungeon_travel.is_wonders():
+			if item!=null: loot.request_pickup(actor.inventory,item)
+			else: glyphic_wonders.interact()
+			return
 		if dungeon_travel.is_pyramid():
 			if item!=null: loot.request_pickup(actor.inventory,item)
 			return
@@ -385,6 +393,12 @@ func _process(delta: float) -> void:
 			var item: Node3D=loot.nearest_pickup(actor)
 			if item!=null: hint.text="G / RT: collect "+item.interaction_name()
 			return
+		if dungeon_travel.is_wonders():
+			var item: Node3D=loot.nearest_pickup(actor)
+			var merchandise: Dictionary=glyphic_wonders.nearest()
+			if item!=null: hint.text="G / tap RT: collect "+item.interaction_name()
+			elif not merchandise.is_empty(): hint.text="G / tap RT: "+String(merchandise.label)
+			return
 		if dungeon_travel.is_rental():
 			var item: Node3D=loot.nearest_pickup(actor)
 			var service: Dictionary=civilian_services.nearest()
@@ -447,9 +461,10 @@ func _refresh_losses() -> void:
 	var location:=StringName(nearest.get("location_id","overworld"))
 	if is_instance_valid(dungeon_travel) and location!=dungeon_travel.active_location:
 		var route := "return through the guild room door" if dungeon_travel.is_rental(location) or dungeon_travel.is_rental() else "return through the pyramid doorway"
+		if dungeon_travel.is_wonders(location) or dungeon_travel.is_wonders(): route="return through the Glyphic Wonders doorway"
 		loss_hint.text="LOST GEAR  |  %s  |  %s  |  %d unclaimed" % [dungeon_travel.location_label(location,point),route,entries.size()]
 		return
-	if is_instance_valid(dungeon_travel) and dungeon_travel.is_rental(location):
+	if is_instance_valid(dungeon_travel) and (dungeon_travel.is_rental(location) or dungeon_travel.is_wonders(location)):
 		loss_hint.text="LOST GEAR  %.0f m  |  %s  |  %d unclaimed" % [distance,dungeon_travel.location_label(location,point),entries.size()]
 		return
 	if location!=&"overworld":
@@ -511,6 +526,7 @@ func _capture_checkpoint() -> Dictionary:
 	if not state.is_empty(): snapshot.location_state=state
 	if not civilian.is_empty(): snapshot.civilian_state=civilian
 	if not society.is_empty(): snapshot.civilization_state=society
+	if is_instance_valid(glyphic_wonders): snapshot.glyphic_wonders_state=glyphic_wonders.serialize()
 	return snapshot
 
 func save_checkpoint(path: String = "", silent: bool = false) -> bool:
@@ -534,7 +550,7 @@ func save_checkpoint(path: String = "", silent: bool = false) -> bool:
 	return true
 
 func load_checkpoint(path: String = "") -> bool:
-	if networked() or loot.transaction_active(): return false
+	if _restoring_checkpoint or networked() or loot.transaction_active(): return false
 	var civilization: Node=actor.get_parent().get("civilization")
 	if is_instance_valid(civilization) and (not civilization.ready_for_simulation or civilization.transaction_active()): return false
 	var source := path if not path.is_empty() else save_path
@@ -549,10 +565,13 @@ func load_checkpoint(path: String = "") -> bool:
 	var world_before: Array = loot.serialize_world()
 	var civilian_before: Dictionary=civilian_services.economy.serialize() if is_instance_valid(civilian_services) else {}
 	var society_before: Dictionary=civilization.serialize() if is_instance_valid(civilization) else {}
+	var wonders_before: Dictionary=glyphic_wonders.serialize() if is_instance_valid(glyphic_wonders) else {}
 	_loading = true
+	_restoring_checkpoint = true
 	var ok: bool = actor.inventory.restore(snapshot.inventory)
 	if ok and is_instance_valid(civilian_services): ok=civilian_services.economy.restore(snapshot.get("civilian_state",civilian_services.initial_state))
 	if ok and is_instance_valid(civilization): ok=civilization.restore(snapshot.get("civilization_state"),false)
+	if ok and is_instance_valid(glyphic_wonders): ok=glyphic_wonders.restore(snapshot.get("glyphic_wonders_state"))
 	var world_changed := false
 	if ok:
 		ok = loot.restore_world(snapshot.world_drops)
@@ -562,6 +581,7 @@ func load_checkpoint(path: String = "") -> bool:
 		actor.inventory.restore(owned_before)
 		if is_instance_valid(civilian_services): civilian_services.economy.restore(civilian_before)
 		if is_instance_valid(civilization): civilization.restore(society_before,false)
+		if is_instance_valid(glyphic_wonders): glyphic_wonders.restore(wonders_before)
 		# restore_world is already atomic on rejection. Replacing untouched
 		# drops here would leave duplicate pending colliders until frame end.
 		if world_changed: loot.restore_world(world_before)
@@ -570,7 +590,9 @@ func load_checkpoint(path: String = "") -> bool:
 		var saved_at: float=float(snapshot.get("civilization_state",{}).get("saved_unix",Time.get_unix_time_from_system()))
 		if not civilization.advance_real(maxf(0,Time.get_unix_time_from_system()-saved_at),true):
 			show_notice("World restored. Offline simulation could not advance: "+String(civilization.last_error),10)
+	if ok and is_instance_valid(glyphic_wonders): glyphic_wonders.refresh_stock()
 	_loading = false
+	_restoring_checkpoint = false
 	return ok
 
 func seed_demo_loot() -> void:

@@ -114,7 +114,26 @@ func run() -> void:
 	var transfer_xp: int=person.experience
 	check(economy.transfer("resident:"+id,economy.tavern_account,1,"Ordinary transfer") and person.experience==transfer_xp,"Generic transfers do not generate circulation XP")
 	var issued: int=economy.issued_total
-	check(economy.purchase_wonder(id) and economy.destroyed_total==5 and economy.issued_total==issued,"A Glyphic Wonders purchase delivers an item and permanently burns five coins")
+	var wonder_buyer: Dictionary={}
+	for candidate: String in society.registry.active_ids():
+		if world.glyphic_wonders._npc_ready(candidate,false) and economy.balance("resident:"+candidate)>=20:
+			wonder_buyer=society.registry.records[candidate]
+			break
+	var wonder_inventory: Node=economy.npc_store(String(wonder_buyer.id)) if not wonder_buyer.is_empty() else null
+	var wonder_counts: Dictionary={}
+	if wonder_inventory!=null:
+		for item: Resource in wonder_inventory.items.values(): wonder_counts[item.item_type_id]=wonder_inventory.count_type(item.item_type_id)
+	var destroyed_before: int=economy.destroyed_total
+	var wonder_bought: bool=not wonder_buyer.is_empty() and world.glyphic_wonders.npc_shop(wonder_buyer,false)
+	var delivered:=0
+	var actual_price:=0
+	if wonder_inventory!=null:
+		for item: Resource in wonder_inventory.items.values():
+			var difference: int=wonder_inventory.count_type(item.item_type_id)-int(wonder_counts.get(item.item_type_id,0))
+			if difference>0:
+				delivered+=difference
+				actual_price=int(world.glyphic_wonders.stock.offer(item.item_type_id).price)
+	check(wonder_bought and delivered==1 and actual_price>0 and economy.destroyed_total-destroyed_before==actual_price and economy.issued_total==issued and not economy.purchase_wonder(String(wonder_buyer.get("id",""))),"An offered Glyphic Wonders purchase delivers one real item and destroys its actual retail price while closing the old cheap bypass")
 	check(circulating()+economy.destroyed_total==issued,"Ordinary exchanges and destruction remain auditable against total issuance")
 	var start: float=society.world_seconds
 	check(society.advance_real(1e9,true) and is_equal_approx(society.world_seconds-start,6*86400),"Offline catch-up is capped at six real hours, corresponding to six game days")

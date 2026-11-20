@@ -235,7 +235,9 @@ func run() -> void:
 	await frames(3)
 	check(session.load_checkpoint(bed_inside),"A checkpoint reconstructs a room containing a mattress-supported drop without a support-validation failure")
 	await frames(3)
-	check(ledger_total()==opening_total and not paused,"Full service, reconstruction and checkpoint lifecycle conserves issued currency without pausing the world")
+	# Autonomous customers may buy wonders while this live-world fixture runs.
+	# Those journaled sinks retire coins instead of transferring them to a till.
+	check(ledger_total()+economy.destroyed_total==opening_total and economy.issued_total==opening_total and not paused,"Full service, reconstruction and checkpoint lifecycle conserves circulating and audited retired currency without pausing the world")
 	# Cold restart: no furniture from the first room may supply cached shapes.
 	world.queue_free()
 	controls.queue_free()

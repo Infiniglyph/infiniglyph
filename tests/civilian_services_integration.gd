@@ -132,7 +132,7 @@ func run() -> void:
 		for parent: Node3D in [services.establishments,p]:
 			for geometry: GeometryInstance3D in parent.find_children("*","GeometryInstance3D",true,false): geometry.layers = 2
 	await frames(10)
-	check(travel.ready_for_travel and travel.contexts.size()==5 and travel.room_ids.size()==3,"Actual world integrates the overworld, existing pyramid and three isolated lodging contexts")
+	check(travel.ready_for_travel and travel.contexts.size()==6 and travel.room_ids.size()==3 and not is_instance_valid(travel.hall_content),"Actual world integrates the overworld, pyramid, three lodging contexts and dormant shop")
 	check(services._people.size()==4 and economy.natural_ids.size()==104 and economy.balance(economy.player_account)==0,"Service keepers and two seated adventurers join the resident census without giving visitors a blessing")
 	var issued: int = economy.issued_total
 	check(not economy.rent(0) and economy.rental.is_empty(),"Remote rental requests fail outside a live reception interaction")

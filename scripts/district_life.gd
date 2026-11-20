@@ -70,8 +70,9 @@ func build() -> void:
 	for x in range(-640,640,64):
 		for z in range(-640,640,64):
 			if maxf(absf(x+32),absf(z+32))<128: continue
-			var route := PackedVector3Array([point(x+10,z+10),point(x+54,z+10),point(x+54,z+54),point(x+10,z+54)])
-			for i in range(2): add_person(route,i*2,route[i*2])
+			var retail:=x==-128 and z==-640 and is_instance_valid(regions.glyphic_wonders)
+			var route := wonders_route() if retail else PackedVector3Array([point(x+10,z+10),point(x+54,z+10),point(x+54,z+54),point(x+10,z+54)])
+			for i in range(2): add_person(route,i*2,route[i*2],retail)
 			if Regions.code(x,z,9)%3==0:
 				add_traffic(PackedVector3Array([point(x+3,z+3),point(x+61,z+3),point(x+61,z+61),point(x+3,z+61)]))
 	for x in [-1024,-512,0,512]:
@@ -104,9 +105,16 @@ func build() -> void:
 	_built = true
 	refresh_active()
 
-func add_person(route: PackedVector3Array, cursor: int, at: Vector3) -> void:
+func wonders_route() -> PackedVector3Array:
+	# Reuse the same two identities in the storefront's original block. The
+	# west pavement clears the shop wall; the southern detour follows its real
+	# shallow ramp in both directions instead of cutting through architecture.
+	var arrival: Vector3=regions.glyphic_wonders.arrival_anchor.global_position
+	return PackedVector3Array([point(-124,-630),point(-74,-630),point(-74,-586),point(-112,-586),point(-112,-594),arrival,point(-112,-594),point(-124,-586)])
+
+func add_person(route: PackedVector3Array, cursor: int, at: Vector3, retail: bool = false) -> void:
 	var id := resident_records.size()
-	resident_records.append({"id":id,"code_form_slot":"region/"+str(id),"code_form_id":"","profile":profile_for(id),"point":at,"route":route,"cursor":(cursor+1)%route.size(),"meetings":0,"checked":false,"valid":true})
+	resident_records.append({"id":id,"code_form_slot":"region/"+str(id),"code_form_id":"","profile":profile_for(id),"point":at,"route":route,"cursor":(cursor+1)%route.size(),"meetings":0,"checked":false,"valid":true,"wonders_route":retail})
 
 func add_traffic(route: PackedVector3Array) -> void:
 	var id := vehicle_records.size()
@@ -136,7 +144,7 @@ func validate_walk(record: Dictionary) -> bool:
 		var a: Vector3 = route[n]
 		var b: Vector3 = route[(n+1)%route.size()]
 		var p := a.lerp(b,clampf(step*2/maxf(a.distance_to(b),0.01),0,1))
-		p.y = Regions.surface_at(p.x,p.z)+0.04
+		p.y = maxf(p.y,Regions.surface_at(p.x,p.z)+0.04) if record.get("wonders_route",false) else Regions.surface_at(p.x,p.z)+0.04
 		validation_probes += 1
 		if not pedestrian_clear(p):
 			record.valid = false
