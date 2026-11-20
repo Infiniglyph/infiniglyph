@@ -1,0 +1,1972 @@
+{
+    "version":  1,
+    "phrases":  [
+                    {
+                        "id":  "greet_0",
+                        "intent":  "greet",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Hello there.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "greet_1",
+                        "intent":  "greet",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Good to see you.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "greet_2",
+                        "intent":  "greet",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "A moment to talk?",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "farewell_0",
+                        "intent":  "farewell",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Until next time.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "farewell_1",
+                        "intent":  "farewell",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I\u0027ll leave you to it.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "farewell_2",
+                        "intent":  "farewell",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "We can speak again another time.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "request_trade_0",
+                        "intent":  "request_trade",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Shall we discuss trading?",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "request_trade_1",
+                        "intent":  "request_trade",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I\u0027d like to see what we can exchange.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "request_trade_2",
+                        "intent":  "request_trade",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Let\u0027s talk about your goods.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "browse_goods_0",
+                        "intent":  "browse_goods",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I\u0027d like to browse the goods.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "browse_goods_1",
+                        "intent":  "browse_goods",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Show me the current selection.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "browse_goods_2",
+                        "intent":  "browse_goods",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Let me inspect what\u0027s available.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "ask_price_0",
+                        "intent":  "ask_price",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "What are you asking for {item}?",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "ask_price_1",
+                        "intent":  "ask_price",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "How much does {item} cost?",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "ask_price_2",
+                        "intent":  "ask_price",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "What\u0027s the price of {item}?",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "quote_price_0",
+                        "intent":  "quote_price",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "The price for {item} is {price} Glyph Coins.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "quote_price_1",
+                        "intent":  "quote_price",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "{item} costs {price} Glyph Coins.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "quote_price_2",
+                        "intent":  "quote_price",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I\u0027m asking {price} Glyph Coins for {item}.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "offer_trade_0",
+                        "intent":  "offer_trade",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I offer {price} Glyph Coins for {item}.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "offer_trade_1",
+                        "intent":  "offer_trade",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "How about {price} Glyph Coins for {item}?",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "offer_trade_2",
+                        "intent":  "offer_trade",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "My offer for {item} is {price} Glyph Coins.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "propose_price_0",
+                        "intent":  "propose_price",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Would you consider {price} Glyph Coins for {item}?",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "propose_price_1",
+                        "intent":  "propose_price",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "My proposed price for {item} is {price} Glyph Coins.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "propose_price_2",
+                        "intent":  "propose_price",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "What about {price} Glyph Coins for {item}?",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "accept_trade_0",
+                        "intent":  "accept_trade",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I accept that offer.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "accept_trade_1",
+                        "intent":  "accept_trade",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "We have a deal on those terms.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "accept_trade_2",
+                        "intent":  "accept_trade",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I\u0027ll take the stated offer.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "decline_trade_0",
+                        "intent":  "decline_trade",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I\u0027ll pass on that offer.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "decline_trade_1",
+                        "intent":  "decline_trade",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Those terms don\u0027t suit me.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "decline_trade_2",
+                        "intent":  "decline_trade",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "No deal this time.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "ask_discount_0",
+                        "intent":  "ask_discount",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Would you consider a discount?",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "ask_discount_1",
+                        "intent":  "ask_discount",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Is there room to negotiate?",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "ask_discount_2",
+                        "intent":  "ask_discount",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Could you lower the asking price?",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "ask_quality_0",
+                        "intent":  "ask_quality",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "What should I know about its quality?",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "ask_quality_1",
+                        "intent":  "ask_quality",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Tell me about this item\u0027s condition.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "ask_quality_2",
+                        "intent":  "ask_quality",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "How well has this been made?",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "offer_item_0",
+                        "intent":  "offer_item",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I have something to offer.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "offer_item_1",
+                        "intent":  "offer_item",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Would you look at an item of mine?",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "offer_item_2",
+                        "intent":  "offer_item",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Let\u0027s consider what I could exchange.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "ask_rumor_0",
+                        "intent":  "ask_rumor",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Have you heard any news?",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "ask_rumor_1",
+                        "intent":  "ask_rumor",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Anything worth knowing nearby?",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "ask_rumor_2",
+                        "intent":  "ask_rumor",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "What are people talking about?",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "share_rumor_0",
+                        "intent":  "share_rumor",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "This is what I heard: {information}",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "share_rumor_1",
+                        "intent":  "share_rumor",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I have news to share: {information}",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "share_rumor_2",
+                        "intent":  "share_rumor",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Here\u0027s the report I know: {information}",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "request_info_0",
+                        "intent":  "request_info",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "May I ask a question?",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "request_info_1",
+                        "intent":  "request_info",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Could you tell me more?",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "request_info_2",
+                        "intent":  "request_info",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I\u0027d like to understand something.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "share_info_0",
+                        "intent":  "share_info",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Here\u0027s what I know: {information}",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "share_info_1",
+                        "intent":  "share_info",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "The information I have is this: {information}",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "share_info_2",
+                        "intent":  "share_info",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I can tell you this: {information}",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "ask_work_0",
+                        "intent":  "ask_work",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Is there work available?",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "ask_work_1",
+                        "intent":  "ask_work",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Do you know of a paid opportunity?",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "ask_work_2",
+                        "intent":  "ask_work",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I\u0027m looking for useful work.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "offer_work_0",
+                        "intent":  "offer_work",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I have work to discuss.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "offer_work_1",
+                        "intent":  "offer_work",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "There may be a task for you.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "offer_work_2",
+                        "intent":  "offer_work",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Would you consider an opportunity?",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "accept_work_0",
+                        "intent":  "accept_work",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I accept the stated work.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "accept_work_1",
+                        "intent":  "accept_work",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I\u0027ll take that assignment.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "accept_work_2",
+                        "intent":  "accept_work",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Those work terms are acceptable.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "request_help_0",
+                        "intent":  "request_help",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Could you help me?",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "request_help_1",
+                        "intent":  "request_help",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I could use assistance.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "request_help_2",
+                        "intent":  "request_help",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Would you lend a hand?",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "offer_help_0",
+                        "intent":  "offer_help",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Can I help with anything?",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "offer_help_1",
+                        "intent":  "offer_help",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I\u0027m willing to assist.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "offer_help_2",
+                        "intent":  "offer_help",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Perhaps I can be useful.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "ask_quest_0",
+                        "intent":  "ask_quest",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Are there any tasks to take on?",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "ask_quest_1",
+                        "intent":  "ask_quest",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "What needs doing?",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "ask_quest_2",
+                        "intent":  "ask_quest",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I\u0027d like to hear about an opportunity.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "accept_quest_0",
+                        "intent":  "accept_quest",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I\u0027ll accept that task.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "accept_quest_1",
+                        "intent":  "accept_quest",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I agree to the stated objective.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "accept_quest_2",
+                        "intent":  "accept_quest",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I\u0027ll take on that assignment.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "report_quest_0",
+                        "intent":  "report_quest",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I\u0027d like to report my progress.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "report_quest_1",
+                        "intent":  "report_quest",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Let\u0027s review the task.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "report_quest_2",
+                        "intent":  "report_quest",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I have an update on the assignment.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "ask_guild_0",
+                        "intent":  "ask_guild",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Tell me about the guild.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "ask_guild_1",
+                        "intent":  "ask_guild",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "May we discuss guild membership?",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "ask_guild_2",
+                        "intent":  "ask_guild",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "What should I know about your guild?",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "invite_guild_0",
+                        "intent":  "invite_guild",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I\u0027d like to discuss a guild invitation.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "invite_guild_1",
+                        "intent":  "invite_guild",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Would you consider joining our guild?",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "invite_guild_2",
+                        "intent":  "invite_guild",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Let\u0027s talk about joining forces.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "accept_guild_0",
+                        "intent":  "accept_guild",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I accept the guild invitation.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "accept_guild_1",
+                        "intent":  "accept_guild",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I\u0027m willing to join on those terms.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "accept_guild_2",
+                        "intent":  "accept_guild",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I agree to that membership.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "decline_0",
+                        "intent":  "decline",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "No, thank you.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "decline_1",
+                        "intent":  "decline",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I\u0027ll decline.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "decline_2",
+                        "intent":  "decline",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "That isn\u0027t for me.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "refuse_0",
+                        "intent":  "refuse",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I cannot agree to that.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "refuse_1",
+                        "intent":  "refuse",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I\u0027m refusing that request.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "refuse_2",
+                        "intent":  "refuse",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "That is not something I\u0027ll do.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "agree_0",
+                        "intent":  "agree",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Agreed.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "agree_1",
+                        "intent":  "agree",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "That sounds acceptable.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "agree_2",
+                        "intent":  "agree",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I understand, and I agree.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "thank_0",
+                        "intent":  "thank",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Thank you.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "thank_1",
+                        "intent":  "thank",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I appreciate that.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "thank_2",
+                        "intent":  "thank",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "You\u0027ve been helpful.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "apologize_0",
+                        "intent":  "apologize",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I\u0027m sorry for what happened.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "apologize_1",
+                        "intent":  "apologize",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I owe you an apology.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "apologize_2",
+                        "intent":  "apologize",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I regret that encounter.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "affection_0",
+                        "intent":  "affection",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I\u0027m glad to know you.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "affection_1",
+                        "intent":  "affection",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Your company means something to me.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "affection_2",
+                        "intent":  "affection",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I value the time we spend together.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "threaten_0",
+                        "intent":  "threaten",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Don\u0027t push me further.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "threaten_1",
+                        "intent":  "threaten",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Consider this a warning.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "threaten_2",
+                        "intent":  "threaten",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Keep testing me and there will be trouble.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "hostility_0",
+                        "intent":  "hostility",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I don\u0027t want your company.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "hostility_1",
+                        "intent":  "hostility",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Keep your distance.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "hostility_2",
+                        "intent":  "hostility",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I have no patience for you today.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "ask_identity_0",
+                        "intent":  "ask_identity",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Tell me about yourself.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "ask_identity_1",
+                        "intent":  "ask_identity",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Who are you?",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "ask_identity_2",
+                        "intent":  "ask_identity",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "What brings you to this work?",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "introduce_0",
+                        "intent":  "introduce",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I\u0027m {speaker_name}.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "introduce_1",
+                        "intent":  "introduce",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "You can call me {speaker_name}.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "introduce_2",
+                        "intent":  "introduce",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "My name is {speaker_name}.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "ask_location_0",
+                        "intent":  "ask_location",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Could you point me in the right direction?",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "ask_location_1",
+                        "intent":  "ask_location",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Do you know the way?",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "ask_location_2",
+                        "intent":  "ask_location",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I\u0027d like some directions.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "make_promise_0",
+                        "intent":  "make_promise",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I intend to keep that promise.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "make_promise_1",
+                        "intent":  "make_promise",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I give my word on the stated terms.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "make_promise_2",
+                        "intent":  "make_promise",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "You have my commitment to that agreement.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "return_0",
+                        "intent":  "return",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Let\u0027s return to the earlier topic.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "return_1",
+                        "intent":  "return",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Back to what we were discussing.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "return_2",
+                        "intent":  "return",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Let\u0027s consider the previous options.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "confirm_0",
+                        "intent":  "confirm",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I confirm those terms.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "confirm_1",
+                        "intent":  "confirm",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "That is my choice.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "confirm_2",
+                        "intent":  "confirm",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Proceed on the stated terms.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "inform_0",
+                        "intent":  "inform",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Let\u0027s discuss the facts.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "inform_1",
+                        "intent":  "inform",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I can explain what I know.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "inform_2",
+                        "intent":  "inform",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "There is something to clarify.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "acknowledge_0",
+                        "intent":  "acknowledge",
+                        "tone":  "plain",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I understand.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "acknowledge_1",
+                        "intent":  "acknowledge",
+                        "tone":  "friendly",
+                        "personality_tags":  [
+                                                 "friendly",
+                                                 "curious"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "Message received.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "acknowledge_2",
+                        "intent":  "acknowledge",
+                        "tone":  "formal",
+                        "personality_tags":  [
+                                                 "pragmatic"
+                                             ],
+                        "context_tags":  [
+
+                                         ],
+                        "template":  "I hear you.",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "avat_ar_greet",
+                        "intent":  "greet",
+                        "tone":  "cheerful",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+                                             "merchant"
+                                         ],
+                        "special":  "avat_ar",
+                        "template":  "Ah! A customer! Welcome, welcome! Mind the dimensions; they\u0027re rather generous today!",
+                        "weight":  4
+                    },
+                    {
+                        "id":  "avat_ar_farewell",
+                        "intent":  "farewell",
+                        "tone":  "cheerful",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+                                             "merchant"
+                                         ],
+                        "special":  "avat_ar",
+                        "template":  "Come again! There are always more wonders to discover.",
+                        "weight":  4
+                    },
+                    {
+                        "id":  "avat_ar_request_trade",
+                        "intent":  "request_trade",
+                        "tone":  "cheerful",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+                                             "merchant"
+                                         ],
+                        "special":  "avat_ar",
+                        "template":  "Marvelous! Shall we see which wonders agree with your arithmetic?",
+                        "weight":  4
+                    },
+                    {
+                        "id":  "avat_ar_browse_goods",
+                        "intent":  "browse_goods",
+                        "tone":  "cheerful",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+                                             "merchant"
+                                         ],
+                        "special":  "avat_ar",
+                        "template":  "The pedestals are full of possibilities. Go on, have a look!",
+                        "weight":  4
+                    },
+                    {
+                        "id":  "avat_ar_ask_price",
+                        "intent":  "ask_price",
+                        "tone":  "cheerful",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+                                             "merchant"
+                                         ],
+                        "special":  "avat_ar",
+                        "template":  "An intriguing {item}! What are you asking for it?",
+                        "weight":  4
+                    },
+                    {
+                        "id":  "avat_ar_quote_price",
+                        "intent":  "quote_price",
+                        "tone":  "cheerful",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+                                             "merchant"
+                                         ],
+                        "special":  "avat_ar",
+                        "template":  "A splendid {item}, yours for {price} Glyph Coins!",
+                        "weight":  4
+                    },
+                    {
+                        "id":  "avat_ar_accept_trade",
+                        "intent":  "accept_trade",
+                        "tone":  "cheerful",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+                                             "merchant"
+                                         ],
+                        "special":  "avat_ar",
+                        "template":  "An exceptional choice! I hoped someone would appreciate that one!",
+                        "weight":  4
+                    },
+                    {
+                        "id":  "avat_ar_decline_trade",
+                        "intent":  "decline_trade",
+                        "tone":  "cheerful",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+                                             "merchant"
+                                         ],
+                        "special":  "avat_ar",
+                        "template":  "No trouble at all! Curiosity costs nothing.",
+                        "weight":  4
+                    },
+                    {
+                        "id":  "avat_ar_refuse",
+                        "intent":  "refuse",
+                        "tone":  "cheerful",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+                                             "merchant"
+                                         ],
+                        "special":  "avat_ar",
+                        "template":  "Ah, a temporary disagreement between desire and arithmetic!",
+                        "weight":  4
+                    },
+                    {
+                        "id":  "avat_ar_introduce",
+                        "intent":  "introduce",
+                        "tone":  "cheerful",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+                                             "merchant"
+                                         ],
+                        "special":  "avat_ar",
+                        "template":  "Avat Ar, at your service! Proprietor, enthusiast, and your guide to the wonders on display.",
+                        "weight":  4
+                    },
+                    {
+                        "id":  "avat_ar_ask_rumor",
+                        "intent":  "ask_rumor",
+                        "tone":  "cheerful",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+                                             "merchant"
+                                         ],
+                        "special":  "avat_ar",
+                        "template":  "Any fascinating news from your travels? I do enjoy hearing what is happening!",
+                        "weight":  4
+                    },
+                    {
+                        "id":  "avat_ar_thank",
+                        "intent":  "thank",
+                        "tone":  "cheerful",
+                        "personality_tags":  [
+
+                                             ],
+                        "context_tags":  [
+                                             "merchant"
+                                         ],
+                        "special":  "avat_ar",
+                        "template":  "A delighted customer is a wonderful thing!",
+                        "weight":  4
+                    },
+                    {
+                        "id":  "ask_price_general",
+                        "intent":  "ask_price",
+                        "tone":  "plain",
+                        "context_tags":  [
+
+                                         ],
+                        "personality_tags":  [
+
+                                             ],
+                        "template":  "What are the prices here?",
+                        "weight":  1
+                    },
+                    {
+                        "id":  "share_rumor_unknown",
+                        "intent":  "share_rumor",
+                        "tone":  "plain",
+                        "context_tags":  [
+
+                                         ],
+                        "personality_tags":  [
+
+                                             ],
+                        "template":  "I have no confirmed report to share.",
+                        "weight":  0.2
+                    },
+                    {
+                        "id":  "share_info_unknown",
+                        "intent":  "share_info",
+                        "tone":  "plain",
+                        "context_tags":  [
+
+                                         ],
+                        "personality_tags":  [
+
+                                             ],
+                        "template":  "I have no confirmed information to add.",
+                        "weight":  0.2
+                    }
+                ]
+}

@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "templates": [
+    {"id":"security_recovery","title":"Recover lost property","faction":"security","kind":"recovery","reward":12,"ttl":172800,"legality":"legal"},
+    {"id":"security_service","title":"Public safety patrol","faction":"security","kind":"service","reward":8,"ttl":86400,"legality":"legal"},
+    {"id":"commerce_delivery","title":"Deliver requested supplies","faction":"commerce","kind":"delivery","reward":10,"ttl":172800,"legality":"legal"},
+    {"id":"commerce_service","title":"Complete useful work","faction":"commerce","kind":"service","reward":8,"ttl":86400,"legality":"legal"},
+    {"id":"exploration_discovery","title":"Survey a destination","faction":"exploration","kind":"discovery","reward":10,"ttl":172800,"legality":"legal"},
+    {"id":"underworld_delivery","title":"A private delivery","faction":"underworld","kind":"delivery","reward":14,"ttl":172800,"legality":"illegal"},
+    {"id":"underworld_recovery","title":"Recover a private consignment","faction":"underworld","kind":"recovery","reward":14,"ttl":172800,"legality":"illegal"},
+    {"id":"personal_delivery","title":"Help with a delivery","faction":"","kind":"delivery","reward":6,"ttl":86400,"legality":"legal"},
+    {"id":"personal_service","title":"A requested service","faction":"","kind":"service","reward":6,"ttl":86400,"legality":"legal"}
+  ]
+}

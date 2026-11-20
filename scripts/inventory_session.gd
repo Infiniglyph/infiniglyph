@@ -185,6 +185,7 @@ func _inventory_token(event: InputEvent) -> String:
 	return "inventory_action"
 
 func _toggle_inventory() -> void:
+	_close_communication("inventory")
 	if not _inventory_allowed(): return
 	if is_instance_valid(civilian_services) and civilian_services.menu.is_open: civilian_services.menu.close_menu()
 	if is_instance_valid(glyphic_wonders) and glyphic_wonders.menu.is_open: glyphic_wonders.menu.close_menu()
@@ -259,6 +260,8 @@ func _opened() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 func _closed() -> void:
+	var world: Node=actor.get_parent()
+	if ui.is_open or shop.is_open or (is_instance_valid(world.get("communication")) and world.communication.is_open) or (is_instance_valid(civilian_services) and civilian_services.menu.is_open) or (is_instance_valid(glyphic_wonders) and glyphic_wonders.menu.is_open) or (is_instance_valid(world.get("start_menu")) and world.start_menu.is_open) or actor.transition_locked or actor.health<=0 or _checkpoint_pending: return
 	controls.set_gameplay_enabled(true)
 	Input.mouse_mode = _previous_mouse
 	_dirty()
@@ -336,6 +339,7 @@ func interact() -> void:
 		var resident: CharacterBody3D = population.nearest_talker()
 		if resident==null and is_instance_valid(world_actions) and is_instance_valid(world_actions.life): resident = world_actions.life.nearest_talker()
 		if resident!=null:
+			if is_instance_valid(actor.get_parent().get("civic_interactions")) and actor.get_parent().civic_interactions.begin_for_source(resident): return
 			resident.talk()
 			resident_dialogue.text = resident.profile.name.to_upper()+"  /  "+resident.profile.role+"\n"+resident.caption.text
 			_resident_speaker = weakref(resident)
@@ -515,6 +519,7 @@ func _discard_autosave() -> void:
 
 func _capture_checkpoint() -> Dictionary:
 	if _exiting or _loading or _checkpoint_pending or not is_inside_tree() or loot.transaction_active() or networked(): return {}
+	if _civic_busy(): return {}
 	var civilization: Node=actor.get_parent().get("civilization")
 	if is_instance_valid(civilization) and (not civilization.ready_for_simulation or civilization.transaction_active()): return {}
 	var location: String=String(dungeon_travel.active_location) if is_instance_valid(dungeon_travel) else "overworld"
@@ -527,7 +532,31 @@ func _capture_checkpoint() -> Dictionary:
 	if not civilian.is_empty(): snapshot.civilian_state=civilian
 	if not society.is_empty(): snapshot.civilization_state=society
 	if is_instance_valid(glyphic_wonders): snapshot.glyphic_wonders_state=glyphic_wonders.serialize()
+	if is_instance_valid(actor.get_parent().get("civic_interactions")):
+		snapshot.quest_state=actor.get_parent().quest_system.serialize()
+		snapshot.communication_state=actor.get_parent().communication.serialize()
+		snapshot.law_state=actor.get_parent().law.serialize()
 	return snapshot
+
+func _civic_busy() -> bool:
+	var world: Node=actor.get_parent()
+	return is_instance_valid(world.get("civic_interactions")) and (world.civic_interactions.get("_busy")==true or world.civic_interactions.trade.transaction_active() or world.law.get("_busy")==true or world.quest_system.transaction_active() or world.communication.transaction_active())
+
+func _close_communication(reason: String) -> void:
+	var world: Node=actor.get_parent()
+	if is_instance_valid(world.get("communication")): world.communication.close_conversation(reason)
+
+func _capture_civic() -> Dictionary:
+	var world: Node=actor.get_parent()
+	if not is_instance_valid(world.get("civic_interactions")): return {}
+	return {"quest_state":world.quest_system.serialize(),"communication_state":world.communication.serialize(),"law_state":world.law.serialize()}
+
+func _restore_civic(snapshot: Dictionary) -> bool:
+	var world: Node=actor.get_parent()
+	if not is_instance_valid(world.get("civic_interactions")): return true
+	_close_communication("checkpoint")
+	world.civic_interactions.trade.clear()
+	return world.quest_system.restore(snapshot.get("quest_state")) and world.communication.restore(snapshot.get("communication_state")) and world.law.restore(snapshot.get("law_state"))
 
 func save_checkpoint(path: String = "", silent: bool = false) -> bool:
 	if _exiting or _loading or _checkpoint_pending or not is_inside_tree(): return false
@@ -550,7 +579,7 @@ func save_checkpoint(path: String = "", silent: bool = false) -> bool:
 	return true
 
 func load_checkpoint(path: String = "") -> bool:
-	if _restoring_checkpoint or networked() or loot.transaction_active(): return false
+	if _restoring_checkpoint or networked() or loot.transaction_active() or _civic_busy(): return false
 	var civilization: Node=actor.get_parent().get("civilization")
 	if is_instance_valid(civilization) and (not civilization.ready_for_simulation or civilization.transaction_active()): return false
 	var source := path if not path.is_empty() else save_path
@@ -566,12 +595,14 @@ func load_checkpoint(path: String = "") -> bool:
 	var civilian_before: Dictionary=civilian_services.economy.serialize() if is_instance_valid(civilian_services) else {}
 	var society_before: Dictionary=civilization.serialize() if is_instance_valid(civilization) else {}
 	var wonders_before: Dictionary=glyphic_wonders.serialize() if is_instance_valid(glyphic_wonders) else {}
+	var civic_before:=_capture_civic()
 	_loading = true
 	_restoring_checkpoint = true
 	var ok: bool = actor.inventory.restore(snapshot.inventory)
 	if ok and is_instance_valid(civilian_services): ok=civilian_services.economy.restore(snapshot.get("civilian_state",civilian_services.initial_state))
 	if ok and is_instance_valid(civilization): ok=civilization.restore(snapshot.get("civilization_state"),false)
 	if ok and is_instance_valid(glyphic_wonders): ok=glyphic_wonders.restore(snapshot.get("glyphic_wonders_state"))
+	if ok: ok=_restore_civic(snapshot)
 	var world_changed := false
 	if ok:
 		ok = loot.restore_world(snapshot.world_drops)
@@ -582,6 +613,7 @@ func load_checkpoint(path: String = "") -> bool:
 		if is_instance_valid(civilian_services): civilian_services.economy.restore(civilian_before)
 		if is_instance_valid(civilization): civilization.restore(society_before,false)
 		if is_instance_valid(glyphic_wonders): glyphic_wonders.restore(wonders_before)
+		_restore_civic(civic_before)
 		# restore_world is already atomic on rejection. Replacing untouched
 		# drops here would leave duplicate pending colliders until frame end.
 		if world_changed: loot.restore_world(world_before)
@@ -591,6 +623,7 @@ func load_checkpoint(path: String = "") -> bool:
 		if not civilization.advance_real(maxf(0,Time.get_unix_time_from_system()-saved_at),true):
 			show_notice("World restored. Offline simulation could not advance: "+String(civilization.last_error),10)
 	if ok and is_instance_valid(glyphic_wonders): glyphic_wonders.refresh_stock()
+	if ok and is_instance_valid(actor.get_parent().get("civic_interactions")): actor.get_parent().civic_interactions.restored_state(snapshot.has("quest_state"))
 	_loading = false
 	_restoring_checkpoint = false
 	return ok

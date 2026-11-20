@@ -56,6 +56,7 @@ func pad(button: JoyButton) -> void:
 	root.push_input(event)
 	await frames(2)
 func place(point: Dictionary) -> void:
+	world.communication.close_conversation("fixture reposition")
 	shop.menu.close_menu()
 	world.start_menu.close_menu()
 	if session.ui.is_open: session.ui.close_menu()
@@ -79,6 +80,8 @@ func inspect_counter() -> Dictionary:
 	var counter:=point("counter")
 	await place(counter)
 	if not shop.interact(): return {}
+	world.communication.close_conversation("inspect counter commerce")
+	shop._counter()
 	await key(KEY_ENTER)
 	return last_quote()
 func commit_callback(_token: String,_buyer: String) -> void:
@@ -171,7 +174,10 @@ func run() -> void:
 	var counter: Dictionary=point("counter")
 	await place(counter)
 	check(shop._quote(p.inventory.owner_id,offer,counter).is_empty(),"A genuine counter cannot sell rotating showcase merchandise")
-	check(shop.interact() and shop.menu._choices.size()==7,"Avat Ar's physical counter provides four permanent glyph offers and bounded dialogue choices")
+	var counter_opened: bool=shop.interact()
+	world.communication.close_conversation("inspect counter commerce")
+	shop._counter()
+	check(counter_opened and shop.menu._choices.size()==7,"Avat Ar's physical counter provides four permanent glyph offers and bounded dialogue choices")
 	await key(KEY_ENTER)
 	var permanent_quote:=last_quote()
 	check(not permanent_quote.is_empty() and permanent_quote.type_id=="health_glyph", "The counter's first native selection inspects the shared Health Glyph")

@@ -123,7 +123,7 @@ func run() -> void:
 	for data: Dictionary in buildings.points:
 		valid = valid and not ids.has(data.id) and is_instance_valid(data.anchor) and not String(data.label).is_empty()
 		ids[data.id] = data.kind
-	check(valid and ids.has(&"reception") and ids.has(&"board") and ids.has(&"bartender") and ids.has(&"room_3"),"Public services, three private doors and furniture expose unique reusable interaction anchors")
+	check(valid and ids.has(&"reception") and ids.has(&"board_security") and ids.has(&"board_commerce") and ids.has(&"board_exploration") and ids.has(&"bartender") and ids.has(&"room_3"),"Public services, three faction boards, private doors and furniture expose unique reusable interaction anchors")
 	check(buildings.room_exit.size()==3 and buildings.room_arrivals.size()==3,"Every upstairs room entrance has an independent safe return marker")
 	var all_supported := true
 	for arrival: Marker3D in buildings.room_arrivals: all_supported = all_supported and supported_clear(arrival.global_position)

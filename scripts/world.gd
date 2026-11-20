@@ -27,6 +27,14 @@ const DungeonTravel = preload("res://scripts/dungeon_travel.gd")
 const CivilianServices = preload("res://scripts/civilian_services.gd")
 const Civilization = preload("res://scripts/code_form_civilization.gd")
 const GlyphicWonders = preload("res://scripts/glyphic_wonders.gd")
+const QuestSystem = preload("res://scripts/quest_system.gd")
+const CivilianLaw = preload("res://scripts/civilian_law.gd")
+const Communication = preload("res://scripts/universal_communication.gd")
+const CivicInteractions = preload("res://scripts/civilization_interactions.gd")
+var quest_system: Node
+var law: Node
+var communication: CanvasLayer
+var civic_interactions: Node
 var civilian_services: Node
 var civilization: Node
 var glyphic_wonders: Node
@@ -208,6 +216,19 @@ func _ready() -> void:
 		civilization=Civilization.new()
 		civilization.world=self
 		add_child(civilization)
+		quest_system=QuestSystem.new()
+		quest_system.world=self
+		add_child(quest_system)
+		law=CivilianLaw.new()
+		law.world=self
+		add_child(law)
+		communication=Communication.new()
+		communication.world=self
+		add_child(communication)
+		start_menu.apply_communication_settings()
+		civic_interactions=CivicInteractions.new()
+		civic_interactions.world=self
+		add_child(civic_interactions)
 	if not inventory_session.networked():
 		respawn_glyphs=RespawnGlyphs.new()
 		respawn_glyphs.world=self

@@ -18,6 +18,13 @@ func _registry(): return civilization.registry if is_instance_valid(civilization
 func _now() -> float: return float(_registry().world_seconds) if _registry()!=null else 0.0
 func _world(): return civilization.get("world") if is_instance_valid(civilization) else null
 func _economy(): return civilization.get("economy") if is_instance_valid(civilization) else null
+func _interactions() -> Node:
+	var world=_world()
+	return world.get("civic_interactions") if is_instance_valid(world) else null
+
+func _preferred_destination(id: String) -> String:
+	var civic:=_interactions()
+	return String(civic.preferred_destination(id)) if is_instance_valid(civic) and civic.has_method("preferred_destination") else ""
 func _day() -> float: return float(_registry().config.day_seconds)
 func _scale() -> float: return _day()/float(_registry().config.real_seconds_per_day)
 
@@ -227,47 +234,51 @@ func perform_action(record: Dictionary,state: Dictionary,physical: bool) -> bool
 	var economy=_economy()
 	var id: String=record.id
 	var success:=false
-	match String(record.current_goal):
-		"work":
-			if is_instance_valid(economy):
-				var tavern: bool=String(record.slot).begins_with("service/tavern") or String(record.occupation).to_lower().contains("tavern") or String(record.occupation).to_lower().contains("bartender")
-				var key: String="tavern_work" if tavern else "guild_work"
-				success=economy.npc_service_wage(id,key,floori(_now()/_day()))
-				if success: registry.remember(id,"work",key,"Completed paid civilian work.",.4)
-		"eat":
-			if is_instance_valid(economy):
-				success=economy.npc_consume_food(id,&"electron_meal")
-				if not success and economy.npc_buy_food(id,&"electron_meal"): success=economy.npc_consume_food(id,&"electron_meal")
-				if success: state.hunger=0.0; registry.remember(id,"meal","tavern","A purchased meal restored my appetite.",.3)
-		"trade":
-			if is_instance_valid(economy):
-				var inventory: Node=economy.npc_store(id)
-				if inventory==null: return false
-				for item: Resource in inventory.items.values():
-					if economy.crystal_price(item.item_type_id)>0:
-						success=economy.npc_sell_crystal(id,item.instance_id,1)
-						break
-		"wonder":
-			var shop:=_shop()
-			if is_instance_valid(shop): success=shop.npc_shop(record,physical)
-			if success: registry.remember(id,"shop","glyphic_wonders","Purchased an offered wonder with my own Glyph Coins.",.6)
-		"guild":
-			if String(record.get("guild","")).is_empty():
-				record.guild="adventurers_guild"
-				registry.remember(id,"guild",record.guild,"I joined the Adventurers Guild.",.8)
-				_event(record,"guild",record.guild,"uncommon",.8)
-				success=true
-		"socialize":
-			if not physical:
-				var peers: Array=registry.active_ids()
-				if peers.size()>1:
-					var other: String=peers[posmod(id.hash()+int(state.turn),peers.size())]
-					if other!=id:
-						_social(record,registry.records[other])
-						success=true
-		"rest","train":
-			# These change plans/memory, never generate XP from a repeated idle.
-			registry.remember(id,"routine",String(record.current_goal),"Took time for "+String(record.current_goal)+".",.15)
+	var civic:=_interactions()
+	if is_instance_valid(civic) and civic.has_method("npc_step") and String(record.current_goal) in ["work","guild","explore","socialize","trade"]:
+		success=bool(civic.npc_step(record,state,physical))
+	if not success:
+		match String(record.current_goal):
+			"work":
+				if is_instance_valid(economy):
+					var tavern: bool=String(record.slot).begins_with("service/tavern") or String(record.occupation).to_lower().contains("tavern") or String(record.occupation).to_lower().contains("bartender")
+					var key: String="tavern_work" if tavern else "guild_work"
+					success=economy.npc_service_wage(id,key,floori(_now()/_day()))
+					if success: registry.remember(id,"work",key,"Completed paid civilian work.",.4)
+			"eat":
+				if is_instance_valid(economy):
+					success=economy.npc_consume_food(id,&"electron_meal")
+					if not success and economy.npc_buy_food(id,&"electron_meal"): success=economy.npc_consume_food(id,&"electron_meal")
+					if success: state.hunger=0.0; registry.remember(id,"meal","tavern","A purchased meal restored my appetite.",.3)
+			"trade":
+				if is_instance_valid(economy):
+					var inventory: Node=economy.npc_store(id)
+					if inventory==null: return false
+					for item: Resource in inventory.items.values():
+						if economy.crystal_price(item.item_type_id)>0:
+							success=economy.npc_sell_crystal(id,item.instance_id,1)
+							break
+			"wonder":
+				var shop:=_shop()
+				if is_instance_valid(shop): success=shop.npc_shop(record,physical)
+				if success: registry.remember(id,"shop","glyphic_wonders","Purchased an offered wonder with my own Glyph Coins.",.6)
+			"guild":
+				if not is_instance_valid(civic) and String(record.get("guild","")).is_empty():
+					record.guild="adventurers_guild"
+					registry.remember(id,"guild",record.guild,"I joined the Adventurers Guild.",.8)
+					_event(record,"guild",record.guild,"uncommon",.8)
+					success=true
+			"socialize":
+				if not physical and not is_instance_valid(civic):
+					var peers: Array=registry.active_ids()
+					if peers.size()>1:
+						var other: String=peers[posmod(id.hash()+int(state.turn),peers.size())]
+						if other!=id:
+							_social(record,registry.records[other])
+							success=true
+			"rest","train":
+				# These change plans/memory, never generate XP from a repeated idle.
+				registry.remember(id,"routine",String(record.current_goal),"Took time for "+String(record.current_goal)+".",.15)
 	if success:
 		state.actions+=1
 		completed_actions+=1
@@ -288,12 +299,14 @@ func choose_destination(resident: CharacterBody3D) -> StringName:
 	var highest: float=-INF
 	var goal: String=record.current_goal
 	var shop_anchor:=_shop_anchor() if goal=="wonder" else null
+	var requested:=_preferred_destination(id)
 	for target: StringName in options:
 		if target==resident.goal or population.goal_load(target)>=3 or population.entrances.has(target): continue
 		var distance: float=population.points[target].distance_to(resident.position)
 		if distance<5: continue
 		var score:=float(posmod((id+String(target)+str(_state(id).turn)).hash(),100))/100.0
 		var title: String=population.place_name(target)
+		if requested=="place/"+String(target): score+=8.0
 		if goal=="explore":
 			score+=minf(distance/40.0,2.0)
 			if not _has_memory(record,"discovery","place/"+String(target)): score+=3
@@ -325,6 +338,14 @@ func _arrive(id: String,target: String,source: Node=null) -> void:
 	var record: Dictionary=_registry().records.get(id,{})
 	if record.is_empty() or not record.active: return
 	if _unavailable(id,source): return
+	var civic:=_interactions()
+	if is_instance_valid(civic) and civic.has_method("arrived"):
+		civic.arrived(id,target)
+		var requested:=_preferred_destination(id)
+		if not requested.is_empty() and requested!=target:
+			# Regional routes remain on their existing safe graph; the runtime
+			# accepts a quest arrival only if this real position is near its target.
+			civic.arrived(id,requested)
 	if not _has_memory(record,"discovery",target):
 		_registry().remember(id,"discovery",target,"Visited "+target.trim_prefix("place/")+".",.6)
 		_event(record,"exploration",target,"common",.35)
@@ -334,7 +355,7 @@ func _arrive(id: String,target: String,source: Node=null) -> void:
 	# A public waypoint is suitable for local work, rest and conversations.
 	# Real vendor visits need reachable merchant geometry; model purchases are
 	# performed only while the inhabitant is offscreen/indoors instead.
-	if String(record.current_goal) in ["work","rest","train"]: perform_action(record,state,true)
+	if String(record.current_goal) in ["work","guild","explore","rest","train"]: perform_action(record,state,true)
 
 func on_arrival(source: Node) -> void:
 	if source.get("record") is Dictionary:
@@ -364,7 +385,11 @@ func on_talk(source: Node) -> void:
 	var positive: bool=not is_instance_valid(reactions) or not reactions.is_annoyed(source)
 	civilization.record_interaction(id,"conversation","player",positive)
 
-func _social(a: Dictionary,b: Dictionary) -> void:
+func _social(a: Dictionary,b: Dictionary,physical: bool = false) -> void:
+	var civic:=_interactions()
+	if is_instance_valid(civic) and civic.has_method("socialize"):
+		civic.socialize(String(a.id),String(b.id),physical)
+		return
 	for pair: Array in [[a,b],[b,a]]:
 		var before: float=pair[0].relationships.get(pair[1].id,0.0)
 		_registry().relate(pair[0].id,pair[1].id,.04)
@@ -377,7 +402,7 @@ func on_converse(a: Node,b: Node) -> void:
 	var right:=_id(b)
 	if left.is_empty() or right.is_empty() or _registry()==null: return
 	if not _registry().records.has(left) or not _registry().records.has(right): return
-	_social(_registry().records[left],_registry().records[right])
+	_social(_registry().records[left],_registry().records[right],true)
 
 func on_combat(source: Node,kind: String) -> void:
 	var id:=_id(source)

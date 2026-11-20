@@ -2,9 +2,13 @@ extends Node
 ## One civilian-only clock and logical society, independent of loaded worlds.
 const Registry = preload("res://scripts/code_form_registry.gd")
 const Autonomy = preload("res://scripts/code_form_autonomy.gd")
+const EconomicAudit = preload("res://scripts/economic_xp_audit.gd")
+signal identities_replaced(changes: Array)
 var world: Node3D
 var registry := Registry.new()
 var autonomy := Autonomy.new()
+var economic_audit := EconomicAudit.new()
+var last_economic_review: Dictionary = {}
 var economy: Node
 var ready_for_simulation := false
 @export var simulation_enabled := true
@@ -27,6 +31,7 @@ func _ready() -> void:
 	world.population.civilization=self
 	if is_instance_valid(world.district_life): world.district_life.civilization=self
 	economy.commerce_committed.connect(_commerce)
+	economy.world_clock=func(): return world_seconds
 	# A clock batch must not be saved halfway between a retirement and admission.
 	world.loot.external_transaction_guard=func(): return economy.transaction_active() or _busy
 	call_deferred("_bootstrap")
@@ -84,6 +89,7 @@ func _bootstrap() -> void:
 	_initial_registry=registry.serialize()
 	_saved_unix=Time.get_unix_time_from_system()
 	ready_for_simulation=true
+	economic_audit.configure(String(economy.owner_id),int(economy.sequence))
 	bind_sources()
 	if not world.inventory_session._checkpoint_pending: reconcile_economy()
 
@@ -134,7 +140,7 @@ func id_for_source(source: Node) -> String:
 	return id if registry.records.get(id,{}).get("active",false) else ""
 
 func record_event(event: Dictionary) -> Dictionary:
-	if not ready_for_simulation: return {}
+	if not ready_for_simulation or event.get("event_type")=="economic" or event.get("type")=="economic": return {}
 	return registry.record_event(event)
 
 func record_interaction(id: String, kind: String, target: String, positive: bool = true) -> void:
@@ -149,12 +155,41 @@ func record_interaction(id: String, kind: String, target: String, positive: bool
 	record_event({"event_type":"social","actor_id":id,"target_id":target,"rarity":"common","significance":.5,"event_id":"social/"+id+"/"+target+"/"+str(day)})
 
 func _commerce(receipt: Dictionary) -> void:
-	if not ready_for_simulation: return
-	var day:=int(world_seconds/float(registry.config.day_seconds))
-	for actor_id: String in receipt.get("participants",[]):
-		if not registry.records.get(actor_id,{}).get("active",false): continue
-		var target:=String(receipt.get("context","commerce"))+"/"+String(receipt.get("counterpart",""))+"/"+str(day)
-		record_event({"event_type":"economic","actor_id":actor_id,"target_id":target,"rarity":"common","significance":1.0,"coins":int(receipt.amount),"event_id":"commerce/"+String(receipt.id)+"/"+actor_id})
+	if not ready_for_simulation or economy==null or not economy.transaction_active() or int(receipt.get("sequence",-1))!=int(economy.sequence) or economy.journal.is_empty(): return
+	var event: Dictionary=economy.journal.back()
+	if event.kind not in ["transfer","destroy"] or int(event.amount)!=int(receipt.get("amount",0)) or event.get("from")!=receipt.get("sender_account") or String(event.get("to","sink:glyphic_wonders"))!=receipt.get("receiver_account"): return
+	if economic_audit.owner_id.is_empty(): economic_audit.configure(String(economy.owner_id),0)
+	economic_audit.record_transaction(receipt,registry)
+
+func review_economics(budget: int = EconomicAudit.REVIEW_BATCH) -> Dictionary:
+	if _busy or not ready_for_simulation or economy==null or not economy.host_enabled or economy.transaction_active() or economy._externally_busy(): return {}
+	var ids: Array[String]=economic_audit.find_reversals(world_seconds,float(registry.config.day_seconds),budget)
+	if ids.is_empty():
+		last_economic_review={"transactions":[],"corrections":{},"removed_xp":{}}
+		return last_economic_review.duplicate(true)
+	var before_registry:=registry.serialize()
+	var before_economy: Dictionary=economy.serialize()
+	var before_audit:=economic_audit.serialize()
+	_busy=true
+	_pending_replacements.clear()
+	var result:=economic_audit.apply_reversals(ids,registry)
+	var accepted:=not result.is_empty() and _advance_to(world_seconds)
+	if not accepted:
+		registry.restore(before_registry)
+		economy.restore(before_economy)
+		economic_audit.restore(before_audit,before_registry)
+		last_error="Economic XP correction could not commit its lifetime/ledger reconciliation."
+		result={}
+	else:
+		for change: Dictionary in _pending_replacements: autonomy.replace_source(change.slot,change.old_id,change.new_id)
+		if not _pending_replacements.is_empty():
+			bind_sources()
+			identities_replaced.emit(_pending_replacements.duplicate(true))
+		last_economic_review=result.duplicate(true)
+		if is_instance_valid(world) and is_instance_valid(world.inventory_session): world.inventory_session._dirty()
+	_pending_replacements.clear()
+	_busy=false
+	return result
 
 func on_replacements(replacements: Array) -> bool:
 	for change: Dictionary in replacements:
@@ -166,7 +201,7 @@ func on_replacements(replacements: Array) -> bool:
 
 func _advance_to(target: float) -> bool:
 	var replacements: Array=registry.advance_to(target)
-	if registry.world_seconds<target-.00001:
+	if registry.world_seconds<target-.00001 or not registry.last_error.is_empty():
 		last_error=String(registry.get("last_error"))
 		return false
 	return on_replacements(replacements)
@@ -205,7 +240,9 @@ func advance_real(seconds: float, offline: bool = false) -> bool:
 	if ok:
 		for change: Dictionary in _pending_replacements:
 			autonomy.replace_source(change.slot,change.old_id,change.new_id)
-		if not _pending_replacements.is_empty(): bind_sources()
+		if not _pending_replacements.is_empty():
+			bind_sources()
+			identities_replaced.emit(_pending_replacements.duplicate(true))
 		# At most one coarse pass over every civilian during catch-up, never a
 		# replay of hours of individual pathfinding or combat frames.
 		var batches:=maxi(1,ceili(float(registry.slots.size())/float(Autonomy.BATCH_SIZE))) if offline and real_seconds>0 else 1
@@ -225,6 +262,7 @@ func _process(delta: float) -> void:
 	var elapsed:=_clock
 	_clock=0
 	if not advance_real(elapsed): return
+	review_economics()
 	_dirty_clock+=elapsed
 	if _dirty_clock>=15:
 		_dirty_clock=0
@@ -240,17 +278,36 @@ func describe(id: String) -> String:
 
 func serialize() -> Dictionary:
 	if not ready_for_simulation: return {}
-	return {"version":1,"registry":registry.serialize(),"saved_unix":Time.get_unix_time_from_system(),"autonomy":autonomy.serialize()}
+	if economic_audit.owner_id.is_empty(): economic_audit.configure(String(economy.owner_id),int(economy.sequence))
+	return {"version":2,"registry":registry.serialize(),"saved_unix":Time.get_unix_time_from_system(),"autonomy":autonomy.serialize(),"economic_audit":economic_audit.serialize()}
 
 static func validate(data: Variant) -> Dictionary:
-	if not data is Dictionary or data.size()!=4 or data.get("version")!=1: return {}
+	if not data is Dictionary or not Registry._integer(data.get("version"),1,2) or data.size()!=(4 if data.version==1 else 5): return {}
 	if not (data.get("saved_unix") is float or data.get("saved_unix") is int) or not is_finite(float(data.saved_unix)) or data.saved_unix<=0: return {}
 	var decoded: Dictionary=Registry.validate(data.get("registry"))
 	if decoded.is_empty(): return {}
 	var active: Array=decoded.slots.values()
 	var decisions: Dictionary=Autonomy.validate(data.get("autonomy"),active)
 	if decisions.is_empty(): return {}
-	return {"version":1,"registry":decoded,"saved_unix":float(data.saved_unix),"autonomy":decisions}
+	var result:={"version":int(data.version),"registry":decoded,"saved_unix":float(data.saved_unix),"autonomy":decisions}
+	if data.version==2:
+		var audit:=EconomicAudit.validate(data.get("economic_audit"),decoded)
+		if audit.is_empty(): return {}
+		result.economic_audit=audit
+	return result
+
+static func ledger_matches(society: Dictionary,ledger: Dictionary) -> bool:
+	if not society.has("economic_audit"): return true
+	var audit: Dictionary=society.economic_audit
+	if audit.owner_id!=ledger.get("owner_id") or int(audit.last_sequence)>int(ledger.get("sequence",-1)): return false
+	var recent: Dictionary={}
+	for event: Dictionary in ledger.get("journal",[]): recent[int(event.sequence)]=event
+	var anchor:=int(ledger.get("audit_base",{}).get("sequence",0))
+	for row: Dictionary in audit.transactions.values():
+		if int(row.sequence)<=anchor: continue
+		var event: Dictionary=recent.get(int(row.sequence),{})
+		if event.get("kind") not in ["transfer","destroy"] or int(event.get("amount",0))!=int(row.amount) or event.get("from")!=row.sender_account or String(event.get("to","sink:glyphic_wonders"))!=row.receiver_account: return false
+	return true
 
 func restore(data: Variant, catch_up: bool = false) -> bool:
 	if not ready_for_simulation or _busy: return false
@@ -276,10 +333,11 @@ func restore(data: Variant, catch_up: bool = false) -> bool:
 			return false
 		for slot: String in previous_slots:
 			if previous_slots[slot]!=registry.slots[slot]: autonomy.replace_source(slot,previous_slots[slot],registry.slots[slot])
+		economic_audit.configure(String(economy.owner_id),int(economy.sequence))
 		bind_sources()
 		return true
 	var decoded:=validate(data)
-	if decoded.is_empty(): return false
+	if decoded.is_empty() or not ledger_matches(decoded,economy.serialize()): return false
 	# A structurally valid checkpoint still belongs to this world's census.
 	var saved_slots: Array=decoded.registry.slots.keys()
 	var initial_slots: Array=_initial_registry.slots.keys()
@@ -296,6 +354,8 @@ func restore(data: Variant, catch_up: bool = false) -> bool:
 	var interval: float=float(decoded.registry.config.blessing_days)*float(decoded.registry.config.day_seconds)
 	if economy.last_cycle!=floori(float(decoded.registry.world_seconds)/interval): return false
 	if not registry.restore(decoded.registry) or not autonomy.restore(decoded.autonomy): return false
+	if decoded.has("economic_audit"): economic_audit.restore(decoded.economic_audit,decoded.registry)
+	else: economic_audit.configure(String(economy.owner_id),int(economy.sequence))
 	_saved_unix=float(decoded.saved_unix)
 	for slot: String in previous_slots:
 		if previous_slots[slot]!=registry.slots[slot]: autonomy.replace_source(slot,previous_slots[slot],registry.slots[slot])

@@ -143,10 +143,18 @@ func run() -> void:
 	issued=economy.issued_total
 	check(society.advance_real(0) and economy.issued_total==issued,"Reprocessing an already settled boundary cannot duplicate a blessing")
 	var background_id: String=society.registry.slots["driver/0"]
+	for slot: String in society.registry.slots:
+		var candidate: String=society.registry.slots[slot]
+		if slot.begins_with("driver/") and world.quest_system.model.memberships.get(candidate,[]).is_empty():
+			background_id=candidate
+			break
 	var background: Dictionary=society.registry.records[background_id]
 	background.current_goal="guild"
 	var background_state: Dictionary=society.autonomy._state(background_id)
-	check(society.autonomy.perform_action(background,background_state,false) and background.guild=="adventurers_guild" and background.experience>0,"A civilian with no loaded pedestrian body can accomplish a meaningful guild action")
+	var guild_xp_before: int=background.experience
+	var guild_action: bool=society.autonomy.perform_action(background,background_state,false)
+	var affiliations: Array=world.quest_system.model.memberships.get(background_id,[])
+	check(guild_action and not affiliations.is_empty() and background.experience>guild_xp_before,"A civilian with no loaded pedestrian body can join a real guild through a meaningful structured action")
 	check(society.autonomy.states.size()<=count,"Logical schedules remain bounded by the active population")
 	check(world.inventory_session.save_checkpoint(save_path,true),"A real checkpoint commits society, clock, wallets, goods, player items and world drops together")
 	var saved: Dictionary=Store.load_snapshot(save_path)
@@ -202,14 +210,20 @@ func run() -> void:
 	# Compress the configured calendar consistently to exercise real retirement
 	# without simulating centuries or bypassing lifetime validation.
 	var reg: Dictionary=snapshot.registry
-	reg.config.day_seconds=1.0; reg.config.days_per_year=1
-	reg.config.real_seconds_per_day=1.0; reg.config.blessing_days=100000
-	reg.world_seconds=100000.0
+	reg.config.day_seconds=3.0; reg.config.days_per_year=1
+	reg.config.real_seconds_per_day=1.0; reg.config.blessing_days=1000000
+	var compressed_origin:=3000000.0
+	reg.world_seconds=compressed_origin
 	for row: Dictionary in reg.records.values():
-		row.born_at=100000.0
-		row.expires_at=100000.0+100.0*row.level
-		for memory: Dictionary in row.memories: memory.timestamp=100000.0
+		row.born_at=compressed_origin
+		row.expires_at=compressed_origin+300.0*row.level
+		for memory: Dictionary in row.memories: memory.timestamp=compressed_origin
 	snapshot.autonomy={"version":1,"cursor":0,"states":{}}
+	# The fixture deliberately rebases the whole calendar. Receipt chronology
+	# must use that same test origin rather than leave old thirty-day dates.
+	for transaction: Dictionary in snapshot.economic_audit.transactions.values():
+		transaction.world_timestamp=compressed_origin
+		if transaction.xp_status=="reversed": transaction.reversed_at=compressed_origin
 	check(society.restore(snapshot),"Calendar configuration and lifetime metadata restore as one validated society")
 	var old: String=society.registry.slots["region/0"]
 	var old_coins: int=economy.balance("resident:"+old)
@@ -221,7 +235,7 @@ func run() -> void:
 	check(fresh.level==1 and fresh.experience<80 and fresh.personality!=society.registry.records[old].personality and fresh.generation==1,"Replacements start with fresh progression and their own personality")
 	check(economy.balance("resident:"+old)==old_coins and economy.balance("resident:"+replacement)==0 and economy.issued_total==issued_before,"Retirement preserves old economic history and creates an empty replacement wallet")
 	check(economy.active_ids==society.registry.active_ids() and world.district_life.resident_records[0].code_form_id==replacement,"The active financial census and regional body binding follow the replacement")
-	check(not Store.encode(world.player.inventory,world.loot.serialize_world(),[],world.loot.session_id,"overworld",{},economy.serialize(),society.serialize()).is_empty(),"The replaced population can still be encoded and validated as a coherent checkpoint")
+	check(not Store.encode(world.player.inventory,world.loot.serialize_world(),[],world.loot.session_id,"overworld",{},economy.serialize(),society.serialize(),{},world.quest_system.serialize(),world.communication.serialize(),world.law.serialize()).is_empty(),"The replaced population can still be encoded and validated as a coherent checkpoint")
 	check(world.civilian_services.reset_state() and society.registry.replacement_serial==0 and society.world_seconds==0 and economy.active_ids==society.registry.active_ids(),"The existing civilian reset hook restores the complete coherent initial society rather than only 104 wallets")
 	print("Code Form civilization checks: %d; failures: %d; civilians: %d" % [checks,failures,count])
 	root.remove_child(world)

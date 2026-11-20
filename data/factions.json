@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "factions": [
+    {"id":"security","name":"Security Guild","public":true,"board":"board_security","color":"53deff","purpose":"Public safety, investigations and recovery."},
+    {"id":"commerce","name":"Commerce Guild","public":true,"board":"board_commerce","color":"ffd166","purpose":"Supplies, deliveries and completed services."},
+    {"id":"exploration","name":"Exploration Guild","public":true,"board":"board_exploration","color":"a58cff","purpose":"Discoveries, reconnaissance and expeditions."},
+    {"id":"underworld","name":"Underworld","public":false,"board":"","color":"eb5caa","purpose":"Private work arranged through trusted contacts."}
+  ]
+}

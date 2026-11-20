@@ -10,12 +10,16 @@ const JOURNAL_LIMIT := 128
 const MAX_RESIDENTS := 16384
 const MAX_ACTIVE := 2048
 const MAX_SERVICE_TOKENS := 65536
+const MAX_FACTIONS := 64
+const MAX_CONTRACTS := 2048
+const ESCROW_ACCOUNT := "contracts:escrow"
 const WAGE_SERVICES := {"guild_work":"business:guild","tavern_work":"business:tavern"}
 const CRYSTALS := {"monster_glyph_common":12,"monster_glyph_uncommon":30,"monster_glyph_rare":75,"apep_lorai_catalyst":180}
 const FOOD := [&"electron_meal",&"electron_draught"]
 signal changed
 signal food_consumed(inventory: Node, effects: Dictionary)
 signal commerce_committed(receipt: Dictionary)
+signal transaction_committed(receipt: Dictionary)
 signal wonder_purchase_committed(token: String,buyer: String)
 @export var host_enabled := true
 @export_range(1,100000,1) var rental_price := 30
@@ -31,6 +35,10 @@ var player_inventory: Node
 var validator: Callable
 var external_transaction_guard: Callable
 var npc_validator: Callable
+var world_clock: Callable
+var factions: Array[String] = []
+var contracts: Dictionary = {}
+var _last_receipt: Dictionary = {}
 var merchant_ids := {"guild":"guild_receptionist","tavern":"tavern_bartender"}
 var wonder_offers := {"cyan_mantle":5}
 var wonder_shop_attached := false
@@ -75,7 +83,7 @@ func configure(owner: String, eligible_natural_ids: Array) -> bool:
 	natural_ids.assign(ids)
 	active_ids.assign(ids)
 	_initial_ids.assign(ids)
-	for account: String in _account_ids(owner,natural_ids): balances[account] = 0
+	for account: String in _account_ids(owner,natural_ids,[ESCROW_ACCOUNT]): balances[account] = 0
 	audit_base = {"balances":balances.duplicate(),"issued_total":0,"destroyed_total":0,"last_cycle":-1,"sequence":0,"known_ids":natural_ids.duplicate(),"active_ids":active_ids.duplicate()}
 	for room in range(ROOM_COUNT): room_stores[room] = _new_store(storage_owner(owner,room),"RoomStorage"+str(room))
 	guild_stock = _new_store(guild_account,"GuildStock")
@@ -155,12 +163,162 @@ func npc_store(id: String) -> Node:
 func _npc_allowed(id: String,operation: StringName,payload: Dictionary) -> bool:
 	return host_enabled and not _busy and not _externally_busy() and id in active_ids and (not npc_validator.is_valid() or bool(npc_validator.call(operation,payload)))
 
-func _receipt(context: String,amount: int,participants: Array,counterpart: String) -> void:
+func _receipt(context: String,amount: int,participants: Array,counterpart: String,metadata: Dictionary = {}) -> void:
 	var eligible: Array[String] = []
 	for id: Variant in participants:
 		if String(id) in active_ids and not eligible.has(String(id)): eligible.append(String(id))
-	if eligible.is_empty(): return
-	commerce_committed.emit({"id":owner_id+":commerce:"+str(sequence),"sequence":sequence,"context":context,"amount":amount,"participants":eligible,"counterpart":counterpart})
+	var financial: Dictionary = journal.back() if not journal.is_empty() else {}
+	var timestamp := float(world_clock.call()) if world_clock.is_valid() else 0.0
+	var identity := owner_id+":commerce:"+str(sequence)
+	var entry := {"id":identity,"transaction_id":identity,"sequence":sequence,"world_timestamp":timestamp,"context":context,"transaction_type":context,"amount":amount,"participants":eligible,"counterpart":counterpart,"sender_account":String(financial.get("from","")),"receiver_account":String(financial.get("to","sink:glyphic_wonders")),"asset_id":"","delivered_asset_id":"","asset_type":"","quantity":0,"asset_sender_id":"","asset_receiver_id":"","related_event_id":"","substance":"service","legality":"legal","reference_price":0}
+	for key: String in metadata:
+		if entry.has(key) and key not in ["id","transaction_id","sequence","amount","participants","world_timestamp","sender_account","receiver_account"]: entry[key]=metadata[key]
+	# Legal consequences are independent observers; a copied value cannot rewrite
+	# the subsequent civilian-only XP award or a committed inventory transfer.
+	_last_receipt=entry.duplicate(true)
+	transaction_committed.emit(entry.duplicate(true))
+	if amount>0 and not eligible.is_empty(): commerce_committed.emit(entry.duplicate(true))
+
+static func faction_account(key: String) -> String: return "faction:"+key
+
+func register_faction(key: String) -> bool:
+	if not host_enabled or _busy or _externally_busy() or owner_id.is_empty() or not _faction_key(key) or factions.has(key) or factions.size()>=MAX_FACTIONS: return false
+	_busy=true
+	factions.append(key); factions.sort()
+	balances[faction_account(key)]=0
+	audit_base.balances[faction_account(key)]=0
+	changed.emit()
+	_busy=false
+	return true
+
+static func _quest_serial(key: String) -> int:
+	if not key.begins_with("quest_"): return 0
+	var suffix:=key.trim_prefix("quest_")
+	if not suffix.is_valid_int() or suffix.to_int()<1 or suffix.to_int()>COIN_CAP or str(suffix.to_int())!=suffix: return 0
+	return suffix.to_int()
+
+func reserve_contract(key: String,payer_account: String,amount: int) -> bool:
+	var serial:=_quest_serial(key)
+	if serial>0:
+		for previous: String in contracts:
+			if _quest_serial(previous)>=serial: return false
+	if not host_enabled or _busy or _externally_busy() or not Instance.valid_text(key,false,128) or contracts.has(key) or contracts.size()>=MAX_CONTRACTS or not _can_pay(payer_account,ESCROW_ACCOUNT,amount): return false
+	_busy=true
+	var accepted:=_append_event({"kind":"transfer","from":payer_account,"to":ESCROW_ACCOUNT,"amount":amount,"reason":"Contract reservation "+key.left(100)})
+	if accepted:
+		contracts[key]={"source":payer_account,"amount":amount,"status":"reserved","payee":"","service":"","legality":"legal","sequence":sequence}
+		changed.emit()
+	_busy=false
+	return accepted
+
+func settle_contract(key: String,recipient_id: String,service: String,legality: String = "legal") -> bool:
+	if not host_enabled or _busy or _externally_busy() or not contracts.has(key) or not Instance.valid_text(service,false,128) or legality not in ["legal","illegal","unknown"]: return false
+	if recipient_id!=owner_id and recipient_id not in active_ids: return false
+	var obligation: Dictionary=contracts[key]
+	var payee:=player_account if recipient_id==owner_id else resident_account(recipient_id)
+	if obligation.status!="reserved" or not _can_pay(ESCROW_ACCOUNT,payee,int(obligation.amount)): return false
+	_busy=true
+	var accepted:=_append_event({"kind":"transfer","from":ESCROW_ACCOUNT,"to":payee,"amount":int(obligation.amount),"reason":"Completed contract "+key.left(100)})
+	if accepted:
+		obligation.status="settled"; obligation.payee=recipient_id; obligation.service=service; obligation.legality=legality; obligation.sequence=sequence
+		var parties: Array=[recipient_id]
+		if String(obligation.source).begins_with("resident:"): parties.append(String(obligation.source).trim_prefix("resident:"))
+		_receipt("contract",int(obligation.amount),parties,String(obligation.source),{"related_event_id":key,"legality":legality,"substance":"service"})
+		changed.emit()
+	_busy=false
+	return accepted
+
+func refund_contract(key: String) -> bool:
+	if not host_enabled or _busy or _externally_busy() or not contracts.has(key): return false
+	var obligation: Dictionary=contracts[key]
+	if obligation.status!="reserved" or not _can_pay(ESCROW_ACCOUNT,String(obligation.source),int(obligation.amount)): return false
+	_busy=true
+	var accepted:=_append_event({"kind":"transfer","from":ESCROW_ACCOUNT,"to":String(obligation.source),"amount":int(obligation.amount),"reason":"Refunded contract "+key.left(100)})
+	if accepted:
+		obligation.status="refunded"; obligation.sequence=sequence
+		changed.emit()
+	_busy=false
+	return accepted
+
+func npc_sell_item(seller_id: String,buyer_id: String,iid: String,qty: int,price: int,related_event_id: String = "",legality: String = "legal") -> bool:
+	if seller_id==buyer_id or not _npc_allowed(seller_id,&"npc_sell_item",{"seller_id":seller_id,"buyer_id":buyer_id,"instance_id":iid,"quantity":qty,"price":price,"legality":legality}) or buyer_id not in active_ids: return false
+	if not Instance.valid_text(related_event_id,true,128) or legality not in ["legal","illegal","unknown"] or not _can_pay(resident_account(buyer_id),resident_account(seller_id),price): return false
+	var source:=npc_store(seller_id)
+	var destination:=npc_store(buyer_id)
+	if source==null or destination==null: return false
+	return _move_item(source,destination,iid,qty,{"kind":"transfer","from":resident_account(buyer_id),"to":resident_account(seller_id),"amount":price,"reason":"Code Form merchandise sale"},{"context":"item_sale","amount":price,"participants":[seller_id,buyer_id],"counterpart":resident_account(seller_id),"related_event_id":related_event_id,"legality":legality,"substance":"goods"})
+
+func trade_item(seller_id: String,buyer_id: String,iid: String,qty: int,price: int,event_id: String,legality: String = "legal") -> bool:
+	if seller_id==buyer_id or not Instance.valid_text(event_id,false,128) or legality not in ["legal","illegal","unknown"]: return false
+	if seller_id!=owner_id and seller_id not in active_ids or buyer_id!=owner_id and buyer_id not in active_ids: return false
+	var payload:={"seller_id":seller_id,"buyer_id":buyer_id,"instance_id":iid,"quantity":qty,"price":price,"event_id":event_id,"legality":legality}
+	if owner_id in [seller_id,buyer_id]:
+		if not _valid_inventory(player_inventory) or not _allowed(&"intent_trade",payload): return false
+	elif not _npc_allowed(seller_id,&"npc_sell_item",payload): return false
+	var seller:=player_account if seller_id==owner_id else resident_account(seller_id)
+	var buyer:=player_account if buyer_id==owner_id else resident_account(buyer_id)
+	if not _can_pay(buyer,seller,price): return false
+	var source:=_delivery_store(seller_id)
+	var destination:=_delivery_store(buyer_id)
+	if source==null or destination==null: return false
+	return _move_item(source,destination,iid,qty,{"kind":"transfer","from":buyer,"to":seller,"amount":price,"reason":"Accepted merchandise offer"},{"context":"item_sale","amount":price,"participants":[seller_id,buyer_id],"counterpart":seller,"related_event_id":event_id,"legality":legality,"substance":"goods"})
+
+func prune_contracts(retained_keys: Array) -> int:
+	if not host_enabled or _busy or _externally_busy(): return 0
+	var keep: Dictionary={}
+	for key: Variant in retained_keys:
+		if not Instance.valid_text(key,false,128): return 0
+		keep[key]=true
+	var watermark:=""
+	var highest:=0
+	for key: String in contracts:
+		var serial:=_quest_serial(key)
+		if serial>highest: highest=serial; watermark=key
+	# Preserve a single persistent serial watermark. Forgotten custom tokens
+	# cannot be deduplicated safely, so they keep their bounded terminal rows.
+	_busy=true
+	var removed:=0
+	for key: String in contracts.keys():
+		if contracts[key].status!="reserved" and _quest_serial(key)>0 and key!=watermark and not keep.has(key): contracts.erase(key); removed+=1
+	if removed>0: changed.emit()
+	_busy=false
+	return removed
+
+func _asset_owner(owner: String) -> String:
+	if owner.begins_with("resident:"): return owner.trim_prefix("resident:")
+	if owner==guild_account: return "guild"
+	return owner
+
+func _delivered_id(store: Node,item: Resource) -> String:
+	if store.get_item(item.instance_id)!=null: return String(item.instance_id)
+	# A consumed input stack may have merged into an existing owned instance.
+	for existing: Resource in store.items.values():
+		if existing.item_type_id==item.item_type_id and existing.upgrade_level==item.upgrade_level and Instance.same_properties(existing.custom_properties,item.custom_properties): return String(existing.instance_id)
+	return ""
+
+func npc_steal_item(thief_id: String,victim_id: String,iid: String,qty: int,event_id: String) -> Dictionary:
+	if thief_id==victim_id or victim_id not in active_ids or not Instance.valid_text(event_id,false,128) or not _npc_allowed(thief_id,&"npc_steal_item",{"id":thief_id,"thief_id":thief_id,"victim_id":victim_id,"instance_id":iid,"quantity":qty,"event_id":event_id}): return {}
+	var source:=npc_store(victim_id)
+	var destination:=npc_store(thief_id)
+	if source==null or destination==null: return {}
+	var marks:={"stolen_from":resident_account(victim_id),"stolen_event":event_id,"theft_event_id":event_id}
+	if not _move_item(source,destination,iid,qty,{"kind":"delivery","from":resident_account(victim_id),"to":resident_account(thief_id),"asset_id":iid,"quantity":qty},{"context":"item_theft","transaction_type":"item_theft","amount":0,"participants":[thief_id,victim_id],"counterpart":resident_account(victim_id),"related_event_id":event_id,"legality":"illegal"},marks): return {}
+	return _last_receipt.duplicate(true)
+
+func _delivery_store(id: String) -> Node:
+	if id==owner_id: return player_inventory if _valid_inventory(player_inventory) else null
+	if id=="guild": return guild_stock
+	return npc_store(id) if id in active_ids else null
+
+func deliver_item(sender_id: String,recipient_id: String,instance_id: String,quantity: int,related_event_id: String,legality: String = "legal") -> Dictionary:
+	if not _allowed(&"deliver_item",{"sender_id":sender_id,"recipient_id":recipient_id,"instance_id":instance_id,"quantity":quantity,"related_event_id":related_event_id}) or sender_id==recipient_id or sender_id=="guild" or not Instance.valid_text(related_event_id,false,128) or legality not in ["legal","illegal","unknown"]: return {}
+	var source:=_delivery_store(sender_id)
+	var destination:=_delivery_store(recipient_id)
+	if source==null or destination==null: return {}
+	var source_account:=player_account if sender_id==owner_id else resident_account(sender_id)
+	var destination_account:=guild_account if recipient_id=="guild" else (player_account if recipient_id==owner_id else resident_account(recipient_id))
+	if not _move_item(source,destination,instance_id,quantity,{"kind":"delivery","from":source_account,"to":destination_account,"asset_id":instance_id,"quantity":quantity},{"context":"item_transfer","transaction_type":"item_transfer","amount":0,"participants":[sender_id,recipient_id],"counterpart":destination_account,"related_event_id":related_event_id,"legality":legality}): return {}
+	return _last_receipt.duplicate(true)
 
 func npc_buy_food(id: String,type: StringName) -> bool:
 	if not _npc_allowed(id,&"npc_buy_food",{"id":id,"type_id":type}): return false
@@ -203,7 +361,7 @@ func npc_service_wage(id: String,service_key: String,serial: int) -> bool:
 	var accepted := _append_event({"kind":"transfer","from":business,"to":resident_account(id),"amount":1,"reason":"Completed "+service_key})
 	if accepted:
 		service_tokens[token] = serial
-		_receipt("wage:"+service_key,1,[id,merchant_ids.get("guild" if business==guild_account else "tavern","")],business)
+		_receipt("wage:"+service_key,1,[id,merchant_ids.get("guild" if business==guild_account else "tavern","")],business,{"related_event_id":token+"|"+str(serial)})
 		changed.emit()
 	_busy = false
 	return accepted
@@ -275,14 +433,14 @@ func _purchase_item(store: Node,type: StringName,event: Dictionary,context: Stri
 			_used_wonder_tokens[wonder_commit.token]=true
 			wonder_purchase_committed.emit(String(wonder_commit.token),String(wonder_commit.buyer))
 		if not blocked: store.changed.emit()
-		_receipt(context,int(event.amount),participants,counterpart)
+		_receipt(context,int(event.amount),participants,counterpart,{"asset_id":String(item.instance_id),"delivered_asset_id":_delivered_id(store,item),"asset_type":String(type),"quantity":1,"asset_sender_id":counterpart,"asset_receiver_id":_asset_owner(String(store.owner_id)),"related_event_id":String(wonder_commit.get("token","")),"substance":"retail_sink" if context=="wonder" else "goods"})
 		changed.emit()
 	_busy = false
 	return accepted
 
 func transfer(from: String,to: String,amount: int,reason: String = "Transfer") -> bool:
 	# Trusted host settlement; commerce uses the narrower request methods below.
-	if not host_enabled or _busy or _externally_busy() or not _can_pay(from,to,amount) or not Instance.valid_text(reason): return false
+	if not host_enabled or _busy or _externally_busy() or ESCROW_ACCOUNT in [from,to] or not _can_pay(from,to,amount) or not Instance.valid_text(reason): return false
 	_busy = true
 	var accepted := _append_event({"kind":"transfer","from":from,"to":to,"amount":amount,"reason":reason})
 	if accepted: changed.emit()
@@ -356,7 +514,7 @@ func _shadow(source: Node) -> Node:
 		return null
 	return copy
 
-func _move_item(source: Node,destination: Node,iid: String,qty: int,coin_event: Dictionary = {},receipt: Dictionary = {}) -> bool:
+func _move_item(source: Node,destination: Node,iid: String,qty: int,coin_event: Dictionary = {},receipt: Dictionary = {},properties: Dictionary = {}) -> bool:
 	var item: Resource = source.get_item(iid)
 	if item==null or qty<=0 or qty>item.quantity or item.owner_id!=source.owner_id: return false
 	var definition: Resource = Catalog.get_definition(item.item_type_id)
@@ -368,6 +526,7 @@ func _move_item(source: Node,destination: Node,iid: String,qty: int,coin_event: 
 		if to_shadow!=null: to_shadow.free()
 		return false
 	var preview: Resource = from_shadow.take_item(iid,qty)
+	if preview!=null: preview.custom_properties.merge(properties,true)
 	var fits: bool = preview!=null and to_shadow.add_item(preview)
 	from_shadow.free()
 	to_shadow.free()
@@ -380,6 +539,7 @@ func _move_item(source: Node,destination: Node,iid: String,qty: int,coin_event: 
 	source.set_block_signals(true)
 	destination.set_block_signals(true)
 	var moved: Resource = source.take_item(iid,qty)
+	if moved!=null: moved.custom_properties.merge(properties,true)
 	var accepted: bool = moved!=null and destination.add_item(moved)
 	if accepted and not coin_event.is_empty(): accepted = _append_event(coin_event)
 	if not accepted:
@@ -392,7 +552,10 @@ func _move_item(source: Node,destination: Node,iid: String,qty: int,coin_event: 
 			source.equipment_changed.emit()
 			source.changed.emit()
 		if not destination_blocked: destination.changed.emit()
-		if not receipt.is_empty(): _receipt(receipt.context,int(receipt.amount),receipt.participants,receipt.counterpart)
+		if not receipt.is_empty():
+			var metadata:=receipt.duplicate(true)
+			metadata.merge({"asset_id":iid,"delivered_asset_id":_delivered_id(destination,moved),"asset_type":String(moved.item_type_id),"quantity":qty,"asset_sender_id":_asset_owner(String(source.owner_id)),"asset_receiver_id":_asset_owner(String(destination.owner_id)),"substance":"goods","reference_price":WonderStock.price_for(moved.item_type_id)},true)
+			_receipt(receipt.context,int(receipt.amount),receipt.participants,receipt.counterpart,metadata)
 		changed.emit()
 	_busy = false
 	return accepted
@@ -421,7 +584,7 @@ func serialize() -> Dictionary:
 	for room: int in room_stores: stores[str(room)] = room_stores[room].serialize()
 	var npc: Dictionary = {}
 	for id: String in npc_stores: npc[id] = npc_stores[id].serialize()
-	return {"version":2,"owner_id":owner_id,"natural_ids":natural_ids.duplicate(),"active_ids":active_ids.duplicate(),"balances":balances.duplicate(),"issued_total":issued_total,"destroyed_total":destroyed_total,"last_cycle":last_cycle,"sequence":sequence,"audit_base":audit_base.duplicate(true),"journal":journal.duplicate(true),"rental":rental.duplicate(true),"room_stores":stores,"guild_stock":guild_stock.serialize(),"npc_stores":npc,"service_tokens":service_tokens.duplicate()}
+	return {"version":3,"factions":factions.duplicate(),"contracts":contracts.duplicate(true),"owner_id":owner_id,"natural_ids":natural_ids.duplicate(),"active_ids":active_ids.duplicate(),"balances":balances.duplicate(),"issued_total":issued_total,"destroyed_total":destroyed_total,"last_cycle":last_cycle,"sequence":sequence,"audit_base":audit_base.duplicate(true),"journal":journal.duplicate(true),"rental":rental.duplicate(true),"room_stores":stores,"guild_stock":guild_stock.serialize(),"npc_stores":npc,"service_tokens":service_tokens.duplicate()}
 
 func restore(data: Variant) -> bool:
 	if not host_enabled or _busy or _externally_busy(): return false
@@ -461,6 +624,8 @@ func restore(data: Variant) -> bool:
 	journal.assign(decoded.journal)
 	rental = decoded.rental
 	service_tokens = decoded.service_tokens
+	factions.assign(decoded.factions)
+	contracts = decoded.contracts
 	room_stores = replacements
 	for room: int in room_stores:
 		room_stores[room].name = "RoomStorage"+str(room)
@@ -496,9 +661,10 @@ static func _id_set(ids: Array) -> Dictionary:
 	for id: String in ids: result[id] = true
 	return result
 
-static func _account_ids(owner: String,ids: Array) -> Array[String]:
+static func _account_ids(owner: String,ids: Array,extra: Array = []) -> Array[String]:
 	var result: Array[String] = ["player:"+owner,"business:guild","business:tavern"]
 	for id: String in ids: result.append(resident_account(id))
+	for account: String in extra: result.append(account)
 	return result
 
 static func _balances(input: Variant,accounts: Array[String]) -> Dictionary:
@@ -570,6 +736,8 @@ static func _apply_event(state: Dictionary,entry: Dictionary) -> bool:
 			if coins[entry.from]<amount or coins[entry.to]>COIN_CAP-amount: return false
 			coins[entry.from] -= amount
 			coins[entry.to] += amount
+		"delivery":
+			if entry.size()!=6 or not coins.has(entry.get("from")) or not coins.has(entry.get("to")) or entry.from==entry.to or not Instance.valid_text(entry.get("asset_id"),false,128) or not Instance.whole_number(entry.get("quantity"),1,999999): return false
 		"destroy":
 			if entry.size()!=5 or not entry.get("from") is String or not coins.has(entry.from) or not Instance.valid_text(entry.get("reason")) or not Instance.whole_number(entry.get("amount"),1,COIN_CAP): return false
 			var amount := int(entry.amount)
@@ -667,11 +835,11 @@ static func _subset_ids(input: Variant,owner: String,known: Dictionary,maximum: 
 		if not known.has(id): return null
 	return ids
 
-static func validate(input: Variant,player: Dictionary = {},world_drops: Array = []) -> Dictionary:
+static func _validate_v2(input: Variant,player: Dictionary = {},world_drops: Array = [],extra_accounts: Array = []) -> Dictionary:
 	if not input is Dictionary: return {}
 	if input.get("version")==1:
 		var migrated := _migrate_v1(_validate_v1(input,player,world_drops))
-		return validate(migrated,player,world_drops) if not migrated.is_empty() else {}
+		return _validate_v2(migrated,player,world_drops,extra_accounts) if not migrated.is_empty() else {}
 	if input.size()!=16 or not Instance.whole_number(input.get("version"),2,2) or not Instance.valid_text(input.get("owner_id"),false,64): return {}
 	var owner := String(input.owner_id)
 	var known := _natural_list(input.get("natural_ids"),owner)
@@ -681,7 +849,7 @@ static func validate(input: Variant,player: Dictionary = {},world_drops: Array =
 	var known_set := _id_set(known)
 	var active: Variant = _subset_ids(input.get("active_ids"),owner,known_set,MAX_ACTIVE)
 	if active==null: return {}
-	var accounts := _account_ids(owner,known)
+	var accounts := _account_ids(owner,known,extra_accounts)
 	var coins := _balances(input.get("balances"),accounts)
 	if coins.is_empty() or not Instance.whole_number(input.get("issued_total"),0,COIN_CAP) or not Instance.whole_number(input.get("destroyed_total"),0,COIN_CAP) or not Instance.whole_number(input.get("last_cycle"),-1,COIN_CAP) or not Instance.whole_number(input.get("sequence"),0,COIN_CAP): return {}
 	var total := int(input.destroyed_total)
@@ -747,3 +915,43 @@ static func validate(input: Variant,player: Dictionary = {},world_drops: Array =
 		if parts.size()!=2 or not known_set.has(parts[0]) or not WAGE_SERVICES.has(parts[1]) or not Instance.whole_number(input.service_tokens[token],0,COIN_CAP): return {}
 		tokens[token] = int(input.service_tokens[token])
 	return {"version":2,"owner_id":owner,"natural_ids":known,"active_ids":active,"balances":coins,"issued_total":int(input.issued_total),"destroyed_total":int(input.destroyed_total),"last_cycle":int(input.last_cycle),"sequence":int(input.sequence),"audit_base":base,"journal":entries,"rental":Instance.json_copy(rental_record),"room_stores":stores,"guild_stock":stock,"npc_stores":npc,"service_tokens":tokens}
+
+static func _faction_key(key: Variant) -> bool:
+	return Instance.valid_text(key,false,64) and not ":" in key and not "|" in key
+
+static func validate(input: Variant,player: Dictionary = {},world_drops: Array = []) -> Dictionary:
+	if not input is Dictionary: return {}
+	if Instance.whole_number(input.get("version"),1,2):
+		var migrated:=_validate_v2(input,player,world_drops)
+		if migrated.is_empty(): return {}
+		migrated.version=3; migrated.factions=[]; migrated.contracts={}
+		migrated.balances[ESCROW_ACCOUNT]=0; migrated.audit_base.balances[ESCROW_ACCOUNT]=0
+		return validate(migrated,player,world_drops)
+	if input.get("version")!=3 or input.size()!=18 or not input.get("factions") is Array or input.factions.size()>MAX_FACTIONS or not input.get("contracts") is Dictionary or input.contracts.size()>MAX_CONTRACTS: return {}
+	var faction_ids: Array[String]=[]
+	var extra: Array[String]=[ESCROW_ACCOUNT]
+	for key: Variant in input.factions:
+		if not _faction_key(key) or faction_ids.has(key): return {}
+		faction_ids.append(key); extra.append(faction_account(key))
+	faction_ids.sort()
+	var core: Dictionary=input.duplicate(true)
+	core.version=2; core.erase("factions"); core.erase("contracts")
+	var result:=_validate_v2(core,player,world_drops,extra)
+	if result.is_empty(): return {}
+	var reservations: Dictionary={}
+	var reserved:=0
+	var known:=_id_set(result.natural_ids)
+	for key: Variant in input.contracts:
+		if not Instance.valid_text(key,false,128): return {}
+		var row: Variant=input.contracts[key]
+		if not row is Dictionary or row.size()!=7 or not result.balances.has(row.get("source")) or row.source==ESCROW_ACCOUNT or not Instance.whole_number(row.get("amount"),1,COIN_CAP) or row.get("status") not in ["reserved","settled","refunded"] or not Instance.whole_number(row.get("sequence"),1,result.sequence) or row.get("legality") not in ["legal","illegal","unknown"]: return {}
+		if row.status=="settled":
+			if row.get("payee")!=result.owner_id and not known.has(row.get("payee")): return {}
+			if not Instance.valid_text(row.get("service"),false,128): return {}
+		else:
+			if row.get("payee")!="" or row.get("service")!="" or row.legality!="legal": return {}
+		if row.status=="reserved": reserved+=int(row.amount)
+		reservations[key]={"source":String(row.source),"amount":int(row.amount),"status":String(row.status),"payee":String(row.payee),"service":String(row.service),"legality":String(row.legality),"sequence":int(row.sequence)}
+	if reserved!=int(result.balances[ESCROW_ACCOUNT]): return {}
+	result.version=3; result.factions=faction_ids; result.contracts=reservations
+	return result

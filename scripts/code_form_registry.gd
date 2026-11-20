@@ -95,7 +95,7 @@ static func _threshold(level: int, settings: Dictionary) -> int: return int(sett
 func _new_record(row: Dictionary, born: float, generation: int = 0, serial: int = 0) -> Dictionary:
 	var weights: Dictionary = {}
 	for key: String in MOTIVATIONS: weights[key] = float(150+absi((String(row.id)+key).hash())%850)/1000.0
-	return {"id":String(row.id),"slot":String(row.slot),"name":String(row.name),"occupation":String(row.occupation),"personality":String(row.personality),"respawn":row.respawn.duplicate(true),"motivations":weights,"current_goal":"idle","goal_target":"","guild":"","level":1,"experience":0,"expires_at":born+_initial_life(),"born_at":born,"active":true,"memories":[],"relationships":{},"novelty":{},"event_bloom":"","generation":generation,"serial":serial,"replaced_by":""}
+	return {"id":String(row.id),"slot":String(row.slot),"name":String(row.name),"occupation":String(row.occupation),"personality":String(row.personality),"respawn":row.respawn.duplicate(true),"motivations":weights,"current_goal":"idle","goal_target":"","guild":"","level":1,"experience":0,"expires_at":born+_initial_life(),"born_at":born,"retired_at":0.0,"active":true,"memories":[],"relationships":{},"novelty":{},"event_bloom":"","generation":generation,"serial":serial,"replaced_by":""}
 
 func bootstrap(rows: Array[Dictionary]) -> bool:
 	if not _prepare(): return false
@@ -139,7 +139,10 @@ func advance_to(target: float) -> Array[Dictionary]:
 	for slot: String in slots:
 		var row: Dictionary = for_slot(slot)
 		if row.expires_at<=target:
-			var count: float = 1+floor((target-float(row.expires_at))/_initial_life())
+			# A correction discovered today may revoke lifetime that was already
+			# spent. Retire once today; never invent retroactive generations.
+			var effective_expiry:=maxf(world_seconds,float(row.expires_at))
+			var count: float = 1+floor((target-effective_expiry)/_initial_life())
 			if count>MAX_REPLACEMENTS-required or float(row.expires_at)+_initial_life()<=float(row.expires_at): last_error="World advance exceeds the %d-replacement batch limit" % MAX_REPLACEMENTS; return []
 			required += int(count)
 			order.append(slot)
@@ -154,7 +157,9 @@ func advance_to(target: float) -> Array[Dictionary]:
 			var personality: String = PERSONALITIES[absi(id.hash())%PERSONALITIES.size()]
 			if personality==old.personality: personality=PERSONALITIES[(PERSONALITIES.find(personality)+1)%PERSONALITIES.size()]
 			var row := {"id":id,"slot":slot,"name":["Aster","Vela","Prism","Coda","Lumen","Nacre","Wren","Opal"][replacement_serial%8]+" "+str(replacement_serial),"occupation":old.occupation,"personality":personality,"respawn":old.respawn}
-			var next := _new_record(row,float(old.expires_at),int(old.generation)+1,replacement_serial)
+			var retirement:=maxf(world_seconds,float(old.expires_at))
+			var next := _new_record(row,retirement,int(old.generation)+1,replacement_serial)
+			old.retired_at=retirement
 			old.active = false
 			old.current_goal = "expired"
 			old.goal_target = ""
@@ -179,6 +184,23 @@ func grant_xp(id: String, amount: int) -> int:
 	var gained: int = row.level-before
 	row.expires_at += gained*float(config.level_years)*_year()
 	return gained
+
+func reconcile_xp(id: String, legitimate_experience: int) -> Dictionary:
+	var rejected:={"accepted":false,"xp_delta":0,"level_delta":0,"expires_at":0.0,"expired":false}
+	if not _prepare() or not records.has(id) or not records[id].active or legitimate_experience<0 or legitimate_experience>_threshold(config.max_level,config): return rejected
+	var row: Dictionary=records[id]
+	var level:=1
+	while level<int(config.max_level) and legitimate_experience>=_threshold(level+1,config): level+=1
+	var xp_delta:=legitimate_experience-int(row.experience)
+	var level_delta:=level-int(row.level)
+	var expiry:=float(row.expires_at)+level_delta*float(config.level_years)*_year()
+	if not _number(expiry,0,MAX_TIME): return rejected
+	row.experience=legitimate_experience
+	row.level=level
+	row.expires_at=expiry
+	# The owning civilization commits any due retirement and ledger replacement
+	# before persisting or exposing this intermediate, already-expired record.
+	return {"accepted":true,"xp_delta":xp_delta,"level_delta":level_delta,"expires_at":expiry,"expired":expiry<=world_seconds}
 
 static func _bloom_positions(event_id: String) -> Array[int]:
 	var digest := event_id.sha256_text()
@@ -289,9 +311,9 @@ static func validate(data: Variant) -> Dictionary:
 	var year: float=float(settings.day_seconds)*float(settings.days_per_year)
 	for id: Variant in data.records:
 		var row: Variant=data.records[id]
-		if not _id(id) or not row is Dictionary or row.size()!=allowed.size(): return {}
+		if not _id(id) or not row is Dictionary or row.size()!=allowed.size()+(1 if row.has("retired_at") else 0): return {}
 		for key: Variant in row:
-			if key not in allowed: return {}
+			if key not in allowed and key!="retired_at": return {}
 		if row.id!=id or not _slot(row.slot) or not _text(row.name,80) or not _text(row.occupation,64) or not _text(row.personality,32) or _respawn(row.respawn).is_empty() or not _text(row.current_goal,64) or not _text(row.goal_target,128,true) or not _text(row.guild,64,true): return {}
 		if not row.active is bool or not _integer(row.level,1,settings.max_level) or not _integer(row.experience,0,_threshold(settings.max_level,settings)) or not _integer(row.generation,0,MAX_RECORDS) or not _integer(row.serial,0,data.replacement_serial): return {}
 		if row.experience<_threshold(int(row.level),settings) or row.level<settings.max_level and row.experience>=_threshold(int(row.level)+1,settings): return {}
@@ -299,6 +321,8 @@ static func validate(data: Variant) -> Dictionary:
 		var expected: float=float(row.born_at)+year*(float(settings.lifetime_years)+(int(row.level)-1)*float(settings.level_years))
 		if absf(float(row.expires_at)-expected)>maxf(.000001,absf(expected)*1.0e-12): return {}
 		if row.active and row.expires_at<=data.world_seconds or not row.active and row.expires_at>data.world_seconds: return {}
+		var retired: Variant=row.get("retired_at",0.0 if row.active else row.expires_at)
+		if not _number(retired,0,data.world_seconds) or (row.active and retired!=0) or (not row.active and retired<row.expires_at): return {}
 		if row.generation==0:
 			if row.serial!=0 or id!=_initial_id(row.slot): return {}
 		else:
@@ -333,6 +357,7 @@ static func validate(data: Variant) -> Dictionary:
 		for key: String in ["level","experience","generation","serial"]: clean[id][key]=int(row[key])
 		clean[id].born_at=float(row.born_at)
 		clean[id].expires_at=float(row.expires_at)
+		clean[id].retired_at=float(retired)
 		for motive: String in MOTIVATIONS: clean[id].motivations[motive]=float(row.motivations[motive])
 		for memory: Dictionary in clean[id].memories:
 			memory.importance=float(memory.importance)
@@ -352,7 +377,7 @@ static func validate(data: Variant) -> Dictionary:
 				if not row.active: return {}
 			else:
 				var next: Dictionary=clean[group[generation+1]]
-				if row.active or row.replaced_by!=next.id or row.expires_at!=next.born_at: return {}
+				if row.active or row.replaced_by!=next.id or row.retired_at!=next.born_at: return {}
 	return {"version":1,"config":settings,"world_seconds":float(data.world_seconds),"replacement_serial":int(data.replacement_serial),"records":clean,"slots":data.slots.duplicate(true)}
 
 func restore(data: Variant) -> bool:

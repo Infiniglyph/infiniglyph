@@ -118,7 +118,7 @@ func run() -> void:
 	economy.external_transaction_guard=Callable()
 	check(callback_safe and callback_accepts==0,"Authorization, commit and ownership callbacks cannot reenter the economy or replay a token")
 	check(circulation()+economy.destroyed_total==economy.issued_total and not Economy.validate(economy.serialize(),inventory.serialize()).is_empty(),"The final real inventories and permanently destroyed supply remain canonically auditable")
-	check(economy.serialize().size()==16 and economy.serialize().version==2,"Retail quotes remain ephemeral without changing the compatible economy checkpoint schema")
+	check(economy.serialize().size()==18 and economy.serialize().version==3,"Retail quotes remain ephemeral within the audited faction-and-escrow economy checkpoint schema")
 	economy.free()
 	inventory.free()
 	print("Glyphic Wonders purchase verification: ",checks," checks, ",failures," failures")

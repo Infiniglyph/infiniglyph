@@ -179,6 +179,7 @@ func interact() -> bool:
 	refresh_stock()
 	if current.kind=="counter":
 		merchant.welcome()
+		if is_instance_valid(world.get("civic_interactions")): return world.civic_interactions.begin_merchant(current)
 		_counter()
 	else: _inspect(current)
 	return true

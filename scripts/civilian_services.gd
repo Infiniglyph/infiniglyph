@@ -126,6 +126,8 @@ func interact() -> bool:
 	if current.is_empty(): return false
 	var society: Node=world.get("civilization")
 	var id:=_speaker_id()
+	if is_instance_valid(world.get("civic_interactions")) and (not id.is_empty() or current.kind=="board"):
+		return world.civic_interactions.begin_service(current,id)
 	if is_instance_valid(society) and not id.is_empty(): society.record_interaction(id,"conversation","player")
 	_home()
 	return true
@@ -245,6 +247,10 @@ func _store(iid: String, amount: int, deposit: bool) -> void:
 	menu.set_status("Items transferred." if ok else "Transfer unavailable. Nothing was moved.",not ok)
 
 func _authorize(operation: StringName, payload: Dictionary) -> bool:
+	if operation==&"intent_trade":
+		return is_instance_valid(world.get("civic_interactions")) and world.civic_interactions.trade.authorized(payload)
+	if operation==&"deliver_item":
+		return is_instance_valid(world.get("civic_interactions")) and world.civic_interactions.delivery_authorized(payload)
 	var actor: Node=world.player
 	if not world.loot.host_enabled or world.loot.get("_busy")==true or world.inventory_session.networked() or actor.health<=0 or actor.transition_locked: return false
 	if operation==&"consume_food":
@@ -297,4 +303,9 @@ func reset_state() -> bool:
 	if is_instance_valid(society) and not society.restore(null):
 		economy.restore(before)
 		return false
+	if is_instance_valid(world.get("civic_interactions")):
+		world.quest_system.restore(null)
+		world.communication.restore(null)
+		world.law.restore(null)
+		world.civic_interactions.bootstrap()
 	return true

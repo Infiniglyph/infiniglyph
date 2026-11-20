@@ -37,6 +37,15 @@ prices, conservation of coins, storage, room instances and current placeholders.
 
 ## Persistent Code Form civilians
 
+Residents and keepers now share a six-choice intent conversation system, with
+procedural electronic voices and live subtitles. The guild has separate Security,
+Commerce and Exploration boards with finite funded contracts; private Underworld
+work requires an earned tavern introduction. NPCs use the same work and intent
+authorities. [Civic intents and quests](docs/CIVIC_INTENTS_AND_QUESTS.md) covers
+controls, membership, actual deliveries, evidence and checkpoint continuity.
+[Economic XP](docs/ECONOMIC_XP.md) explains provenance, legal/criminal parity and
+bounded retrospective exploit corrections.
+
 City residents, regional pedestrians, drivers and guild/tavern staff now have
 individual persistent identities, motivations, memories, relationships and goals.
 They choose local errands or lightweight background work, meals, trade, social

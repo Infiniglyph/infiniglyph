@@ -28,6 +28,8 @@ var _shake: CheckBox
 var _shadows: HSlider
 var _glow: HSlider
 var _resolution: HSlider
+var _translation_speed: HSlider
+var _communication_voice: CheckBox
 
 func _ready() -> void:
 	name = "StartMenu"
@@ -167,6 +169,15 @@ func _build() -> void:
 	_shake.toggled.connect(func(value: bool): actor.weapon_combat.rules.camera_shake_enabled = value)
 	box.add_child(_shake)
 	_settings_controls.append(_shake)
+	box.add_child(_label("ACCESSIBILITY",20))
+	_translation_speed = _slider(box,"Translation and voice speed",0.5,2.0,0.1,1.0,func(_value: float): apply_communication_settings())
+	_communication_voice = CheckBox.new()
+	_communication_voice.text = "Electronic conversation voices"
+	_communication_voice.button_pressed = true
+	_communication_voice.add_theme_font_size_override("font_size",18)
+	_communication_voice.toggled.connect(func(_value: bool): apply_communication_settings())
+	box.add_child(_communication_voice)
+	_settings_controls.append(_communication_voice)
 	var graphics: Node = get_parent().graphics
 	box.add_child(_label("GRAPHICS",20))
 	_shadows = _slider(box,"Maximum nearby streetlight shadows",0,16,1,graphics.shadow_budget,func(value: float):
@@ -189,6 +200,7 @@ func _build() -> void:
 	_settings.hide()
 
 func open_menu() -> void:
+	session._close_communication("start_menu")
 	if is_open: return
 	if actor.transition_locked: return
 	if session.ui.is_open: session.ui.close_menu()
@@ -339,6 +351,8 @@ func save_settings(path: String = "") -> bool:
 	config.set_value("camera","distance",_distance.value)
 	config.set_value("camera","shake",_shake.button_pressed)
 	config.set_value("audio","volume",_volume.value)
+	config.set_value("communication","text_speed",_translation_speed.value)
+	config.set_value("communication","voice_enabled",_communication_voice.button_pressed)
 	config.set_value("graphics","shadows",_shadows.value)
 	config.set_value("graphics","glow",_glow.value)
 	config.set_value("graphics","resolution",_resolution.value)
@@ -348,12 +362,24 @@ func load_settings(path: String = "") -> bool:
 	var config := ConfigFile.new()
 	if config.load(path if not path.is_empty() else settings_path)!=OK: return false
 	if config.get_value("meta","version",1)!=1: return false
-	for entry: Array in [[_mouse,"camera","mouse"],[_stick_speed,"camera","stick"],[_fov,"camera","fov"],[_distance,"camera","distance",actor.camera_rig.DEFAULT_FOLLOW_DISTANCE],[_volume,"audio","volume"],[_shadows,"graphics","shadows"],[_glow,"graphics","glow"],[_resolution,"graphics","resolution"]]:
+	for entry: Array in [[_mouse,"camera","mouse"],[_stick_speed,"camera","stick"],[_fov,"camera","fov"],[_distance,"camera","distance",actor.camera_rig.DEFAULT_FOLLOW_DISTANCE],[_volume,"audio","volume"],[_shadows,"graphics","shadows"],[_glow,"graphics","glow"],[_resolution,"graphics","resolution"],[_translation_speed,"communication","text_speed",1.0]]:
 		var value: Variant = config.get_value(entry[1],entry[2],entry[3] if entry.size()>3 else entry[0].value)
 		if (value is float or value is int) and is_finite(float(value)): entry[0].value = clampf(value,entry[0].min_value,entry[0].max_value)
 	var shake: Variant = config.get_value("camera","shake",true)
 	if shake is bool: _shake.button_pressed = shake
+	var voice: Variant = config.get_value("communication","voice_enabled",true)
+	if voice is bool: _communication_voice.button_pressed = voice
+	apply_communication_settings()
 	return true
+
+func apply_communication_settings() -> void:
+	# The system menu is built before optional world services. The world calls
+	# this again once communication is attached, applying already loaded values.
+	if not is_instance_valid(_translation_speed) or not is_instance_valid(_communication_voice): return
+	var communication: Variant=get_parent().get("communication")
+	if not is_instance_valid(communication): return
+	communication.text_speed=_translation_speed.value
+	communication.voice_enabled=_communication_voice.button_pressed
 
 func _notification(what: int) -> void:
 	if what==NOTIFICATION_APPLICATION_FOCUS_OUT and is_open: close_menu()

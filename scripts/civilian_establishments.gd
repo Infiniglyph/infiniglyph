@@ -24,6 +24,7 @@ var guild_entry: Marker3D
 var tavern_entry: Marker3D
 var receptionist_anchor: Marker3D
 var bartender_anchor: Marker3D
+var faction_boards: Dictionary = {}
 
 static func reserves_plot(at: Vector3) -> bool:
 	# Replace entire generated scenery lots; never place an interior inside an
@@ -163,10 +164,19 @@ func build_guild() -> void:
 	inscription(guild,"RECEPTION  /  CRYSTAL EXCHANGE",Vector3(-12,2.4,3.51),24)
 	point(guild,&"reception",&"reception","Guild receptionist",Vector3(-12,1.3,9.2))
 	receptionist_anchor = marker(guild,"ReceptionistStanding",Vector3(-12,GROUND,4.9))
-	b.box(Vector3(-18,2.05,-5.5),Vector3(.18,3.3,5),"ContractBoard",CYAN)
-	for i in range(3): b.box(Vector3(-17.88,2.1,-7+i*1.5),Vector3(.035,1.9,.9),"ContractNotice",[CYAN,BLUE,GOLD][i],Basis.IDENTITY,false)
-	point(guild,&"board",&"board","Contracts and bounties",Vector3(-16.8,1.5,-5.5))
-	inscription(guild,"CONTRACTS",Vector3(-17.7,3.9,-5.5),28,CYAN,PI*.5)
+	var faction_data: Dictionary=JSON.parse_string(FileAccess.get_file_as_string("res://data/factions.json"))
+	var board_index:=0
+	for faction: Dictionary in faction_data.factions:
+		if not faction.public: continue
+		var z: float=-11+board_index*6
+		var ink:=Color.html(faction.color)
+		b.box(Vector3(-18,2.05,z),Vector3(.18,3.3,4.6),"FactionContractBoard",ink)
+		for notice in range(3): b.box(Vector3(-17.88,2.1,z-1.4+notice*1.4),Vector3(.035,1.9,.85),"ContractNotice",ink,Basis.IDENTITY,false)
+		var anchor:=point(guild,StringName(faction.board),&"board",String(faction.name)+" contracts",Vector3(-16.8,1.5,z))
+		points[-1].faction=String(faction.id)
+		faction_boards[faction.id]=anchor
+		inscription(guild,String(faction.name).to_upper()+"\nCONTRACTS",Vector3(-17.7,3.9,z),25,ink,PI*.5)
+		board_index+=1
 	table_group(guild,b,"guild_table_1",Vector3(-8,GROUND,-7))
 	table_group(guild,b,"guild_table_2",Vector3(0,GROUND,1),BLUE)
 	table_group(guild,b,"guild_table_3",Vector3(-8,GROUND,-.5))

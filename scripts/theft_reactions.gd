@@ -3,6 +3,7 @@ extends Node3D
 const Fighter = preload("res://scripts/resident_fighter.gd")
 const Combat = preload("res://scripts/weapon_combat.gd")
 const DamageNumber = preload("res://scripts/damage_number.gd")
+signal crime_observed(event: Dictionary)
 const ASSAULT_LINES := [
 	["Watch your damn hands.","I'm not your training dummy, human.","Was that supposed to impress me?","Back off. You're getting on my nerves."],
 	["Keep swinging, genius. See where it gets you.","You really are a pain in the ass.","All that empty space in your skull, and you still chose this.","Cut that shit out, human."],
@@ -168,6 +169,7 @@ func receive_assault(source: CharacterBody3D, amount: float, origin: Vector3, at
 	var serial := int(incoming.get("attack_serial",-1))
 	if serial<0 or serial!=int(entry.last_attack):
 		entry.last_attack = serial
+		crime_observed.emit({"event_id":"assault/"+preload("res://scripts/item_instance.gd").new_id(),"kind":"assault","offender":actor,"victim":source,"witnesses":[source]})
 		entry.assault = true
 		_raise_anger(entry,_theft_gain(source,key,true)*assault_anger_scale)
 		var ratio: float = entry.anger/enrage_threshold
@@ -233,16 +235,19 @@ func observe_theft(vehicle: CharacterBody3D, owner: CharacterBody3D = null) -> v
 		for source: CharacterBody3D in population.active_residents: witnesses.append(source)
 	witnesses.sort_custom(func(a: CharacterBody3D,b: CharacterBody3D): return a.global_position.distance_squared_to(vehicle.global_position)<b.global_position.distance_squared_to(vehicle.global_position))
 	var count := 0
+	var observed: Array[Node]=[]
 	for source: CharacterBody3D in witnesses:
 		if count>=6: break
 		if source.global_position.distance_to(vehicle.global_position)>18: continue
 		var ray := PhysicsRayQueryParameters3D.create(source.global_position+Vector3.UP*1.35,vehicle.global_position+Vector3.UP,9,[source.get_rid(),vehicle.get_rid(),actor.get_rid()])
 		if not get_world_3d().direct_space_state.intersect_ray(ray).is_empty(): continue
 		react(source,source==owner,0 if source==owner else 1+count%2)
+		observed.append(source)
 		if source==owner or count==0:
 			var key := key_for(source)
 			life.session.show_notice(source.profile.name+": "+entries[key].line,5.5)
 		count += 1
+	if not observed.is_empty(): crime_observed.emit({"event_id":"vehicle_theft/"+preload("res://scripts/item_instance.gd").new_id(),"kind":"theft","offender":actor,"victim":owner,"witnesses":observed,"asset_id":"vehicle/"+str(vehicle.get_instance_id())})
 
 func react(source: CharacterBody3D, owner: bool, tier: int = 0) -> void:
 	if not is_instance_valid(source) or not source.is_visible_in_tree(): return

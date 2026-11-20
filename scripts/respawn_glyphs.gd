@@ -88,6 +88,7 @@ func sync_markers() -> void:
 		markers[key]=marker
 
 func begin_choice() -> bool:
+	world.inventory_session._close_communication("respawn")
 	if waiting: return true
 	if actor.inventory.respawn_points.is_empty(): return false
 	world.inventory_session.ui.close_menu()

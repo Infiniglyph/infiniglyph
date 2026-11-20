@@ -18,10 +18,16 @@ func start(snapshot: Dictionary) -> Error:
 	if pending(): return ERR_BUSY
 	var core := snapshot.duplicate()
 	core.erase("civilization_state")
+	for key: String in Store.CIVIC_FIELDS: core.erase(key)
 	# Inventory/catalog restoration creates temporary Nodes. It must stay here;
 	# the background worker only handles civilian value models and JSON bytes.
-	var captured: Dictionary=Store.decode(core)
+	var captured: Dictionary=Store._decode(core,Store.has_civic_state(snapshot))
 	if captured.is_empty(): return ERR_INVALID_DATA
+	if Store.has_civic_state(snapshot):
+		if not snapshot.has("civilization_state"): return ERR_INVALID_DATA
+		var civic:=Store.canonical_civic_state(snapshot)
+		if civic.is_empty(): return ERR_INVALID_DATA
+		captured.merge(civic)
 	var society_bytes:=PackedByteArray()
 	var has_society:=snapshot.has("civilization_state")
 	if snapshot.has("civilization_state"):
@@ -102,8 +108,10 @@ static func _encode(captured: Dictionary,society_bytes: PackedByteArray,has_soci
 		if history!=accounts: return _failure(ERR_INVALID_DATA)
 		var interval: float=float(model.config.blessing_days)*float(model.config.day_seconds)
 		if int(captured.civilian_state.last_cycle)!=floori(float(model.world_seconds)/interval): return _failure(ERR_INVALID_DATA)
+		if not Civilization.ledger_matches(society,captured.civilian_state): return _failure(ERR_INVALID_DATA)
 		if captured.has("glyphic_wonders_state") and not Store.wonders_clock_matches(captured.glyphic_wonders_state,model): return _failure(ERR_INVALID_DATA)
 		captured.civilization_state=society
+	if Store.has_civic_state(captured) and not Store.civic_links_match(captured): return _failure(ERR_INVALID_DATA)
 	var bytes: PackedByteArray=JSON.stringify(captured,"",true,true).to_utf8_buffer()
 	if bytes.size()>Store.MAX_SAVE_BYTES: return _failure(ERR_OUT_OF_MEMORY)
 	return {"error":OK,"bytes":bytes}
