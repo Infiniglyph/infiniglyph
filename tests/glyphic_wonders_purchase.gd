@@ -2,6 +2,9 @@ extends SceneTree
 const Economy=preload("res://scripts/civilian_economy.gd")
 const Inventory=preload("res://scripts/inventory.gd")
 const Stock=preload("res://scripts/glyphic_wonders_stock.gd")
+const Hall=preload("res://scripts/glyphic_wonders_hall.gd")
+class Intent extends "res://scripts/player_input.gd":
+	func sample() -> void: pass
 class RejectingInventory extends "res://scripts/inventory.gd":
 	func add_item(_item: Resource) -> bool: return false
 class FailingEconomy extends "res://scripts/civilian_economy.gd":
@@ -118,8 +121,73 @@ func run() -> void:
 	economy.external_transaction_guard=Callable()
 	check(callback_safe and callback_accepts==0,"Authorization, commit and ownership callbacks cannot reenter the economy or replay a token")
 	check(circulation()+economy.destroyed_total==economy.issued_total and not Economy.validate(economy.serialize(),inventory.serialize()).is_empty(),"The final real inventories and permanently destroyed supply remain canonically auditable")
-	check(economy.serialize().size()==18 and economy.serialize().version==3,"Retail quotes remain ephemeral within the audited faction-and-escrow economy checkpoint schema")
+	check(economy.serialize().size()==19 and economy.serialize().version==4,"Retail quotes remain ephemeral within the audited guild/faction-and-escrow economy checkpoint schema")
+	# Permanent respawn stock uses the same real quote, ownership and coin
+	# destruction boundary; no free inventory insertion or alternate seller.
+	check(economy.transfer("resident:natural_a",economy.player_account,50,"Fund reusable reconstruction glyph purchases"),"Existing resident coins fund the reusable respawn purchases")
+	var destroyed_before: int=economy.destroyed_total
+	var balance_before: int=economy.balance(economy.player_account)
+	var respawn_quote:=quote(&"respawn_glyph","human")
+	var home_quote:=quote(&"home_respawn_glyph","human")
+	check(economy.buy_wonder(respawn_quote,inventory) and economy.buy_wonder(home_quote,inventory) and inventory.count_type(&"respawn_glyph")==1 and inventory.count_type(&"home_respawn_glyph")==1,"Both permanent reconstruction glyphs can be purchased into the actual player inventory")
+	check(economy.destroyed_total==destroyed_before+30 and economy.balance(economy.player_account)==balance_before-30 and circulation()+economy.destroyed_total==economy.issued_total,"The two existing-price glyph purchases destroy exactly thirty real coins and conserve the finite supply")
+	check(not economy.buy_wonder(respawn_quote,inventory) and inventory.count_type(&"respawn_glyph")==1,"Replaying a Respawn Glyph purchase cannot duplicate its item or charge")
+	stock.advance(14)
+	check(economy.buy_wonder(quote(&"respawn_glyph","human"),inventory) and inventory.count_type(&"respawn_glyph")==2 and not Economy.validate(economy.serialize(),inventory.serialize()).is_empty(),"Respawn Glyph stock remains purchasable after the next rotation and persists through inventory/economy validation")
 	economy.free()
 	inventory.free()
+	await counter_interaction_range()
 	print("Glyphic Wonders purchase verification: ",checks," checks, ",failures," failures")
 	quit(1 if failures else 0)
+
+func frames(count: int=2) -> void:
+	for i in range(count): await physics_frame; await process_frame
+
+func counter_interaction_range() -> void:
+	# Real merchant body, hall collision, camera, interaction adapter and menus.
+	# A distant semantic identity or nearby counter marker cannot bypass the
+	# entity speech gate, but the physical shop must remain usable at its edge.
+	create_timer(180).timeout.connect(func(): push_error("Merchant range fixture watchdog"); quit(2))
+	var world: Node3D=load("res://scenes/main.tscn").instantiate()
+	world.inventory_persistence_enabled=false
+	world.district_life_enabled=false
+	world.world_memory_enabled=false
+	world.boss_encounters_enabled=false
+	world.dungeon_enemies_enabled=false
+	root.add_child(world)
+	world.civilization.simulation_enabled=false
+	var input:=Intent.new()
+	root.add_child(input)
+	world.player.controls=input
+	world.camera_rig.controls=input
+	world.inventory_session.controls=input
+	world.player.visual.retrieval.enabled=false
+	for i in range(600):
+		if world.dungeon_travel.ready_for_travel and world.civic_interactions.initialized and world.building_civilization.ready_for_use: break
+		await frames(1)
+	var ready: bool=world.dungeon_travel.ready_for_travel and world.civic_interactions.initialized
+	check(ready and world.dungeon_travel.restore_location(world.dungeon_travel.wonders_id,{"position":[0,Hall.FLOOR+.05,-31.7],"yaw":0}),"The real Glyphic Wonders hall loads with its physical merchant and counter")
+	if not ready or not world.dungeon_travel.is_wonders():
+		world.free(); input.free(); await frames(2)
+		return
+	await frames(24)
+	var shop: Node=world.glyphic_wonders
+	var player: CharacterBody3D=world.player
+	var merchant: Node3D=shop.merchant
+	check(player.global_position.distance_to(merchant.global_position)<6 and world.communication.presentation_source("avat_ar")==merchant and world.communication.can_present("avat_ar",true),"Nearby merchant conversation resolves Avat Ar's actual body within the six-metre speech radius")
+	check(shop.interact() and world.communication.is_open and world.communication.listener_id=="avat_ar" and not shop.menu.is_open,"A nearby counter interaction opens the real Avat Ar conversation")
+	world.communication.close_conversation("counter range fixture")
+	player.global_position=Vector3(0,Hall.FLOOR+.05,-28.1)
+	player.velocity=Vector3.ZERO
+	player.fall_damage.reset()
+	world.camera_rig.reset_follow()
+	await frames(24)
+	check(player.global_position.distance_to(merchant.global_position)>6 and not world.communication.can_present("avat_ar",true) and not shop.nearest().is_empty(),"The outer counter edge is usable while Avat Ar's body remains outside local speech range")
+	check(shop.interact() and shop.menu.is_open and not world.communication.is_open,"An outer-edge interaction falls back to the physical counter instead of opening distant speech")
+	var names: Array[String]=[]
+	for choice: Dictionary in shop.menu._choices: names.append(String(choice.text))
+	check(names.has("Respawn Glyph  /  15 coins") and names.has("Home Respawn Glyph  /  15 coins"),"The outer counter fallback includes both permanent fifteen-coin respawn offers")
+	check(not paused and not world.communication._bubble.is_visible_in_tree(),"Fallback shopping keeps the simulation live without a remote speech bubble")
+	shop.menu.close_menu()
+	world.free(); input.free()
+	await frames(2)

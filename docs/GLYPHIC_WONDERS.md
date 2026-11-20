@@ -27,6 +27,8 @@ The counter always sells the existing items:
 | Light Shield Glyph | 25 |
 | Medium Shield Glyph | 45 |
 | Heavy Shield Glyph | 75 |
+| Respawn Glyph | 15 |
+| Home Respawn Glyph | 15 |
 
 Other merchandise uses a positive existing `price` or `glyph_coin_value` from
 the shared catalogue. Entries without a positive retail value use explicit
@@ -43,6 +45,12 @@ the existing civilian clock of one real hour per game day. A configurable
 subset defaults to twelve items. Reentry never rerolls the selection; a later
 scheduled rotation uses the current catalogue. Display models are presentation
 only and never create owned item instances.
+
+Respawn Glyphs and Home Respawn Glyphs are permanent counter stock. Existing
+checkpoints that included them in a rotating selection remain valid: they move
+to the counter immediately, while the other saved merchandise and rotation
+deadline stay unchanged. The next scheduled rotation fills the showcase from
+the current eligible catalogue without either permanent respawn item.
 
 Player quotes are bound to the buyer and an actual current display or counter,
 then rechecked for proximity, line of sight, stock, price, cycle and expiry at
@@ -106,6 +114,9 @@ checkpoint restoration. The travel fixture also verifies drawn Manuscript
 transitions, facing, unrestricted Sky Jump/dodge, display-top drops, unloads
 and default death reconstruction. Native captures exercise the complete shop,
 counter, merchant, display models and inspection menu.
+Stock and checkpoint fixtures retain older rotations containing either respawn
+item. The purchase fixture buys both permanent glyphs and checks nearby merchant
+speech plus the outer counter's shop-menu fallback beyond the speech radius.
 
 Run a fixture using the project's Godot executable, for example:
 

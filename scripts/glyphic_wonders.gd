@@ -179,7 +179,9 @@ func interact() -> bool:
 	refresh_stock()
 	if current.kind=="counter":
 		merchant.welcome()
-		if is_instance_valid(world.get("civic_interactions")): return world.civic_interactions.begin_merchant(current)
+		if is_instance_valid(world.get("civic_interactions")) and world.civic_interactions.begin_merchant(current): return true
+		# The counter remains usable at its outer interaction edge, even when the
+		# merchant is beyond the short entity-speech radius behind it.
 		_counter()
 	else: _inspect(current)
 	return true
@@ -195,12 +197,12 @@ func _counter() -> void:
 	choices.append({"text":"About the shop","call":_information})
 	choices.append({"text":"The First Merchant?","call":_history})
 	choices.append({"text":"Leave the counter","call":menu.close_menu})
-	menu.show_page("Avat Ar  /  Glyphic Wonders","Ah! A new customer. Welcome, welcome! Mind the dimensions... they are a bit larger on the inside. The displays hold today's curiosities; Health and Shield Glyphs are always here.\n\nYour coins: %d  |  New selection in %s" % [_player_balance(),rotation_text()],choices)
+	menu.show_page("Avat Ar  /  Glyphic Wonders","Ah! A new customer. Welcome, welcome! Mind the dimensions... they are a bit larger on the inside. The displays hold today's curiosities; Health, Shield, Respawn and Home Respawn Glyphs are always here.\n\nYour coins: %d  |  New selection in %s" % [_player_balance(),rotation_text()],choices)
 
 func _information() -> void:
 	if not _player_ready() or current.get("kind")!="counter" or not _near(current): return
 	merchant.set_expression(&"excited")
-	menu.show_page("Today's wonders","A little room outside, a great deal of possibility inside! Approach a display to inspect its wares. My selection changes every %d game days; entering and leaving won't hurry it along.\n\nHealth and Shield Glyphs remain at my counter. Coins spent here leave circulation. The goods, of course, are yours.\n\nNext rotation in %s." % [int(stock.config.interval_days),rotation_text()],[{"text":"Back to Avat Ar","call":_counter}],_counter)
+	menu.show_page("Today's wonders","A little room outside, a great deal of possibility inside! Approach a display to inspect its wares. My selection changes every %d game days; entering and leaving won't hurry it along.\n\nHealth, Shield, Respawn and Home Respawn Glyphs remain at my counter. Coins spent here leave circulation. The goods, of course, are yours.\n\nNext rotation in %s." % [int(stock.config.interval_days),rotation_text()],[{"text":"Back to Avat Ar","call":_counter}],_counter)
 
 func _history() -> void:
 	if not _player_ready() or current.get("kind")!="counter" or not _near(current): return

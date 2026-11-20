@@ -39,6 +39,8 @@ func _ready() -> void:
 	_society().identities_replaced.connect(world.careers.on_replacements)
 	world.law.identity_provider=identity
 	world.communication.identity_provider=identity
+	world.communication.source_provider=presentation_source
+	world.communication.terminal_provider=terminal_available
 	world.communication.context_provider=conversation_nodes
 	world.communication.outcome_handler=handle_message
 	world.communication.interrupt_guard=conversation_invalid
@@ -462,7 +464,7 @@ func handle_message(message: Dictionary) -> Dictionary:
 			if p.get("topic")=="career" and actor=="player" and identity(npc).get("kind")=="code_form":
 				world.career_menu.call_deferred("open",npc)
 				return _reply("inform",{"detail":"Here is my current work, employment history and plans."},{"close":true})
-			if npc=="avat_ar": return _reply("inform",{"detail":"The displays rotate; Health and Shield Glyphs remain at my counter. Purchases remove coins from circulation."})
+			if npc=="avat_ar": return _reply("inform",{"detail":"The displays rotate; Health, Shield, Respawn and Home Respawn Glyphs remain at my counter. Purchases remove coins from circulation."})
 			var guild: Dictionary=_quests().organizations.guild(String(p.get("guild_id","")))
 			if not guild.is_empty():
 				if guild.faction=="underworld" and not _quests().model.introductions.has(actor): return _reply("refuse",{"reason":"Private introductions are required."})
@@ -783,6 +785,25 @@ func position_for(id: String) -> Vector3:
 	for source: Node3D in world.civilian_services._people:
 		if _society().id_for_source(source)==id: return source.global_position
 	return Vector3(INF,INF,INF)
+
+func presentation_source(id: String) -> Node3D:
+	if id=="player": return world.player
+	if id=="avat_ar": return world.glyphic_wonders.merchant if is_instance_valid(world.glyphic_wonders) else null
+	if id==_speaker and _source!=null:
+		var talking: Node=_source.get_ref()
+		if is_instance_valid(talking) and talking is Node3D: return talking
+	var source: Node=_society().autonomy._source(id)
+	if is_instance_valid(source) and source is Node3D: return source
+	for keeper: Node3D in world.civilian_services._people:
+		if is_instance_valid(keeper) and _society().id_for_source(keeper)==id: return keeper
+	if id==_speaker and identity(id).get("kind")=="institution" and not _point.is_empty():
+		var anchor: Node3D=_point.get("anchor")
+		if is_instance_valid(anchor): return anchor
+	return null
+
+func terminal_available(id: String) -> bool:
+	# Institutions have a locally opened interface, not a remote speaking body.
+	return id==_speaker and _point.get("kind")=="building_terminal" and world.building_civilization._near(String(_point.building))
 
 func _recipient_near(actor: String,recipient: String) -> bool:
 	var from:=position_for(actor)

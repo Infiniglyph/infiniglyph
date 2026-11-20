@@ -62,8 +62,9 @@ See [guilds, buildings and careers](docs/GUILDS_BUILDINGS_AND_CAREERS.md) for
 locations, controls, economic rules and the current production recipes.
 
 Residents and keepers now share a six-choice intent conversation system, with
-procedural electronic voices and live subtitles. The guild has separate Security,
-Commerce and Exploration boards with finite funded contracts; private Underworld
+procedural electronic voices and nearby overhead translation bubbles (6 metres).
+The guild has separate Security, Commerce and Exploration boards with finite
+funded contracts; private Underworld
 work requires an earned tavern introduction. NPCs use the same work and intent
 authorities. [Civic intents and quests](docs/CIVIC_INTENTS_AND_QUESTS.md) covers
 controls, membership, actual deliveries, evidence and checkpoint continuity.
@@ -94,7 +95,8 @@ display a selection from the same catalogue as the Tower Exchange. Approach a
 pedestal to inspect and buy its item with **A / Enter**. **B / Escape** returns.
 
 The selection rotates every seven game days and survives leaving and reloading.
-Health Glyphs and all three Shield Glyph tiers are always sold at the counter.
+Health Glyphs, all three Shield Glyph tiers, Respawn Glyphs and Home Respawn
+Glyphs are always sold at the counter. Both respawn glyphs cost 15 coins each.
 Purchases require real Glyph Coins and permanently remove those coins from
 circulation. Civilians shop using their own wallets. The Tower Exchange remains
 the player's development/testing interface.

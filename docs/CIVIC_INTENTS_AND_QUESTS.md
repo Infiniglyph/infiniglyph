@@ -16,9 +16,14 @@ conversation. Start and inventory replace it, stopping the electronic voice.
 No attacks or jumps are performed by conversation selections.
 
 Settings includes translation/voice speed and an electronic-voice toggle. Voices
-are generated syllables, not recorded English or text-to-speech. Nearby civilian
-conversations can use the same subtitle/voice channel without taking player
-controls. Offscreen communication has no UI or audio.
+are generated syllables, not recorded English or text-to-speech. Translation
+appears in one compact overhead bubble attached to the actual nearby speaker,
+within **6 metres** of the player. Ambient speech additionally requires the
+speaker to be visible in the camera view and unobstructed. Leaving range stops
+the text and voice immediately. Contextual conversation choices remain below;
+building terminals use their local menu text rather than a simulated voice.
+Distant autonomous intent exchanges keep their meaning and outcomes without
+generating English or allocating a new voice profile.
 
 Ordinary residents can offer items they actually own, and the player can offer
 owned goods back to them. Inspect a price, accept, decline, or use an available
@@ -103,6 +108,12 @@ archive bounds, law evidence, civilian lifetime corrections and legacy saves.
 through paid patrol, a purchased/delivered favor, private introduction and atomic
 save/load. Existing shop, inventory, establishment and checkpoint regressions
 remain part of the verification set. Capture fixtures use isolated user data.
+
+`tests/local_communication.gd` checks the six-metre boundary, physical visibility,
+world separation, cancellation, lazy translation, and player/NPC bubble handoff.
+`tests/capture_local_communication_world.gd` verifies real board and keeper
+anchors, counter sightlines, and guild/faction building terminals. Pass
+`-- --capture` for native screenshots of these presentations.
 
 This is the functional shared foundation. It does not add nonexistent crafting,
 construction or escort systems, a universal city pathfinder, police arrest AI,

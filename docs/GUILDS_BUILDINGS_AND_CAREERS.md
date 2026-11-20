@@ -86,8 +86,9 @@ Access restrictions always permit the player to leave a building already entered
 There are 56 placeables: 12 residential, 12 commercial, 12 equipment and 20
 decorative objects. Furniture is a separate inventory category with filters. The
 same definitions and procedural models appear in previews and the Tower. Eligible
-items join Glyphic Wonders on its normal seven-day rotation; Health and Shield
-Glyphs remain permanent stock. Code Forms never use the development Tower.
+items join Glyphic Wonders on its normal seven-day rotation; Health, Shield,
+Respawn and Home Respawn Glyphs remain permanent stock. Code Forms never use
+the development Tower.
 
 Only nearby interiors instantiate their local five-floor window and furnishings.
 Ownership, placed items and storage survive unloading. Native residents consider

@@ -11,6 +11,7 @@ const Voice = preload("res://scripts/communication_voice.gd")
 const BUTTONS := [JOY_BUTTON_X,JOY_BUTTON_Y,JOY_BUTTON_B,JOY_BUTTON_A,JOY_BUTTON_LEFT_SHOULDER,JOY_BUTTON_RIGHT_SHOULDER]
 const KEYS := [KEY_Q,KEY_R,KEY_E,KEY_SPACE]
 const PROMPTS := ["X / Q","Y / R","B / E","A / SPACE","LB / LEFT MOUSE","RB / RIGHT MOUSE"]
+const TRANSLATION_DISTANCE := 6.0
 signal opened
 signal closed
 signal message_processed(message: Dictionary,outcome: Dictionary)
@@ -19,6 +20,8 @@ var identity_provider: Callable
 var context_provider: Callable
 var outcome_handler: Callable
 var interrupt_guard: Callable
+var source_provider: Callable
+var terminal_provider: Callable
 var profiles := Profiles.new()
 var protocol := Protocol.new()
 var translator := Translator.new()
@@ -36,8 +39,12 @@ var branch := "greeting"
 var _context: Dictionary = {}
 var _screen: Control
 var _panel: PanelContainer
+var _bubble: PanelContainer
+var _bubble_width := 0.0
+var _bubble_text := ""
 var _speaker: Label
 var _subtitle: RichTextLabel
+var _terminal_text: RichTextLabel
 var _grid: GridContainer
 var _labels: Array[Label] = []
 var _hint: Label
@@ -50,6 +57,7 @@ var _characters_per_second := 35.0
 var _last_syllable := -1
 var _complete_wait := 0.0
 var _close_after := false
+var _terminal_conversation := false
 var _pressed: Dictionary = {}
 
 func _ready() -> void:
@@ -74,15 +82,76 @@ func _now() -> float:
 
 func transaction_active() -> bool: return protocol.busy
 
+func presentation_source(id: String) -> Node3D:
+	var source: Variant=source_provider.call(id) if source_provider.is_valid() else null
+	return source if is_instance_valid(source) and source is Node3D else null
+
+func _viewer() -> Node3D:
+	return world.get("player") if is_instance_valid(world) else null
+
+func _camera() -> Camera3D:
+	var viewer:=_viewer()
+	return viewer.get_viewport().get_camera_3d() if is_instance_valid(viewer) else null
+
+func _terminal_available(id: String) -> bool:
+	return terminal_provider.is_valid() and terminal_provider.call(id)==true
+
+func _terminal_mode() -> bool:
+	return is_open and _terminal_conversation
+
+func can_present(id: String,interactive: bool = false) -> bool:
+	# Standalone protocol fixtures have no physical world. Live gameplay always
+	# supplies a tangible speaker; ledger positions never authorize translation.
+	if not is_instance_valid(world): return true
+	# A deliberately opened building interface is local menu text, not a
+	# simulated speaker. Its adapter verifies the occupied physical building.
+	if interactive and (_terminal_mode() and id in [speaker_id,listener_id] or _terminal_available(id)): return true
+	var viewer:=_viewer()
+	var source:=presentation_source(id)
+	if not is_instance_valid(viewer) or not is_instance_valid(source) or source.is_queued_for_deletion() or not source.is_visible_in_tree(): return false
+	if source.get_world_3d()!=viewer.get_world_3d() or source.get("virtualized")==true: return false
+	if source.global_position.distance_squared_to(viewer.global_position)>TRANSLATION_DISTANCE*TRANSLATION_DISTANCE: return false
+	var camera:=_camera()
+	var eye: Vector3=source.global_position+Vector3.UP*(2.7 if id=="avat_ar" else 2.1)
+	if not is_instance_valid(camera): return false
+	# An intentionally opened nearby conversation remains usable while looking
+	# around. Ambient speech additionally requires a speaker in the camera view.
+	if not interactive and (camera.is_position_behind(eye) or not camera.get_viewport().get_visible_rect().has_point(camera.unproject_position(eye))): return false
+	var excluded: Array[RID]=[]
+	for body: Node3D in [viewer,source]:
+		if body is CollisionObject3D: excluded.append(body.get_rid())
+	return source.get_world_3d().direct_space_state.intersect_ray(PhysicsRayQueryParameters3D.create(camera.global_position,eye,1,excluded)).is_empty()
+
+func _position_bubble() -> void:
+	if _terminal_mode(): return
+	var rect:=get_viewport().get_visible_rect()
+	var tip:=Vector2(rect.size.x*.5,rect.size.y*.42)
+	var source:=presentation_source(String(_line.get("speaker_id","")))
+	var camera:=_camera()
+	if is_instance_valid(source) and is_instance_valid(camera):
+		var height:=3.55 if _line.get("speaker_id")=="avat_ar" else 2.45
+		tip=camera.unproject_position(source.global_position+Vector3.UP*height)
+	var width:=minf(440,rect.size.x*.85)
+	if width!=_bubble_width or _bubble_text!=_subtitle.text:
+		var font:=_subtitle.get_theme_font("normal_font")
+		var text_height:=font.get_multiline_string_size(_subtitle.text,HORIZONTAL_ALIGNMENT_LEFT,width-24,18).y
+		_subtitle.custom_minimum_size.y=clampf(text_height+4,26,120)
+		_bubble_width=width; _bubble_text=_subtitle.text
+	_bubble.size=Vector2(width,_subtitle.custom_minimum_size.y+76)
+	_bubble.position=Vector2(clampf(tip.x-_bubble.size.x*.5,8,maxf(8,rect.size.x-_bubble.size.x-8)),clampf(tip.y-_bubble.size.y,8,maxf(8,rect.size.y-_bubble.size.y-8)))
+
 func begin(speaker: String,listener: String,context: Dictionary = {},initial_nodes: Array = []) -> bool:
 	if not Message.text(speaker) or not Message.text(listener) or speaker==listener or protocol.busy: return false
 	if not _known_participant(speaker) or not _known_participant(listener): return false
 	if not is_node_ready(): return false
+	var listener_is_player: bool=listener=="player" or listener.begins_with("player:") or _identity(listener).get("kind")=="player"
+	var other:=speaker if listener_is_player else listener
+	if not can_present(other,true): return false
 	if is_open: close_conversation("replaced")
 	_stop_presentation()
-	var listener_is_player: bool=listener=="player" or listener.begins_with("player:") or _identity(listener).get("kind")=="player"
 	speaker_id=listener if listener_is_player else speaker
 	listener_id=speaker if listener_is_player else listener
+	_terminal_conversation=_terminal_available(listener_id)
 	_context=context.duplicate(true)
 	branch=String(context.get("branch","greeting"))
 	conversation_id=protocol.channel_id+"/conversation/"+str(protocol.serial+1)
@@ -124,10 +193,15 @@ func receive(message: Dictionary,present: bool = false,context: Dictionary = {})
 	var outcome:=protocol.receive(message,outcome_handler)
 	if not outcome.has("message"): return outcome
 	var canonical: Dictionary=outcome.message
-	profiles.profile(canonical.speaker_id,_identity(canonical.speaker_id))
-	profiles.remember_phrase(canonical.speaker_id,"",canonical)
+	var interactive: bool=is_open and canonical.conversation_id==conversation_id
+	var visible: bool=present and is_node_ready() and can_present(canonical.speaker_id,interactive)
+	# English phrasing/voice profiles are allocated lazily. Distant citizens
+	# still exchange semantic intents without loading local translation work.
+	if visible or profiles.records.has(canonical.speaker_id):
+		profiles.profile(canonical.speaker_id,_identity(canonical.speaker_id))
+		profiles.remember_phrase(canonical.speaker_id,"",canonical)
 	message_processed.emit(canonical.duplicate(true),outcome.duplicate(true))
-	if present and is_node_ready():
+	if visible:
 		if is_open and canonical.conversation_id==conversation_id:
 			_queue_line(canonical,context)
 		elif not is_open and not ambient:
@@ -169,13 +243,18 @@ func select(index: int) -> void:
 	if not outcome.get("accepted",false): _hint.text=String(outcome.get("reason","That intention could not be acted on.")).left(180)
 
 func _queue_line(message: Dictionary,context: Dictionary) -> void:
+	if not can_present(message.speaker_id,is_open): return
 	if _queue.size()>=8: return
 	_queue.append({"message":message.duplicate(true),"context":context.duplicate(true)})
 	if _line.is_empty(): _start_next()
 
 func _start_next() -> void:
 	_voice.stop()
-	if _queue.is_empty(): return
+	while not _queue.is_empty() and not can_present(_queue[0].message.speaker_id,is_open): _queue.pop_front()
+	if _queue.is_empty():
+		_line={}
+		if not is_open: _stop_presentation()
+		return
 	var next: Dictionary=_queue.pop_front()
 	_line=next.message
 	_line_profile=profiles.profile(_line.speaker_id,_identity(_line.speaker_id))
@@ -188,13 +267,17 @@ func _start_next() -> void:
 	_speaker.text=context.speaker_name
 	_subtitle.text=translated.text
 	_subtitle.visible_characters=0
+	_terminal_text.text=_speaker.text+"\n"+_subtitle.text
+	_terminal_text.visible_characters=_speaker.text.length()+1
 	_characters_per_second=float(_line_profile.voice.speed)*float(_line_profile.voice.rhythm)*text_speed
 	if _line.emotion in ["excited","happy"]: _characters_per_second*=1.2
 	elif _line.emotion in ["sad","thoughtful"]: _characters_per_second*=.8
 	_elapsed=0; _last_syllable=-1; _complete_wait=0
+	_position_bubble()
 
 func _finish_line() -> void:
 	_subtitle.visible_characters=_subtitle.text.length()
+	_terminal_text.visible_characters=-1
 	_voice.stop()
 	_complete_wait=.05
 
@@ -209,6 +292,12 @@ func advance() -> void:
 func _process(delta: float) -> void:
 	if is_open and interrupt_guard.is_valid() and interrupt_guard.call(): close_conversation("interrupted"); return
 	if _line.is_empty(): return
+	if is_open and _line.speaker_id==speaker_id and not can_present(listener_id,true): close_conversation("out_of_range"); return
+	if not can_present(_line.speaker_id,is_open):
+		if is_open: close_conversation("out_of_range")
+		else: _stop_presentation()
+		return
+	_position_bubble()
 	_elapsed+=delta
 	# Plain text length is immediately authoritative, even before RichTextLabel's
 	# first deferred layout updates its cached character count.
@@ -216,10 +305,11 @@ func _process(delta: float) -> void:
 	var shown:=mini(total,int(_elapsed*_characters_per_second))
 	if _complete_wait<=0 and shown>_subtitle.visible_characters:
 		_subtitle.visible_characters=shown
+		_terminal_text.visible_characters=_speaker.text.length()+1+shown
 		var syllable:=shown/3
 		if syllable!=_last_syllable and shown>0 and not _subtitle.text.substr(shown-1,1).strip_edges().is_empty():
 			_last_syllable=syllable
-			if voice_enabled:
+			if voice_enabled and not _terminal_mode():
 				_voice.stream=Voice.syllable(_line_profile,syllable)
 				var rise:=1.0+.22*shown/maxf(1,total) if Intents.DEFINITIONS[_line.intent].get("question",false) else 1.0
 				var inflection:=1.0+sin(syllable*1.71)*float(_line_profile.voice.jitter)*.2
@@ -236,6 +326,7 @@ func _stop_presentation() -> void:
 	if is_instance_valid(_voice): _voice.stop()
 	_queue.clear(); _line={}; _line_profile={}
 	ambient=false
+	_terminal_conversation=false
 	if is_instance_valid(_screen): _screen.hide()
 	set_process(false)
 
@@ -295,19 +386,42 @@ func _build() -> void:
 	box.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	box.add_theme_constant_override("separation",8)
 	_panel.add_child(box)
+	_terminal_text=RichTextLabel.new()
+	_terminal_text.custom_minimum_size.y=128
+	_terminal_text.add_theme_font_size_override("normal_font_size",18)
+	_terminal_text.add_theme_color_override("default_color",Color(.88,.97,1))
+	_terminal_text.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	box.add_child(_terminal_text)
+	_bubble=PanelContainer.new()
+	var bubble_style: StyleBoxFlat=style.duplicate()
+	bubble_style.set_corner_radius_all(10)
+	_bubble.add_theme_stylebox_override("panel",bubble_style)
+	_bubble.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	_screen.add_child(_bubble)
+	var speech:=VBoxContainer.new()
+	speech.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	speech.add_theme_constant_override("separation",4)
+	_bubble.add_child(speech)
 	_speaker=Label.new()
+	_speaker.clip_text=true
 	_speaker.add_theme_font_size_override("font_size",20)
 	_speaker.add_theme_color_override("font_color",Color(.3,.95,1))
-	box.add_child(_speaker)
+	speech.add_child(_speaker)
 	_subtitle=RichTextLabel.new()
 	_subtitle.bbcode_enabled=false
-	_subtitle.custom_minimum_size.y=74
+	_subtitle.custom_minimum_size.y=26
 	_subtitle.size_flags_vertical=Control.SIZE_EXPAND_FILL
 	_subtitle.add_theme_font_size_override("normal_font_size",18)
 	_subtitle.add_theme_color_override("default_color",Color(.88,.97,1))
 	_subtitle.scroll_following=true
 	_subtitle.mouse_filter=Control.MOUSE_FILTER_IGNORE
-	box.add_child(_subtitle)
+	speech.add_child(_subtitle)
+	var tail:=Label.new()
+	tail.text="\u25bc"
+	tail.add_theme_font_size_override("font_size",10)
+	tail.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+	tail.add_theme_color_override("font_color",Color(.3,.95,1))
+	speech.add_child(tail)
 	_grid=GridContainer.new()
 	_grid.columns=3
 	_grid.add_theme_constant_override("h_separation",12)
@@ -341,10 +455,13 @@ func _build() -> void:
 
 func _layout(is_ambient: bool) -> void:
 	_panel.anchor_left=.07; _panel.anchor_right=.93
-	_panel.anchor_top=.76 if is_ambient else .53
+	_panel.anchor_top=.50 if _terminal_mode() else .72
 	_panel.anchor_bottom=.97
 	_grid.visible=not is_ambient
 	_hint.visible=not is_ambient
+	_panel.visible=not is_ambient
+	_terminal_text.visible=_terminal_mode()
+	_bubble.visible=not _terminal_mode()
 	_panel.offset_left=0; _panel.offset_right=0; _panel.offset_top=0; _panel.offset_bottom=0
 
 func serialize() -> Dictionary:

@@ -3,10 +3,14 @@ extends RefCounted
 const Catalog = preload("res://scripts/item_catalog.gd")
 const Equipment = preload("res://scripts/equipment_database.gd")
 const Instance = preload("res://scripts/item_instance.gd")
-const PERMANENT: Array[String] = ["health_glyph","shield_glyph_light","shield_glyph_medium","shield_glyph_heavy"]
+const PERMANENT: Array[String] = ["health_glyph","shield_glyph_light","shield_glyph_medium","shield_glyph_heavy","respawn_glyph","home_respawn_glyph"]
+## Older version-one saves legitimately included these in the rotating pool.
+## Keep their saved selection auditable until the next scheduled rotation;
+## presentation moves them to the counter immediately without rerolling wares.
+const FORMER_ROTATING: Array[String] = ["respawn_glyph","home_respawn_glyph"]
 const MAX_PRICE := 1000000
 const MAX_POOL := 16384
-const GLYPH_PRICES := {"health_glyph":20,"shield_glyph_light":25,"shield_glyph_medium":45,"shield_glyph_heavy":75}
+const GLYPH_PRICES := {"health_glyph":20,"shield_glyph_light":25,"shield_glyph_medium":45,"shield_glyph_heavy":75,"respawn_glyph":15,"home_respawn_glyph":15}
 const CATEGORY_PRICES := {"weapons":80,"cosmetics":40,"materials":12,"consumables":15,"misc":20,"furniture":60}
 var seed := 0
 var cycle := -1
@@ -95,7 +99,11 @@ func advance(now: float) -> bool:
 	return true
 
 func permanent_ids() -> Array[String]: return PERMANENT.duplicate()
-func rotating_ids() -> Array[String]: return _selection.duplicate()
+func rotating_ids() -> Array[String]:
+	var result: Array[String]=[]
+	for id: String in _selection:
+		if id not in PERMANENT: result.append(id)
+	return result
 
 func offer(type: StringName) -> Dictionary:
 	if cycle<0: return {}
@@ -109,7 +117,7 @@ func offer(type: StringName) -> Dictionary:
 
 func offers() -> Array[Dictionary]:
 	var result: Array[Dictionary]=[]
-	for id: String in PERMANENT+_selection:
+	for id: String in PERMANENT+rotating_ids():
 		var current:=offer(StringName(id))
 		if not current.is_empty(): result.append(current)
 	return result
@@ -125,7 +133,7 @@ static func validate(input: Variant) -> Dictionary:
 	var pool: Array[String]=[]
 	var seen: Dictionary={}
 	for id: Variant in input.pool:
-		if not id is String or seen.has(id) or id in PERMANENT or not eligible(Catalog.get_definition(StringName(id))): return {}
+		if not id is String or seen.has(id) or id in PERMANENT and id not in FORMER_ROTATING or not eligible(Catalog.get_definition(StringName(id))): return {}
 		pool.append(id)
 		seen[id]=true
 	var sorted: Array[String]=pool.duplicate()

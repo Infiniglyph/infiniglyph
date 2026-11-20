@@ -127,7 +127,8 @@ func interact() -> bool:
 	var society: Node=world.get("civilization")
 	var id:=_speaker_id()
 	if is_instance_valid(world.get("civic_interactions")) and (not id.is_empty() or current.kind=="board"):
-		return world.civic_interactions.begin_service(current,id)
+		if world.civic_interactions.begin_service(current,id): return true
+		if current.kind=="board": return false
 	if is_instance_valid(society) and not id.is_empty(): society.record_interaction(id,"conversation","player")
 	_home()
 	return true
