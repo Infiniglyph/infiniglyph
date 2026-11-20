@@ -9,6 +9,7 @@ const MAX_SEGMENTS := 128
 const CONTACT_INTERVAL := .5
 var vehicle: CharacterBody3D
 var owner_actor: WeakRef
+var _owner_identity := ""
 var enabled := false
 var segments: Array[Dictionary] = []
 var _last := Vector3.ZERO
@@ -45,16 +46,34 @@ func set_enabled(value: bool) -> void:
 	enabled=value
 	_has_last=false
 	if value:
-		owner_actor=weakref(vehicle.player_driver)
+		var driver: Node=vehicle.driving_actor()
+		var identity:=_identity(driver)
+		if owner_actor!=null and (owner_actor.get_ref()!=driver or identity!=_owner_identity): _clear_owned_trail()
+		owner_actor=weakref(driver)
+		_owner_identity=identity
 		_vehicle_at=vehicle.global_position
 	set_physics_process(value or not segments.is_empty())
+
+func _identity(driver: Node) -> String:
+	if not is_instance_valid(driver): return ""
+	var native:=String(driver.get_meta("code_form_id",""))
+	return "native:"+native if not native.is_empty() else "actor:"+str(driver.get_instance_id())
+
+func _clear_owned_trail() -> void:
+	segments.clear(); _previous.clear(); _hit_until.clear(); _targets.clear()
+	_has_last=false; _draw_clock=0
 
 func now() -> float: return float(Engine.get_physics_frames())/Engine.physics_ticks_per_second
 
 func _physics_process(delta: float) -> void:
 	var time:=now()
 	if Persistence.expire(segments,time,LIFETIME): _draw_clock=0
-	if enabled and (not is_instance_valid(vehicle.player_driver) or vehicle.health<=0): enabled=false
+	if enabled and (not is_instance_valid(vehicle.driving_actor()) or vehicle.health<=0): enabled=false
+	if enabled and _identity(vehicle.driving_actor())!=_owner_identity:
+		# Reassigning a physical vehicle never transfers its old damaging panels
+		# to a new player or the next native inhabitant of a driver census slot.
+		_clear_owned_trail()
+		enabled=false; vehicle.wave_enabled=false
 	if enabled:
 		var point: Vector3=vehicle.to_global(Vector3(0,.08,-vehicle.dimensions.z*.5-.25))
 		if vehicle.global_position.distance_to(_vehicle_at)>maxf(12,vehicle.velocity.length()*delta*4):
@@ -92,6 +111,9 @@ func _physics_process(delta: float) -> void:
 	if is_instance_valid(owner):
 		for target in _targets:
 			if not is_instance_valid(target) or target==vehicle or target==owner or target.is_queued_for_deletion(): continue
+			var driver_id:=String(owner.get_meta("code_form_id",""))
+			var target_id:=String(target.get_meta("code_form_id",target.get("code_form_id") if target.get("code_form_id")!=null else ""))
+			if not driver_id.is_empty() and driver_id==target_id: continue
 			var id:=target.get_instance_id()
 			if target.get_world_3d()!=get_world_3d() or not target.is_visible_in_tree():
 				_previous.erase(id)

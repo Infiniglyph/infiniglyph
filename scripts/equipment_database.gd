@@ -9,7 +9,7 @@ static func prepare() -> void:
 	_prepared = true
 	var retirement: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/equipment/retired.json"))
 	retired = retirement.get("items",{})
-	for path: String in ["res://data/equipment/catalog.json","res://data/equipment/named_weapons.json","res://data/equipment/scribe_equipment.json","res://data/equipment/kyren_equipment.json","res://data/equipment/void_soul_equipment.json","res://data/equipment/pyramid_equipment.json","res://data/equipment/pyramid_depth_equipment.json","res://data/equipment/ahkmet_equipment.json","res://data/equipment/paintbrush_equipment.json"]:
+	for path: String in ["res://data/equipment/catalog.json","res://data/equipment/named_weapons.json","res://data/equipment/scribe_equipment.json","res://data/equipment/kyren_equipment.json","res://data/equipment/void_soul_equipment.json","res://data/equipment/pyramid_equipment.json","res://data/equipment/pyramid_depth_equipment.json","res://data/equipment/ahkmet_equipment.json","res://data/equipment/paintbrush_equipment.json","res://data/equipment/wand_equipment.json"]:
 		var document: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
 		if not document is Dictionary or document.get("version")!=1 or not document.get("items") is Array:
 			push_error("Invalid equipment content: "+path)

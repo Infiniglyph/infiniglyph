@@ -36,6 +36,8 @@ const CareerSystem = preload("res://scripts/career_system.gd")
 const CareerActions = preload("res://scripts/career_actions.gd")
 const CareerMenu = preload("res://scripts/career_menu.gd")
 const CareerCommute = preload("res://scripts/career_commute.gd")
+const DarkBoxPatrols = preload("res://scripts/dark_box_patrols.gd")
+var dark_box_patrols: Node3D
 var careers: Node
 var career_actions: RefCounted
 var career_menu: Node
@@ -111,6 +113,7 @@ func _ready() -> void:
 	camera_rig = CameraRig.new()
 	player.camera_rig = camera_rig
 	add_child(player)
+	player.add_to_group("vehicle_wave_targets")
 	camera_rig.target = player
 	camera_rig.controls = controls
 	add_child(camera_rig)
@@ -252,6 +255,10 @@ func _ready() -> void:
 		career_menu=CareerMenu.new()
 		career_menu.world=self
 		add_child(career_menu)
+		if is_instance_valid(district_life) and is_instance_valid(theft_reactions):
+			dark_box_patrols=DarkBoxPatrols.new()
+			dark_box_patrols.world=self
+			add_child(dark_box_patrols)
 	if not inventory_session.networked():
 		respawn_glyphs=RespawnGlyphs.new()
 		respawn_glyphs.world=self

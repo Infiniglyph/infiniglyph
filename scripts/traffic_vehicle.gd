@@ -19,6 +19,14 @@ var top_speed := 19.0
 var max_health := 1000.0
 var health := 1000.0
 var wave_enabled := false
+var npc_boost := false
+var npc_wave_requested := false
+var patrol := false
+var passenger_visual: Node3D
+var emergency_markers: Array[Node3D] = []
+var _emergency_clock := 0.0
+var _threat: WeakRef
+var _threat_until := 0.0
 var light_wave: MeshInstance3D
 # Full-lock low-speed radius is about 4.5 m; bound yaw at speed so a sharp
 # parking/intersection turn does not become a twitchy high-speed spin.
@@ -86,18 +94,68 @@ func _ready() -> void:
 	_probe.collision_mask = 13
 	_probe.exclude = [get_rid()]
 	_sensor_clock = float(record.id%7)*0.014
-	has_driver = record.traffic and not record.taken and health>0
+	has_driver = record.traffic and not record.taken and health>0 and not record.get("patrol_deployed",false)
 	driver_visual.visible = has_driver
 	if health<=0: _wreck()
 
 func set_wave_enabled(value: bool) -> void:
-	wave_enabled=value and health>0 and is_instance_valid(player_driver)
+	wave_enabled=value and health>0 and is_instance_valid(driving_actor())
 	light_wave.set_enabled(wave_enabled)
+
+func driving_actor() -> Node:
+	# A native driver's vehicle is their mounted combat representation. Preserve
+	# their census identity for witnesses without creating a second civilian.
+	if is_instance_valid(player_driver): return player_driver
+	if has_driver:
+		set_meta("code_form_id",String(record.driver.get("code_form_id","")))
+		return self
+	return null
+
+func set_npc_driving(boost: bool, trail: bool = false) -> void:
+	npc_boost=boost and has_driver and health>0 and not is_instance_valid(player_driver)
+	npc_wave_requested=trail and has_driver and health>0 and not is_instance_valid(player_driver)
+	if not is_instance_valid(player_driver) and wave_enabled!=npc_wave_requested: set_wave_enabled(npc_wave_requested)
+
+func configure_patrol(passenger: Dictionary = {}) -> void:
+	if patrol: return
+	patrol=true
+	record.patrol=true
+	# Emissive lenses are enough at street distance: no extra shadow lights.
+	for side: float in [-1.0,1.0]:
+		var marker:=MeshInstance3D.new()
+		var lens:=BoxMesh.new()
+		lens.size=Vector3(.22,.12,.15) if kind=="motorcycle" else Vector3(.48,.13,.24)
+		lens.material=Neon.shared_material(Color("ff2048") if side<0 else Color("367bff"))
+		marker.mesh=lens
+		marker.position=Vector3(side*(.19 if kind=="motorcycle" else .32),1.29 if kind=="motorcycle" else 1.91,-.35)
+		add_child(marker)
+		emergency_markers.append(marker)
+	if kind=="car" and not passenger.is_empty():
+		driver_visual.position.x=-.38
+		passenger_visual=PersonVisual.new()
+		passenger_visual.tint=Color("53b8ff")
+		passenger_visual.body_profile=passenger.get("body_profile",&"male")
+		passenger_visual.sitting=true
+		passenger_visual.position.x=.4
+		add_child(passenger_visual)
+		pose_driver()
+
+func clear_patrol() -> void:
+	patrol=false
+	record.patrol=false
+	for marker: Node3D in emergency_markers: marker.queue_free()
+	emergency_markers.clear()
+	if is_instance_valid(passenger_visual): passenger_visual.queue_free()
+	passenger_visual=null
+	driver_visual.position.x=0
 
 func combat_point() -> Vector3: return global_position+Vector3.UP*dimensions.y*.5
 
 func receive_combat_hit(amount: float, _origin: Vector3, _attacker: Node, _incoming: Dictionary = {}) -> float:
 	if health<=0 or amount<=0 or not is_finite(amount): return 0
+	if is_instance_valid(_attacker) and _attacker!=self:
+		_threat=weakref(_attacker)
+		_threat_until=float(Time.get_ticks_msec())/1000.0+6.0
 	var applied:=minf(health,amount)
 	health-=applied
 	record.health=health
@@ -113,6 +171,8 @@ func _wreck() -> void:
 	record.health=0.0
 	record.taken=true
 	has_driver=false
+	npc_boost=false
+	npc_wave_requested=false
 	signed_speed=0
 	wave_enabled=false
 	if is_instance_valid(light_wave): light_wave.set_enabled(false)
@@ -242,42 +302,46 @@ func build_visual() -> void:
 	pose_driver()
 
 func pose_driver() -> void:
+	_pose_person(driver_visual)
+	if is_instance_valid(passenger_visual): _pose_person(passenger_visual)
+
+func _pose_person(person: Node3D) -> void:
 	# Traffic uses the same contact anchors as the player. Write the existing
 	# two mesh batches directly, so this adds no driver nodes or draw calls.
 	var contacts := rider_anchors()
 	var hip: Vector3 = contacts.hip
 	var lean := Basis(Vector3.RIGHT,contacts.chest_pitch)
 	var chest := hip+lean*Vector3.UP*0.51
-	var hip_width := 0.18 if driver_visual.body_profile==&"female" else 0.125
-	driver_visual.segment(0,hip,chest,0.037)
-	driver_visual.segment(1,hip+Vector3(-hip_width,0,0),hip+Vector3(hip_width,0,0))
-	driver_visual.segment(2,chest+Vector3(-0.23,0,0),chest+Vector3(0.23,0,0))
-	driver_visual.dot_at(0,chest+lean*Vector3.UP*0.26,0.128)
-	driver_visual.dot_at(1,hip,0.05)
+	var hip_width := 0.18 if person.body_profile==&"female" else 0.125
+	person.segment(0,hip,chest,0.037)
+	person.segment(1,hip+Vector3(-hip_width,0,0),hip+Vector3(hip_width,0,0))
+	person.segment(2,chest+Vector3(-0.23,0,0),chest+Vector3(0.23,0,0))
+	person.dot_at(0,chest+lean*Vector3.UP*0.26,0.128)
+	person.dot_at(1,hip,0.05)
 	for i in range(2):
 		var side := -1.0 if i==0 else 1.0
 		var key := "left" if i==0 else "right"
 		var leg_hip := hip+Vector3(side*hip_width,0,0)
 		var foot: Vector3 = contacts[key+"_foot"]
 		var knee := MountedPose.bend_point(leg_hip,foot,contacts.knee_pole,0.45,0.45)
-		driver_visual.segment(3+i*2,leg_hip,knee)
-		driver_visual.segment(4+i*2,knee,foot)
-		driver_visual.dot_at(2+i*3,leg_hip)
-		driver_visual.dot_at(3+i*3,knee)
-		driver_visual.dot_at(4+i*3,foot,0.04)
+		person.segment(3+i*2,leg_hip,knee)
+		person.segment(4+i*2,knee,foot)
+		person.dot_at(2+i*3,leg_hip)
+		person.dot_at(3+i*3,knee)
+		person.dot_at(4+i*3,foot,0.04)
 		var shoulder := chest+Vector3(side*0.23,0,0)
 		var hand: Vector3 = contacts[key+"_hand"]
 		var elbow_pole: Vector3 = contacts.elbow_pole
 		elbow_pole.x = side*0.35
 		var elbow := MountedPose.bend_point(shoulder,hand,elbow_pole,0.30,0.29)
-		driver_visual.segment(7+i*2,shoulder,elbow)
-		driver_visual.segment(8+i*2,elbow,hand)
-		driver_visual.dot_at(8+i*2,elbow)
-		driver_visual.dot_at(9+i*2,hand,0.04)
-		if driver_visual.body_profile==&"female":
+		person.segment(7+i*2,shoulder,elbow)
+		person.segment(8+i*2,elbow,hand)
+		person.dot_at(8+i*2,elbow)
+		person.dot_at(9+i*2,hand,0.04)
+		if person.body_profile==&"female":
 			var waist: Vector3 = hip.lerp(chest,0.48)+Vector3(side*0.075,0,0)
-			driver_visual.segment(11+i*2,chest+Vector3(side*0.23,0,0),waist,0.023)
-			driver_visual.segment(12+i*2,waist,leg_hip,0.023)
+			person.segment(11+i*2,chest+Vector3(side*0.23,0,0),waist,0.023)
+			person.segment(12+i*2,waist,leg_hip,0.023)
 
 func wheel_batch(mesh: Mesh, ink: Material) -> MultiMesh:
 	var data := MultiMesh.new()
@@ -357,7 +421,10 @@ func _physics_process(delta: float) -> void:
 			offset = goal-global_position
 		var turn := wrapf(atan2(offset.x,offset.z)-rotation.y,-PI,PI)
 		rotation.y += clampf(turn,-1.8*delta,1.8*delta)
-		desired = minf(top_speed*0.47,4.0 if absf(turn)>0.38 else top_speed)
+		# Native and player drivers share the same boost multiplier and acceleration.
+		# Traffic still brakes before corners instead of snapping a boosted turn.
+		desired = 4.0 if absf(turn)>0.38 else top_speed*(boost_multiplier if npc_boost else .47)
+		if offset.length()<maxf(6.0,signed_speed*signed_speed/32.0): desired=minf(desired,7.0)
 		# Pause at each corner; deterministic stagger avoids synchronized convoys.
 		_wait = maxf(0,_wait-delta)
 		if _wait>0: desired = 0
@@ -375,7 +442,7 @@ func _physics_process(delta: float) -> void:
 			sensor_checks += 1
 		if _blocked: desired = 0
 	if health<=0: desired=0
-	var accelerating: bool=is_instance_valid(player_driver) and player_driver.controls.boost
+	var accelerating: bool=player_driver.controls.boost if is_instance_valid(player_driver) else npc_boost
 	var rate := 16.0 if desired*signed_speed<0 or absf(desired)<absf(signed_speed) else (11.0 if accelerating else 7.0)
 	signed_speed = move_toward(signed_speed,desired,rate*delta)
 	velocity.x = global_basis.z.x*signed_speed
@@ -399,6 +466,9 @@ func _physics_process(delta: float) -> void:
 	record.yaw = rotation.y
 	_wheel_phase += signed_speed*delta/0.36
 	driver_visual.visible = has_driver
+	if is_instance_valid(passenger_visual): passenger_visual.visible=has_driver
+	_emergency_clock+=delta
+	for index: int in range(emergency_markers.size()): emergency_markers[index].visible=health>0 and int(_emergency_clock*5)%2==index%2
 	_pose_clock += delta
 	var distance := global_position.distance_squared_to(life.actor.global_position)
 	var interval := 0.033 if distance<784 else 0.125

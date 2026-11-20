@@ -102,7 +102,7 @@ func run() -> void:
 	actor.add_child(inventory)
 	inventory.seed_starter()
 	for iid: String in inventory.items: owned[String(inventory.get_item(iid).item_type_id)] = iid
-	var wanted := ["dagger","sword","curved_sword","axe","hammer","greatsword","spear","halberd","scythe","twin_blades","fist","staff","chime","whip","scribe","disc","dual_disc","paintbrush","body","head","hands","legs","ring"]
+	var wanted := ["dagger","sword","curved_sword","axe","hammer","greatsword","spear","halberd","scythe","twin_blades","fist","staff","chime","whip","scribe","disc","dual_disc","paintbrush","wand","body","head","hands","legs","ring"]
 	for entry: Dictionary in Database.all():
 		if entry.family in wanted and not generated.has(entry.family):
 			generated[entry.family] = add(StringName(entry.id))
@@ -129,9 +129,9 @@ func run() -> void:
 	ui.open_menu()
 	await frames()
 	check(UI.CATEGORIES.size()==7 and ui.category_buttons.size()==7,"Type filters preserve the six existing category indices and add furniture")
-	check(ui.type_filter.item_count==10 and ui.type_filter.selected==0 and ui.query.text.is_empty(),"Weapon inventory starts with all ten Exchange-compatible type choices")
+	check(ui.type_filter.item_count==11 and ui.type_filter.selected==0 and ui.query.text.is_empty(),"Weapon inventory starts with all eleven Exchange-compatible type choices")
 	check(ui.filtered_ids.size()>UI.PAGE_SIZE and ui.item_rows.size()==UI.PAGE_SIZE,"A mixed owned weapon collection remains paged into bounded row controls")
-	var sets := [[],["dagger"],["sword","curved_sword","katana","sword_shield"],["axe","hammer","greatsword"],["spear","halberd","scythe"],["twin_blades","fist"],["staff","chime","whip"],["scribe"],["disc","dual_disc"],["paintbrush"]]
+	var sets := [[],["dagger"],["sword","curved_sword","katana","sword_shield"],["axe","hammer","greatsword"],["spear","halberd","scythe"],["twin_blades","fist"],["staff","chime","whip"],["scribe"],["disc","dual_disc"],["paintbrush"],["wand"]]
 	for index in range(1,sets.size()):
 		ui.select_filter(index)
 		check(matches_families(sets[index]) and selected_safe(),"Weapon type "+ui.type_filter.get_item_text(index)+" shows only matching owned families")

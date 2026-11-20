@@ -1,5 +1,9 @@
 # Equipment library and motion tailoring
 
+The [Wand class and Dark Box patrol guide](WANDS_AND_DARK_BOX.md) covers the eight
+new Arc Wand colors, matching laser effects, controls, shared parry behavior,
+officer equipment, and native vehicle boost/light-wave support.
+
 The central bipyramid's Tower Exchange has three separate departments:
 **Weapons**, **Items**, and **Armour**. Every offer remains free. Weapons includes
 all 1,704 named weapons and the four starters; Items holds Health, Shield and

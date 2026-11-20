@@ -23,6 +23,15 @@ Pass `-GodotPath "path\to\Godot.exe"` to use another installation.
 The launcher opens a normal visible game window. Press Start / Escape for the
 live system menu, or Alt+F4 to close the game.
 
+## Wands and Dark Box patrols
+
+The **Wands** filter in the Tower Exchange and inventory contains all eight focus
+colors, each with matching lasers. Wands provide quick flicks, Slither Shot,
+laser volleys, Ground Cast and an underhand Laser Wheel. Every cast uses universal
+parry, including normal remote caster stagger. Dark Box officers use the same
+weapon in witnessed wanted encounters; native drivers can use shared boost and
+vehicle light waves. See [controls and implementation notes](docs/WANDS_AND_DARK_BOX.md).
+
 ## Guild, tavern and private lodging
 
 The two-story **Adventurers Guild** is at `LAT 010N / LON 002W`; the separate
@@ -1826,7 +1835,7 @@ owned weapon to any direction; use Drop to choose a stack quantity or drop one
 specific weapon. Mouse buttons work too. **F5 / Save** writes a checkpoint.
 
 The owned-item list also uses the Tower Exchange's weapon groups: Daggers,
-Swords, Heavy, Polearms, Paired, Other, Scribe, Discs and Paintbrushes. Armour can
+Swords, Heavy, Polearms, Paired, Other, Scribe, Discs, Paintbrushes and Wands. Armour can
 be filtered by Body, Head, Hands, Legs or stored patterns; consumables by Health,
 Shield or Respawn Glyphs; Miscellaneous by Rings or Other. Choose a type from the
 dropdown, press controller **Y**, or use **F / Shift+F** to cycle forward/backward.

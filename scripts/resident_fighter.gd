@@ -14,6 +14,8 @@ var opponent: CharacterBody3D
 var label: Label3D
 var dead := false
 var female_shape: MultiMesh
+var store: Node
+var code_form_id := ""
 
 func _ready() -> void:
 	live_motion_retrieval = false
@@ -67,10 +69,39 @@ func _ready() -> void:
 	add_to_group("combat_targets")
 	combat.selected_slot = [&"down",&"left",&"right",&"up"][absi(identity.hash())%4]
 	combat.sheathed = false
+	if is_instance_valid(store): attach_store(store)
+	if not code_form_id.is_empty(): set_meta("code_form_id",code_form_id)
 	weapon_combat.sync_rig()
 	target_lock.show_marker = false
 	target_lock.select(opponent)
 	controls.start()
+
+func attach_store(authority: Node) -> void:
+	if not is_instance_valid(authority) or inventory==authority: return
+	var starter: Node=inventory
+	store=authority
+	inventory=authority
+	inventory.actor=self
+	combat.loadout_resolver=inventory.weapon_slot
+	inventory.equipment_changed.connect(combat.refresh_equipment)
+	inventory.equipment_changed.connect(_clothing_changed)
+	if is_instance_valid(starter) and starter.get_parent()==self: starter.queue_free()
+	if inventory.weapon_slot(combat.selected_slot)==&"":
+		for slot: StringName in inventory.SLOTS:
+			if inventory.weapon_slot(slot)!=&"": combat.selected_slot=slot; break
+	combat.refresh_equipment()
+	combat.sheathed=false
+	visual.sync_clothing(inventory)
+
+func _clothing_changed() -> void: visual.sync_clothing(inventory)
+
+func detach_store() -> void:
+	if not is_instance_valid(store) or inventory!=store: return
+	if inventory.equipment_changed.is_connected(combat.refresh_equipment): inventory.equipment_changed.disconnect(combat.refresh_equipment)
+	if inventory.equipment_changed.is_connected(_clothing_changed): inventory.equipment_changed.disconnect(_clothing_changed)
+	if inventory.actor==self: inventory.actor=null
+
+func _exit_tree() -> void: detach_store()
 
 func _process(_delta: float) -> void:
 	label.text = profile.name+"\nHOSTILE  %d / %d" % [ceili(health),ceili(weapon_combat.max_health)]
@@ -92,9 +123,17 @@ func can_attack_target(target: Node) -> bool:
 	return not dead and target==opponent and reactions.can_fight()
 
 func receive_hit(amount: float, source: Vector3, attacker: Node = null, incoming: Dictionary = {}) -> float:
-	if dead or attacker!=opponent or not reactions.can_fight(): return 0
+	var native_wave: bool=incoming.get("vehicle_wave",false) and is_instance_valid(attacker) and attacker.has_method("driving_actor") and attacker!=opponent
+	var society: Node
+	if native_wave:
+		society=reactions._civilization() if reactions.has_method("_civilization") else reactions.world.civilization
+		native_wave=is_instance_valid(society) and not String(society.id_for_source(attacker)).is_empty()
+	if dead or attacker!=opponent and not native_wave or not native_wave and not reactions.can_fight(): return 0
 	var before := health
+	if native_wave and amount>=before:
+		set_meta("native_defeat",String(society.id_for_source(attacker)))
 	var applied := minf(before,super.receive_hit(amount,source,attacker,incoming))
+	if native_wave and health>0 and has_meta("native_defeat"): remove_meta("native_defeat")
 	if applied>0:
 		DamageNumber.make_room(get_tree())
 		var number := DamageNumber.new()

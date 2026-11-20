@@ -1,0 +1,229 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "id": "dark_box_arc_wand",
+      "name": "Standard Arc Wand - Cyan",
+      "description": "A slender geometric wand issued to Dark Box officers. Its cyan focus turns precise flicks and sweeping casts into laser energy. A badge grants no protection from a well-timed parry.",
+      "category": "weapons",
+      "kind": "standard",
+      "family": "wand",
+      "slot": "up",
+      "combat_kind": "wand",
+      "guard": 0.55,
+      "rarity": "Crafted",
+      "value": 70,
+      "acquisition": "Tower Exchange / Equipment Archive / Dark Box standard issue",
+      "geometry": {
+        "family": "wand",
+        "renderer": "wand",
+        "length": 0.62,
+        "tint": "75eaff",
+        "palette_group": "wand"
+      },
+      "effects": [],
+      "attachment": {
+        "primary_hand": "right",
+        "offhand": "free",
+        "stow": "back",
+        "model_axis": "+Y"
+      }
+    },
+    {
+      "id": "arc_wand_violet",
+      "name": "Arc Wand - Violet",
+      "description": "A dark geometric wand with a violet focus. Its matching lasers answer quick flicks, serpentine shots, ground sigils, and underhand wheels.",
+      "category": "weapons",
+      "kind": "standard",
+      "family": "wand",
+      "slot": "up",
+      "combat_kind": "wand",
+      "guard": 0.55,
+      "rarity": "Crafted",
+      "value": 70,
+      "acquisition": "Tower Exchange / Equipment Archive",
+      "geometry": {
+        "family": "wand",
+        "renderer": "wand",
+        "length": 0.62,
+        "tint": "bc9aff",
+        "palette_group": "wand"
+      },
+      "effects": [],
+      "attachment": {
+        "primary_hand": "right",
+        "offhand": "free",
+        "stow": "back",
+        "model_axis": "+Y"
+      }
+    },
+    {
+      "id": "arc_wand_gold",
+      "name": "Arc Wand - Gold",
+      "description": "A dark geometric wand with a gold focus. Its matching lasers answer quick flicks, serpentine shots, ground sigils, and underhand wheels.",
+      "category": "weapons",
+      "kind": "standard",
+      "family": "wand",
+      "slot": "up",
+      "combat_kind": "wand",
+      "guard": 0.55,
+      "rarity": "Crafted",
+      "value": 70,
+      "acquisition": "Tower Exchange / Equipment Archive",
+      "geometry": {
+        "family": "wand",
+        "renderer": "wand",
+        "length": 0.62,
+        "tint": "ffb957",
+        "palette_group": "wand"
+      },
+      "effects": [],
+      "attachment": {
+        "primary_hand": "right",
+        "offhand": "free",
+        "stow": "back",
+        "model_axis": "+Y"
+      }
+    },
+    {
+      "id": "arc_wand_mint",
+      "name": "Arc Wand - Mint",
+      "description": "A dark geometric wand with a mint focus. Its matching lasers answer quick flicks, serpentine shots, ground sigils, and underhand wheels.",
+      "category": "weapons",
+      "kind": "standard",
+      "family": "wand",
+      "slot": "up",
+      "combat_kind": "wand",
+      "guard": 0.55,
+      "rarity": "Crafted",
+      "value": 70,
+      "acquisition": "Tower Exchange / Equipment Archive",
+      "geometry": {
+        "family": "wand",
+        "renderer": "wand",
+        "length": 0.62,
+        "tint": "89ffd5",
+        "palette_group": "wand"
+      },
+      "effects": [],
+      "attachment": {
+        "primary_hand": "right",
+        "offhand": "free",
+        "stow": "back",
+        "model_axis": "+Y"
+      }
+    },
+    {
+      "id": "arc_wand_pink",
+      "name": "Arc Wand - Pink",
+      "description": "A dark geometric wand with a pink focus. Its matching lasers answer quick flicks, serpentine shots, ground sigils, and underhand wheels.",
+      "category": "weapons",
+      "kind": "standard",
+      "family": "wand",
+      "slot": "up",
+      "combat_kind": "wand",
+      "guard": 0.55,
+      "rarity": "Crafted",
+      "value": 70,
+      "acquisition": "Tower Exchange / Equipment Archive",
+      "geometry": {
+        "family": "wand",
+        "renderer": "wand",
+        "length": 0.62,
+        "tint": "ff7ab3",
+        "palette_group": "wand"
+      },
+      "effects": [],
+      "attachment": {
+        "primary_hand": "right",
+        "offhand": "free",
+        "stow": "back",
+        "model_axis": "+Y"
+      }
+    },
+    {
+      "id": "arc_wand_blue",
+      "name": "Arc Wand - Blue",
+      "description": "A dark geometric wand with a blue focus. Its matching lasers answer quick flicks, serpentine shots, ground sigils, and underhand wheels.",
+      "category": "weapons",
+      "kind": "standard",
+      "family": "wand",
+      "slot": "up",
+      "combat_kind": "wand",
+      "guard": 0.55,
+      "rarity": "Crafted",
+      "value": 70,
+      "acquisition": "Tower Exchange / Equipment Archive",
+      "geometry": {
+        "family": "wand",
+        "renderer": "wand",
+        "length": 0.62,
+        "tint": "81aaff",
+        "palette_group": "wand"
+      },
+      "effects": [],
+      "attachment": {
+        "primary_hand": "right",
+        "offhand": "free",
+        "stow": "back",
+        "model_axis": "+Y"
+      }
+    },
+    {
+      "id": "arc_wand_silver",
+      "name": "Arc Wand - Silver",
+      "description": "A dark geometric wand with a silver focus. Its matching lasers answer quick flicks, serpentine shots, ground sigils, and underhand wheels.",
+      "category": "weapons",
+      "kind": "standard",
+      "family": "wand",
+      "slot": "up",
+      "combat_kind": "wand",
+      "guard": 0.55,
+      "rarity": "Crafted",
+      "value": 70,
+      "acquisition": "Tower Exchange / Equipment Archive",
+      "geometry": {
+        "family": "wand",
+        "renderer": "wand",
+        "length": 0.62,
+        "tint": "eafcff",
+        "palette_group": "wand"
+      },
+      "effects": [],
+      "attachment": {
+        "primary_hand": "right",
+        "offhand": "free",
+        "stow": "back",
+        "model_axis": "+Y"
+      }
+    },
+    {
+      "id": "arc_wand_ember",
+      "name": "Arc Wand - Ember",
+      "description": "A dark geometric wand with a ember focus. Its matching lasers answer quick flicks, serpentine shots, ground sigils, and underhand wheels.",
+      "category": "weapons",
+      "kind": "standard",
+      "family": "wand",
+      "slot": "up",
+      "combat_kind": "wand",
+      "guard": 0.55,
+      "rarity": "Crafted",
+      "value": 70,
+      "acquisition": "Tower Exchange / Equipment Archive",
+      "geometry": {
+        "family": "wand",
+        "renderer": "wand",
+        "length": 0.62,
+        "tint": "ff7459",
+        "palette_group": "wand"
+      },
+      "effects": [],
+      "attachment": {
+        "primary_hand": "right",
+        "offhand": "free",
+        "stow": "back",
+        "model_axis": "+Y"
+      }
+    }
+  ]
+}

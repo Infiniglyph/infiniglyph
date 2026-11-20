@@ -202,6 +202,37 @@ func receive_assault(source: CharacterBody3D, amount: float, origin: Vector3, at
 	_update_bubble(key,entry)
 	return applied
 
+func receive_native_attack(source: CharacterBody3D,amount: float,origin: Vector3,attacker: Node,incoming: Dictionary={}) -> float:
+	# Mounted native waves and wand spells use the same civilian HP/respawn
+	# authority. This path cannot manufacture a player assault or combat XP.
+	var society:=_civilization()
+	if not is_instance_valid(society) or not is_instance_valid(attacker) or attacker==actor or not is_finite(amount) or amount<=0: return 0
+	var offender:=String(society.id_for_source(attacker))
+	if offender.is_empty() or society.id_for_source(source)==offender or not (incoming.get("vehicle_wave",false) or incoming.get("weapon_family")=="wand"): return 0
+	if not source.is_visible_in_tree() or source.virtualized or source.collision_layer==0: return 0
+	var key:=key_for(source)
+	var entry:=_entry_for(source)
+	if entry.dead or entry.suspended or fighters.has(key): return 0
+	var applied:=minf(amount,float(entry.health))
+	entry.health-=applied
+	var serial:=String(offender)+":"+str(incoming.get("attack_serial",-1))
+	if entry.get("native_attack","")!=serial:
+		entry.native_attack=serial
+		crime_observed.emit({"event_id":"native_assault/"+preload("res://scripts/item_instance.gd").new_id(),"kind":"assault","offender":attacker,"victim":source,"witnesses":[source]})
+		var victim:=String(society.id_for_source(source))
+		if not victim.is_empty():
+			society.registry.relate(victim,offender,-.08)
+			society.registry.remember(victim,"combat",offender,"I was struck by another Code Form's laser energy.",.8)
+	DamageNumber.make_room(get_tree())
+	var number:=DamageNumber.new()
+	number.text="%.1f" % applied
+	add_child(number); number.global_position=source.combat_point()+Vector3.UP*.55
+	if entry.health<=0:
+		_suspend_source(entry,source)
+		entry.dead=true; entry.respawn=respawn_delay
+		_clear_anger(entry)
+	return applied
+
 func can_fight() -> bool:
 	if is_instance_valid(actor.kyren_encounter) and (actor.kyren_encounter.active or actor.kyren_encounter.dialogue_open): return false
 	if actor.health<=0: return false
@@ -285,6 +316,13 @@ func begin_fighter(key: String) -> bool:
 	fighter.profile = source.profile.duplicate(true)
 	fighter.opponent = actor
 	fighter.reactions = self
+	var society:=_civilization()
+	if is_instance_valid(society):
+		fighter.code_form_id=society.id_for_source(source)
+		var owned: Node=society.economy.npc_store(fighter.code_form_id)
+		if is_instance_valid(owned):
+			for slot: StringName in owned.SLOTS:
+				if owned.weapon_slot(slot)!=&"": fighter.store=owned; break
 	fighter.spawn = at
 	fighter.position = at
 	add_child(fighter)
@@ -332,7 +370,7 @@ func finish_fighter(key: String, defeated: bool = false, expected: Node = null) 
 	var entry: Dictionary = entries[key]
 	var original: Node=entry.source.get_ref()
 	if is_instance_valid(original):
-		if defeated: _civilian_event(original,"defeated")
+		if defeated and not fighter.has_meta("native_defeat"): _civilian_event(original,"defeated")
 	if actor.target_lock.opponent==fighter: actor.target_lock.clear()
 	entry.last_position = fighter.global_position
 	entry.health = fighter.health
@@ -341,6 +379,8 @@ func finish_fighter(key: String, defeated: bool = false, expected: Node = null) 
 	fighter.weapon_combat.cancel()
 	fighter.set_physics_process(false)
 	fighter.weapon_combat.set_physics_process(false)
+	fighter.process_mode=Node.PROCESS_MODE_DISABLED
+	fighter.detach_store()
 	fighter.remove_from_group("combat_targets")
 	fighter.collision_layer = 0
 	fighter.hide()
@@ -352,6 +392,13 @@ func finish_fighter(key: String, defeated: bool = false, expected: Node = null) 
 	entry.speech = 0
 	if not defeated: restore_source(entry,false)
 	_sync_player()
+
+func prepare_restore() -> void:
+	# A combatant may now borrow the same inventory Node as their civilian
+	# economic identity. Release those borrowers before checkpoint replacement.
+	for key: String in fighters.keys():
+		var fighter: CharacterBody3D=fighters[key]
+		if is_instance_valid(fighter.store): finish_fighter(key)
 
 func restore_source(entry: Dictionary, at_spawn: bool) -> bool:
 	var source: CharacterBody3D = entry.source.get_ref()

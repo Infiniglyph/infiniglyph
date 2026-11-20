@@ -1,8 +1,8 @@
 extends RefCounted
 ## Shared weapon groups for the Exchange and the owned-item browser.
 const Types = preload("res://scripts/inventory_item_type.gd")
-const WEAPON_NAMES := ["ALL","DAGGERS","SWORDS","HEAVY","POLEARMS","PAIRED","OTHER","SCRIBE","DISCS","PAINTBRUSHES"]
-const WEAPON_GROUPS := [[],["dagger"],["sword_shield","sword","curved_sword","katana"],["axe","hammer","greatsword"],["spear","halberd","scythe"],["twin_blades","fist"],["staff","chime","whip"],["scribe"],["disc","dual_disc"],["paintbrush"]]
+const WEAPON_NAMES := ["ALL","DAGGERS","SWORDS","HEAVY","POLEARMS","PAIRED","OTHER","SCRIBE","DISCS","PAINTBRUSHES","WANDS"]
+const WEAPON_GROUPS := [[],["dagger"],["sword_shield","sword","curved_sword","katana"],["axe","hammer","greatsword"],["spear","halberd","scythe"],["twin_blades","fist"],["staff","chime","whip"],["scribe"],["disc","dual_disc"],["paintbrush"],["wand"]]
 
 static func weapon_matches(family: String, index: int) -> bool:
 	return index==0 or (index>0 and index<WEAPON_GROUPS.size() and family in WEAPON_GROUPS[index])

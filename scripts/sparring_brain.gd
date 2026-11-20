@@ -86,9 +86,16 @@ func sample() -> void:
 	if sky_cooldown == 0 and (toward.y>1.2 or blocked) and (actor.is_on_floor() or actor.velocity.y<2):
 		jump_requested = true
 		sky_cooldown = 0.4
-	var slot: StringName = SLOTS[(cursor/6)%SLOTS.size()]
+	# Ember demonstrates all four starter loadouts. Other Code Forms fight with
+	# their real equipped class instead of silently requesting tutorial weapons.
+	var training: bool=actor.get_script().resource_path=="res://scripts/sparring_partner.gd"
+	var slot: StringName = SLOTS[(cursor/6)%SLOTS.size()] if training else actor.combat.selected_slot
+	if actor.combat.resolve_slot(slot)==&"":
+		for equipped: StringName in SLOTS:
+			if actor.combat.resolve_slot(equipped)!=&"": slot=equipped; break
 	var action: StringName = ACTIONS[cursor%ACTIONS.size()]
-	var spec := Library.move(slot,action)
+	var spec: Dictionary = actor.weapon_combat.move_for(slot,action)
+	if spec.is_empty(): return
 	var comfortable := maxf(1.2,float(spec.reach)*0.72)
 	if distance>comfortable:
 		move = Vector2(circle*0.12,-1).normalized()
@@ -112,7 +119,8 @@ func choose_attack(slot: StringName, action: StringName) -> void:
 		_keyboard_modifier = false
 		charge_remaining = 1.2
 	else: _request(&"action",action)
-	decision = float(Library.move(slot,action).duration)+0.35
+	var spec: Dictionary=actor.weapon_combat.move_for(slot,action)
+	decision = float(spec.get("duration",.35))+0.35
 	cursor = (cursor+1)%24
 	if cursor%4 == 0: circle *= -1
 

@@ -547,10 +547,13 @@ func _capture_checkpoint() -> Dictionary:
 		snapshot.law_state=actor.get_parent().law.serialize()
 	if is_instance_valid(actor.get_parent().get("building_civilization")): snapshot.building_state=actor.get_parent().building_civilization.serialize()
 	if is_instance_valid(actor.get_parent().get("careers")): snapshot.career_state=actor.get_parent().careers.serialize()
+	if is_instance_valid(actor.get_parent().get("dark_box_patrols")): snapshot.dark_box_state=actor.get_parent().dark_box_patrols.serialize()
 	return snapshot
 
 func _civic_busy() -> bool:
 	var world: Node=actor.get_parent()
+	var patrol: Node=world.get("dark_box_patrols")
+	if is_instance_valid(patrol) and patrol.has_method("transaction_active") and patrol.transaction_active(): return true
 	if is_instance_valid(world.get("careers")) and world.careers.transaction_active(): return true
 	if world.get("career_actions")!=null and world.career_actions.transaction_active(): return true
 	if is_instance_valid(world.get("building_civilization")) and (not world.building_civilization.ready_for_use or world.building_civilization.transaction_active()): return true
@@ -575,6 +578,12 @@ func _restore_civic(snapshot: Dictionary) -> bool:
 	_close_communication("checkpoint")
 	world.civic_interactions.trade.clear()
 	return world.quest_system.restore(snapshot.get("quest_state")) and world.communication.restore(snapshot.get("communication_state")) and world.law.restore(snapshot.get("law_state")) and (not is_instance_valid(world.get("careers")) or world.careers.restore(snapshot.get("career_state")))
+
+func _prepare_checkpoint_borrowers() -> void:
+	var world: Node=actor.get_parent()
+	for key: String in ["dark_box_patrols","theft_reactions"]:
+		var adapter: Node=world.get(key)
+		if is_instance_valid(adapter) and adapter.has_method("prepare_restore"): adapter.prepare_restore()
 
 func save_checkpoint(path: String = "", silent: bool = false) -> bool:
 	if _exiting or _loading or _checkpoint_pending or not is_inside_tree(): return false
@@ -616,26 +625,37 @@ func load_checkpoint(path: String = "") -> bool:
 	var civic_before:=_capture_civic()
 	var buildings: Node=actor.get_parent().get("building_civilization")
 	var building_before: Dictionary=buildings.serialize() if is_instance_valid(buildings) else {}
+	var patrol: Node=actor.get_parent().get("dark_box_patrols")
+	var patrol_before: Dictionary=patrol.serialize() if is_instance_valid(patrol) else {}
 	_loading = true
 	_restoring_checkpoint = true
+	# Officer bodies borrow authoritative NPC inventory Nodes. Detach their
+	# signal bindings and combat rigs while those stores are still alive;
+	# economy.restore replaces and frees every NPC store synchronously.
+	_prepare_checkpoint_borrowers()
 	var ok: bool = actor.inventory.restore(snapshot.inventory)
 	if ok and is_instance_valid(civilian_services): ok=civilian_services.economy.restore(snapshot.get("civilian_state",civilian_services.initial_state))
 	if ok and is_instance_valid(civilization): ok=civilization.restore(snapshot.get("civilization_state"),false)
 	if ok and is_instance_valid(glyphic_wonders): ok=glyphic_wonders.restore(snapshot.get("glyphic_wonders_state"))
 	if ok: ok=_restore_civic(snapshot)
 	if ok and is_instance_valid(buildings): ok=buildings.restore(snapshot.get("building_state"))
+	if ok and is_instance_valid(patrol): ok=patrol.restore(snapshot.get("dark_box_state"))
 	var world_changed := false
 	if ok:
 		ok = loot.restore_world(snapshot.world_drops)
 		world_changed = ok
 	if ok and is_instance_valid(dungeon_travel): ok=dungeon_travel.restore_location(location,snapshot.get("location_state",{}))
 	if not ok:
+		# A later adapter may have rejected an otherwise valid snapshot. Tear
+		# down any rebound bodies before the rollback replaces their stores too.
+		_prepare_checkpoint_borrowers()
 		actor.inventory.restore(owned_before)
 		if is_instance_valid(civilian_services): civilian_services.economy.restore(civilian_before)
 		if is_instance_valid(civilization): civilization.restore(society_before,false)
 		if is_instance_valid(glyphic_wonders): glyphic_wonders.restore(wonders_before)
 		_restore_civic(civic_before)
 		if is_instance_valid(buildings): buildings.restore(building_before)
+		if is_instance_valid(patrol): patrol.restore(patrol_before)
 		# restore_world is already atomic on rejection. Replacing untouched
 		# drops here would leave duplicate pending colliders until frame end.
 		if world_changed: loot.restore_world(world_before)

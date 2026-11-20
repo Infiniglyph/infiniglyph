@@ -161,7 +161,45 @@ static func _decode(data: Variant,deferred_civic_links: bool) -> Dictionary:
 		if careers.is_empty(): return {}
 		decoded.career_state=careers
 		if not career_links_match(decoded): return {}
+	if data.has("dark_box_state"):
+		# Runtime loading stays on the main thread. The encoding worker receives
+		# only this canonical value model and checks its civilian/item links.
+		var patrol: Script=load("res://scripts/dark_box_patrols.gd")
+		var officers: Dictionary=patrol.validate(data.dark_box_state)
+		if officers.is_empty(): return {}
+		decoded.dark_box_state=officers
+		if not dark_box_links_match(decoded): return {}
 	return decoded
+
+static func dark_box_links_match(data: Dictionary) -> bool:
+	if not data.has("dark_box_state"): return true
+	var state: Dictionary=data.dark_box_state
+	var persons: Dictionary=data.get("civilization_state",{}).get("registry",{}).get("records",{})
+	var issued: Dictionary=state.get("issued",{})
+	var used: Dictionary={}
+	for id: String in issued:
+		if not persons.has(id) or used.has(issued[id]): return false
+		used[issued[id]]=true
+	for id: String in state.get("defeated_until",{}):
+		if not persons.has(id): return false
+	# An issued wand is real transferable property. Selling, losing, dropping
+	# or storing it cannot authorize another free copy, so provenance may
+	# legitimately refer to an item no longer present in any live inventory.
+	# If the identity is present, it must still name the standard issued wand.
+	var live: Dictionary={}
+	for item: Dictionary in data.get("inventory",{}).get("items",[]): live[item.instance_id]=item
+	for drop: Dictionary in data.get("world_drops",[]): live[drop.item.instance_id]=drop.item
+	var economy: Dictionary=data.get("civilian_state",{})
+	for key: String in ["npc_stores","room_stores"]:
+		for store: Dictionary in economy.get(key,{}).values():
+			for item: Dictionary in store.items: live[item.instance_id]=item
+	for item: Dictionary in economy.get("guild_stock",{}).get("items",[]): live[item.instance_id]=item
+	for building: Dictionary in data.get("building_state",{}).get("records",{}).values():
+		for object: Dictionary in building.placements.values(): live[object.item.instance_id]=object.item
+		for item: Dictionary in building.storage.items: live[item.instance_id]=item
+	for item_id: String in used:
+		if live.has(item_id) and live[item_id].item_type_id!="dark_box_arc_wand": return false
+	return true
 
 static func career_links_match(data: Dictionary) -> bool:
 	if not data.has("career_state"): return true

@@ -209,6 +209,8 @@ func show_item(id: StringName) -> void:
 		details.text = "%s / %s\n%s\nHold RT / V to take the quill.\nHold X / Q or Y / R to trace; release to stop.\nA / Space always jumps.\nHold RT+B / V+H: shield. Tap RT+B: heal." % [entry.rarity,entry.family,entry.acquisition]
 	elif entry.family=="paintbrush":
 		details.text = "%s / Paintbrush\n%s\nLB/RB: opposite diagonal paint strokes.\nHold X/Q: squares; Y/R: triangles.\nHold RT+X/V+Q: crosses; RT+Y/V+R: circles.\nTap for a tiny mark; release to stop.\nPaint matches this brush's color. A/Space always jumps." % [entry.rarity,entry.acquisition]
+	elif entry.family=="wand":
+		details.text = "%s / Wand\n%s\nLB/RB or mouse: quick laser flicks.\nX/Q: Slither Shot; Y/R: laser volley.\nRT+X/V+Q: ground pattern; RT+Y/V+R: Laser Wheel.\nPrepare an art, then release to cast.\nLasers match this focus. Every spell can be parried." % [entry.rarity,entry.acquisition]
 	if reuse:
 		model.show()
 		model.process_mode = Node.PROCESS_MODE_INHERIT if is_visible_in_tree() else Node.PROCESS_MODE_DISABLED
@@ -223,7 +225,7 @@ func show_item(id: StringName) -> void:
 	model.process_mode = Node.PROCESS_MODE_INHERIT if is_visible_in_tree() else Node.PROCESS_MODE_DISABLED
 	model.rotation.y = .5
 	var length := float(entry.geometry.length)
-	var fitted: bool = entry.geometry.has("tailoring") or entry.geometry.has("renderer") or id==&"eternal_scribe_robes"
+	var fitted: bool = entry.family!="wand" and (entry.geometry.has("tailoring") or entry.geometry.has("renderer") or id==&"eternal_scribe_robes")
 	var center := Vector3(0,.98,0) if fitted else Vector3(0,length*.28,0) if entry.category=="weapons" else Vector3(0,.1,0)
 	var distance := 3.0 if fitted else maxf(1.3,length*1.6)
 	camera.fov = 42 if fitted else 55

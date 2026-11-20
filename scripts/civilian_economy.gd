@@ -830,14 +830,17 @@ static func _apply_event(state: Dictionary,entry: Dictionary) -> bool:
 	state.sequence = int(entry.sequence)
 	return true
 
-static func _inventory_snapshot(input: Variant,owner: String,identities: Dictionary) -> Dictionary:
+static func _inventory_snapshot(input: Variant,owner: String,identities: Dictionary,allow_equipment: bool=false) -> Dictionary:
 	var store := Inventory.new()
 	if not store.restore(input):
 		store.free()
 		return {}
 	var snapshot: Dictionary = store.serialize()
 	store.free()
-	if snapshot.owner_id!=owner or not snapshot.equipment.is_empty() or not snapshot.get("respawn_points",{}).is_empty() or not snapshot.get("shield_state",{}).is_empty() or not snapshot.get("boss_reward_claims",{}).is_empty(): return {}
+	# Residents can wield their actual owned gear. Rental lockers and guild
+	# stock remain unequipped storage; no civilian store receives player-only
+	# respawn, shield or boss-claim state through this exception.
+	if snapshot.owner_id!=owner or not allow_equipment and not snapshot.equipment.is_empty() or not snapshot.get("respawn_points",{}).is_empty() or not snapshot.get("shield_state",{}).is_empty() or not snapshot.get("boss_reward_claims",{}).is_empty(): return {}
 	for item: Dictionary in snapshot.items:
 		if identities.has(item.instance_id): return {}
 		identities[item.instance_id] = true
@@ -986,7 +989,7 @@ static func _validate_v2(input: Variant,player: Dictionary = {},world_drops: Arr
 	var npc: Dictionary = {}
 	for id: Variant in input.npc_stores:
 		if not id is String or not known_set.has(id): return {}
-		var snapshot := _inventory_snapshot(input.npc_stores[id],resident_account(id),identities)
+		var snapshot := _inventory_snapshot(input.npc_stores[id],resident_account(id),identities,true)
 		if snapshot.is_empty(): return {}
 		npc[id] = snapshot
 	if not input.get("service_tokens") is Dictionary or input.service_tokens.size()>MAX_SERVICE_TOKENS: return {}

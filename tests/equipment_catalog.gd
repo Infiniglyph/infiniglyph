@@ -28,7 +28,8 @@ func run() -> void:
 	var void_soul: Dictionary=JSON.parse_string(FileAccess.get_file_as_string("res://data/equipment/void_soul_equipment.json"))
 	var boss_gear: Dictionary=JSON.parse_string(FileAccess.get_file_as_string("res://data/equipment/ahkmet_equipment.json"))
 	var brushes: Dictionary=JSON.parse_string(FileAccess.get_file_as_string("res://data/equipment/paintbrush_equipment.json"))
-	check(all.size()==int(summary.counterparts)+named.items.size()+5+void_soul.items.size()+pyramid.items.size()+depths.items.size()+boss_gear.items.size()+brushes.items.size(),"Every audited counterpart and authored design is registered")
+	var wands: Dictionary=JSON.parse_string(FileAccess.get_file_as_string("res://data/equipment/wand_equipment.json"))
+	check(all.size()==int(summary.counterparts)+named.items.size()+5+void_soul.items.size()+pyramid.items.size()+depths.items.size()+boss_gear.items.size()+brushes.items.size()+wands.items.size(),"Every audited counterpart and authored design is registered")
 	var names: Dictionary = {}
 	var valid := true
 	var effects_inert := true

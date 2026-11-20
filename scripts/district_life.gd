@@ -162,7 +162,7 @@ func refresh_active() -> void:
 	var origin := actor.global_position
 	for id: int in vehicles.keys():
 		var vehicle: CharacterBody3D = vehicles[id]
-		if not is_instance_valid(vehicle.player_driver) and vehicle.global_position.distance_to(origin)>280:
+		if not is_instance_valid(vehicle.player_driver) and not vehicle.record.get("patrol_deployed",false) and vehicle.global_position.distance_to(origin)>280:
 			vehicle.record.point = vehicle.global_position
 			vehicle.record.yaw = vehicle.rotation.y
 			vehicles.erase(id)
@@ -304,6 +304,7 @@ func _physics_process(delta: float) -> void:
 	var elapsed := _clock
 	_clock = 0
 	_social_tick()
+	for vehicle: CharacterBody3D in vehicles.values(): update_native_driving(vehicle)
 	# Distant traffic advances a lightweight route record, with no mesh/physics.
 	for record: Dictionary in vehicle_records:
 		if vehicles.has(record.id) or not record.traffic or record.taken: continue
@@ -358,3 +359,28 @@ func _social_tick() -> void:
 				pair[0].social_cooldown=30; pair[0].state="chatting"
 			civilization.autonomy.on_converse(a,b)
 			return # At most one visible social exchange per district service tick.
+
+func update_native_driving(vehicle: CharacterBody3D) -> void:
+	if not is_instance_valid(vehicle) or is_instance_valid(vehicle.player_driver) or not vehicle.has_driver or vehicle.patrol: return
+	# Decisions use the driver's own traits and visible road geometry. Full body
+	# sweeps, curb climbing and the existing traffic sensor remain authoritative.
+	var driver_id:=String(vehicle.record.driver.get("code_form_id",""))
+	var person: Dictionary=civilization.registry.records.get(driver_id,{}) if is_instance_valid(civilization) else {}
+	if not person.get("active",false): vehicle.set_npc_driving(false); return
+	var route: PackedVector3Array=vehicle.record.route
+	if route.is_empty(): vehicle.set_npc_driving(false); return
+	var offset: Vector3=route[int(vehicle.record.cursor)]-vehicle.global_position
+	var turn:=absf(wrapf(atan2(offset.x,offset.z)-vehicle.rotation.y,-PI,PI))
+	var motivation: Dictionary=person.get("motivations",{})
+	var eager:=maxf(float(motivation.get("novelty",.5)),float(motivation.get("mastery",.5)))>.68
+	var safe_straight: bool=turn<.12 and offset.length()>32 and not vehicle._blocked
+	var threat: Node3D=vehicle._threat.get_ref() as Node3D if vehicle._threat!=null else null
+	var hostile: bool=is_instance_valid(threat) and threat.get_world_3d()==get_world_3d() and float(Time.get_ticks_msec())/1000.0<vehicle._threat_until
+	var trail:=false
+	if hostile and vehicle.global_position.distance_to(threat.global_position)<18:
+		var away: Vector3=threat.global_position-vehicle.global_position
+		# A fleeing driver can leave a short wall behind a visible pursuer, never
+		# turn it on for an unseen player merely because a button was pressed.
+		var ray:=PhysicsRayQueryParameters3D.create(vehicle.combat_point(),threat.global_position+Vector3.UP,1,[vehicle.get_rid()])
+		trail=away.dot(vehicle.global_basis.z)<-2 and get_world_3d().direct_space_state.intersect_ray(ray).is_empty()
+	vehicle.set_npc_driving(safe_straight and (eager or hostile),trail)

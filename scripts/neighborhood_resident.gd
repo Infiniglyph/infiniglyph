@@ -27,6 +27,8 @@ func combat_point() -> Vector3:
 	return global_position+Vector3.UP*.95
 
 func receive_hit(amount: float, origin: Vector3, attacker: Node = null, incoming: Dictionary = {}) -> float:
+	if is_instance_valid(life.reactions) and attacker!=life.reactions.actor and (incoming.get("vehicle_wave",false) or incoming.get("weapon_family")=="wand"):
+		return life.reactions.receive_native_attack(self,amount,origin,attacker,incoming)
 	return life.reactions.receive_assault(self,amount,origin,attacker,incoming) if is_instance_valid(life.reactions) else 0.0
 
 func receive_combat_hit(amount: float, origin: Vector3, attacker: Node, incoming: Dictionary = {}) -> float:

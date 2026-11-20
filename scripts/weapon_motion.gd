@@ -1,5 +1,6 @@
 extends RefCounted
 ## Interpolate authored normalized joint/hip curves on the existing rig.
+const Wand = preload("res://scripts/wand_motion.gd")
 static func vector(value: Array) -> Vector3:
 	return Vector3(value[0],value[1],value[2])
 
@@ -39,6 +40,7 @@ static func flowing_vector(frames: Array, index: int, key: String, weight: float
 	return result
 
 static func sample(move: Dictionary, elapsed: float) -> Dictionary:
+	if move.get("weapon_family")=="wand": return Wand.sample(move,elapsed)
 	var frames: Array = move.get("motion",[])
 	if frames.size()<2: return {}
 	var t := clampf(elapsed/maxf(0.01,float(move.duration)),0,1)

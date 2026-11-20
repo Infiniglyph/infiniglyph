@@ -19,6 +19,8 @@ const TraceSettings = preload("res://scripts/equation_trace_settings.gd")
 const PaintTrace = preload("res://scripts/paint_trace.gd")
 const PaintSettings = preload("res://scripts/paintbrush_settings.gd")
 const PaintMoves = preload("res://scripts/paintbrush_moves.gd")
+const WandEffect = preload("res://scripts/wand_effect.gd")
+const WandMotion = preload("res://scripts/wand_motion.gd")
 @export var equation_trace_settings: Resource = TraceSettings.new()
 var equation_trace: MultiMeshInstance3D
 @export var paintbrush_settings: Resource = PaintSettings.new()
@@ -749,6 +751,16 @@ func strike(pulse: int = -1) -> void:
 	if move.get("weapon_family")=="paintbrush": return # Its actual moving nib writes the damaging geometry.
 	if actor.target_lock.is_locked() and not _dash_active: _facing = actor.target_lock.facing()
 	var origin: Vector3 = actor.combat_point()
+	if move.get("weapon_family")=="wand":
+		move.attack_serial = attack_serial
+		var model: Node3D = rig.models[rig.selected].right
+		var emitter: Node3D = model.get_node_or_null("WandEmitter")
+		var target: Node3D = actor.target_lock.opponent if actor.target_lock.is_locked() else null
+		var cast := WandEffect.new()
+		cast.configure(actor,self,move,emitter.global_position if is_instance_valid(emitter) else origin,_facing,loadout(actor.combat.selected_slot).color,target)
+		actor.get_parent().add_child(cast)
+		changed.emit()
+		return
 	var environment_ray := actor.get_world_3d().direct_space_state.intersect_ray(PhysicsRayQueryParameters3D.create(origin,origin+_facing*float(move.reach),9,[actor.get_rid()]))
 	if not environment_ray.is_empty() and not move.get("disc_throw",false): environment_contact.emit(environment_ray.collider,attack_serial)
 	if move.get("weapon_family")=="scribe" and rig.models.has(rig.selected):
@@ -941,7 +953,8 @@ func apply_pose(delta: float) -> void:
 	if not shared_grip: _katana_gripping = false
 	var scribe: bool = kind==&"scribe" and not actor.combat.sheathed
 	var paint: bool = kind==&"paintbrush" and not actor.combat.sheathed
-	var desired_weight := 1.0 if attacking or guarding or katana or scribe or paint or recoil>0 else (0.45 if idle and not actor.combat.sheathed else 0.0)
+	var wand: bool = kind==&"wand" and not actor.combat.sheathed
+	var desired_weight := 1.0 if attacking or guarding or katana or scribe or paint or wand or recoil>0 else (0.45 if idle and not actor.combat.sheathed else 0.0)
 	_pose_weight = lerpf(_pose_weight,desired_weight,1-exp(-18*delta))
 	_natural_pole_weight = maxf(_pose_weight,release_weight) if named else 0.0
 	if attacking or guarding or (scribe or paint) and is_writing_stance():
@@ -1045,6 +1058,12 @@ func apply_pose(delta: float) -> void:
 		left = Vector3(-.28,1.23,.36)
 		right_rotation = Vector3(.25,0,-.12)
 		left_rotation = Vector3.ZERO
+	if wand:
+		var conducting := WandMotion.pose(active_move,elapsed,guarding,Time.get_ticks_msec()*.001)
+		right = conducting.right
+		left = conducting.left
+		right_rotation = conducting.right_rotation
+		left_rotation = conducting.left_rotation
 	if recoil>0:
 		right = right.lerp(Vector3(0.40,1.32,-0.08),recoil)
 		left = left.lerp(Vector3(-0.36,1.22,-0.10),recoil)

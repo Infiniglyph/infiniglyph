@@ -8,6 +8,7 @@ const Geometry = preload("res://scripts/equipment_geometry.gd")
 const Whip = preload("res://scripts/whip_presentation.gd")
 const Scribe = preload("res://scripts/scribe_presentation.gd")
 const Paintbrush = preload("res://scripts/paintbrush_presentation.gd")
+const Wand = preload("res://scripts/wand_presentation.gd")
 var _custom_key: StringName = &""
 var visual: Node3D
 var right_hand: Node3D
@@ -107,7 +108,7 @@ func equip_item(id: StringName, stow: bool) -> void:
 			return
 		var right: Node3D = Paintbrush.model(Color(geometry.tint)) if kind==&"paintbrush" else Whip.new() if item.family=="whip" else Geometry.model(geometry)
 		if right is Whip: right.configure(self,geometry)
-		(left_hand if kind==&"paintbrush" else right_hand).add_child(right)
+		(left_hand if kind in [&"paintbrush",&"wand"] else right_hand).add_child(right)
 		var left := Node3D.new()
 		left_hand.add_child(left)
 		if kind in [&"twin_blades",&"dual_disc"]:
@@ -124,6 +125,11 @@ func equip_item(id: StringName, stow: bool) -> void:
 		if kind==&"paintbrush":
 			back.position = Vector3(.08,.12,-.04)
 			back.rotation.z = -.5
+		elif kind==&"wand":
+			# Short tool carried high beside the shoulder blade. Keep its focus
+			# above the belt rather than down through the legs or costume tails.
+			back.position = Vector3(-.24,-.10,-.035)
+			back.rotation = Vector3(0,0,-.24)
 		if kind==&"katana":
 			back.position = Vector3.ZERO
 			back.rotation = Vector3(-1.97,.10,0)
@@ -179,7 +185,7 @@ func orient_hand(hand: Node3D, world_basis: Basis) -> void:
 func blade_segments() -> Array:
 	if sheathed or not models.has(selected): return []
 	var kind: StringName = Library.loadout(selected).id
-	if kind in [&"scribe",&"paintbrush"] or Equipment.get_item(selected).get("family")=="whip": return [] # Persistent ink is the attack geometry.
+	if kind in [&"scribe",&"paintbrush",&"wand"] or Equipment.get_item(selected).get("family")=="whip": return [] # Casting effects and persistent ink own their attack geometry.
 	var length := 1.74 if kind == &"spear" else (0.66 if kind == &"twin_blades" else 1.15)
 	var item := Equipment.get_item(selected)
 	if not item.is_empty(): length = float(item.geometry.length)
