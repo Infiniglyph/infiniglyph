@@ -34,17 +34,6 @@ var _pedestrian_query := PhysicsShapeQueryParameters3D.new()
 var validation_probes := 0
 var spawned_this_tick := 0
 
-func _activity() -> Node:
-	var activity: Node=actor.get_parent().get("code_form_activity")
-	return activity if is_instance_valid(activity) and activity.enabled else null
-
-func near_activity(point: Vector3,vehicle: bool=false,retiring: bool=false) -> bool:
-	var activity:=_activity()
-	if is_instance_valid(activity):
-		var radius: float=(activity.VEHICLE_RETIRE if retiring else activity.VEHICLE_RADIUS) if vehicle else (activity.PEOPLE_RETIRE if retiring else activity.PEOPLE_RADIUS)
-		return activity.contains(point,radius)
-	return point.distance_squared_to(actor.global_position)<pow((280.0 if retiring else 240.0) if vehicle else (155.0 if retiring else 125.0),2)
-
 func _ready() -> void:
 	name = "DistrictLife"
 	_capsule.height = 1.85
@@ -112,11 +101,7 @@ func build() -> void:
 		driveways[key].box(at+Vector3.UP*0.025,Vector3(3.4,0.05,7.4),"Driveway",Color(0.06,0.4,0.45))
 		var id := vehicle_records.size()
 		vehicle_records.append({"id":id,"kind":["car","motorcycle","truck"][id%3],"point":at+Vector3.UP*0.12,"yaw":0.0,"traffic":false,"taken":false,"route":PackedVector3Array(),"cursor":0,"color":Profiles.PALETTE.values()[id%11],"driver":driver_profile(id)})
-	for batch: Node3D in driveways.values():
-		batch.commit()
-		batch.mesh_instance.add_to_group("bubble_scenery")
-	var activity:=_activity()
-	if is_instance_valid(activity): activity.apply_scenery_ranges()
+	for batch: Node3D in driveways.values(): batch.commit()
 	_built = true
 	refresh_active()
 
@@ -177,7 +162,7 @@ func refresh_active() -> void:
 	var origin := actor.global_position
 	for id: int in vehicles.keys():
 		var vehicle: CharacterBody3D = vehicles[id]
-		if not is_instance_valid(vehicle.player_driver) and not vehicle.record.get("patrol_deployed",false) and not near_activity(vehicle.global_position,true,true):
+		if not is_instance_valid(vehicle.player_driver) and not vehicle.record.get("patrol_deployed",false) and vehicle.global_position.distance_to(origin)>280:
 			vehicle.record.point = vehicle.global_position
 			vehicle.record.yaw = vehicle.rotation.y
 			vehicles.erase(id)
@@ -185,18 +170,18 @@ func refresh_active() -> void:
 	for id: int in people.keys():
 		var resident: CharacterBody3D = people[id]
 		if resident.record.get("combat",false): continue
-		if not near_activity(resident.global_position,false,true) and not (resident.wait>0 and resident.record.meetings>0):
+		if resident.global_position.distance_to(origin)>155:
 			resident.record.point = resident.global_position
 			people.erase(id)
 			resident.queue_free()
 	var nearby: Array[Dictionary] = []
 	for record: Dictionary in vehicle_records:
-		if not vehicles.has(record.id) and near_activity(record.point,true): nearby.append(record)
+		if not vehicles.has(record.id) and record.point.distance_squared_to(origin)<240*240: nearby.append(record)
 	nearby.sort_custom(func(a: Dictionary,b: Dictionary): return a.point.distance_squared_to(origin)<b.point.distance_squared_to(origin))
 	_vehicle_queue.assign(nearby)
 	nearby.clear()
 	for record: Dictionary in resident_records:
-		if not people.has(record.id) and not record.get("combat",false) and near_activity(record.point) and record.valid: nearby.append(record)
+		if not people.has(record.id) and not record.get("combat",false) and record.point.distance_squared_to(origin)<125*125 and record.valid: nearby.append(record)
 	nearby.sort_custom(func(a: Dictionary,b: Dictionary): return a.point.distance_squared_to(origin)<b.point.distance_squared_to(origin))
 	_people_queue.assign(nearby)
 
@@ -206,7 +191,7 @@ func service_spawns() -> void:
 	while not _vehicle_queue.is_empty() and vehicles.size()<vehicle_budget and attempts<2:
 		var record: Dictionary = _vehicle_queue.pop_front()
 		attempts += 1
-		if vehicles.has(record.id) or not near_activity(record.point,true): continue
+		if vehicles.has(record.id) or record.point.distance_squared_to(actor.global_position)>240*240: continue
 		var size := Vector3(2.3,2.5,5.4) if record.kind=="truck" else (Vector3(0.9,1.4,2.4) if record.kind=="motorcycle" else Vector3(1.9,1.85,4.2))
 		# Use the yawed envelope for traffic spawn checks (long trucks at corners).
 		if absf(sin(record.yaw))>0.7: size = Vector3(size.z,size.y,size.x)
@@ -223,7 +208,7 @@ func service_spawns() -> void:
 		break # Construct at most one vehicle per frame.
 	if _people_queue.is_empty() or people.size()>=resident_budget: return
 	var record: Dictionary = _people_queue[0]
-	if people.has(record.id) or record.get("combat",false) or not near_activity(record.point):
+	if people.has(record.id) or record.get("combat",false) or record.point.distance_squared_to(actor.global_position)>125*125:
 		_people_queue.pop_front()
 		return
 	if validate_walk(record):
@@ -307,10 +292,8 @@ func _physics_process(delta: float) -> void:
 		for resident: CharacterBody3D in people.values():
 			if resident.record.get("combat",false): continue
 			var offset := resident.global_position-actor.global_position
-			var activity:=_activity()
-			var distance := sqrt(activity.distance_squared(resident.global_position)) if is_instance_valid(activity) else Vector2(offset.x,offset.z).length()
+			var distance := Vector2(offset.x,offset.z).length()
 			var range_now := 65.0+minf(100,Vector2(actor.velocity.x,actor.velocity.z).length()*0.75)
-			if is_instance_valid(activity): range_now=65.0
 			if not simulation_lod_enabled or distance<range_now or resident.wait>0 and resident.record.meetings>0:
 				resident.set_virtualized(false)
 			elif distance>range_now+25: resident.set_virtualized(true)

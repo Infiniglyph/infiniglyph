@@ -22,9 +22,6 @@ var _guild_premises_ready:=false
 var _guild_signs: Dictionary={}
 var _cells: Dictionary={}
 var _homes: Dictionary={}
-var _local_shells: Dictionary={}
-var _descriptor_order: Dictionary={}
-var inspected_shells:=0
 signal changed
 
 func _ready() -> void:
@@ -40,7 +37,6 @@ func _register() -> void:
 	if not is_inside_tree(): return
 	for descriptor: Dictionary in world.wider_world.building_records():
 		if model.register(descriptor):
-			_descriptor_order[descriptor.id]=descriptors.size()
 			descriptors[descriptor.id]=descriptor
 			var cell:=Vector2i(floori(descriptor.point.x/128),floori(descriptor.point.z/128))
 			if not _cells.has(cell): _cells[cell]=[]
@@ -48,16 +44,6 @@ func _register() -> void:
 	ready_for_use=true
 
 func transaction_active() -> bool: return _busy
-
-func local_candidates() -> Array[String]:
-	var result: Array[String]=[]
-	var point: Vector3=world.player.global_position
-	var cell:=Vector2i(floori(point.x/128),floori(point.z/128))
-	for x in range(-1,2):
-		for z in range(-1,2): result.append_array(_cells.get(cell+Vector2i(x,z),[]))
-	# Preserve manifest tie breaking if building footprints overlap.
-	result.sort_custom(func(a: String,b: String): return int(_descriptor_order[a])<int(_descriptor_order[b]))
-	return result
 func _now() -> float: return float(world.civilization.world_seconds)
 func _actor() -> String: return "player"
 func _allowed() -> bool:
@@ -66,7 +52,7 @@ func _allowed() -> bool:
 func nearest() -> String:
 	if not _allowed(): return ""
 	var point: Vector3=world.player.global_position
-	for id: String in local_candidates():
+	for id: String in descriptors:
 		var row: Dictionary=model.records[id]
 		if row.manual_review: continue
 		var base:=Vector3(float(row.position[0]),float(row.position[1]),float(row.position[2]))
@@ -375,12 +361,7 @@ func _process(delta: float) -> void:
 	_assign_starter_guilds()
 	if menu.is_open and not _near(current): menu.close_menu()
 	var inside_id:=nearest()
-	var candidates:=local_candidates()
-	for id: String in _local_shells:
-		if id not in candidates: candidates.append(id)
-	_local_shells.clear()
-	inspected_shells=candidates.size()
-	for id: String in candidates:
+	for id: String in descriptors:
 		var descriptor: Dictionary=descriptors[id]
 		var shell: Node=descriptor.get("shell")
 		if not is_instance_valid(shell): continue
@@ -393,9 +374,7 @@ func _process(delta: float) -> void:
 			var permitted: bool=row.access=="public" or row.owner=="player" or row.access=="tenants" and "player" in row.tenants or inside_id==id
 			shell.set_accessible(permitted)
 		shell.set_nearby(near,world.player.global_position.y-descriptor.point.y)
-		if near:
-			_local_shells[id]=true
-			_render(id)
+		if near: _render(id)
 		elif _rendered.has(id):
 			if is_instance_valid(_rendered[id]): _rendered[id].queue_free()
 			_rendered.erase(id); _render_revision.erase(id)

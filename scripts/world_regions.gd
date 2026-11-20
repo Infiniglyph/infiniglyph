@@ -138,9 +138,7 @@ func _ready() -> void:
 					else: build_country(chunk,at,seed)
 	build_bridges()
 	build_destinations()
-	for chunk: Node3D in chunks.values():
-		chunk.commit()
-		chunk.mesh_instance.add_to_group("bubble_scenery")
+	for chunk: Node3D in chunks.values(): chunk.commit()
 	build_gates()
 	kyren_home = KyrenHome.new()
 	kyren_home.position = Vector3(KyrenHome.CENTER.x,height_at(KyrenHome.CENTER.x,KyrenHome.CENTER.z),KyrenHome.CENTER.z)

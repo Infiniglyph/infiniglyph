@@ -255,7 +255,7 @@ func advance_real(seconds: float, offline: bool = false) -> bool:
 		# At most one coarse pass over every civilian during catch-up, never a
 		# replay of hours of individual pathfinding or combat frames.
 		var batches:=maxi(1,ceili(float(registry.slots.size())/float(Autonomy.BATCH_SIZE))) if offline and real_seconds>0 else 1
-		for i in range(batches): autonomy.process_batch(real_seconds/float(batches),offline)
+		for i in range(batches): autonomy.process_batch(real_seconds/float(batches))
 	_pending_replacements.clear()
 	if ok: _saved_unix=Time.get_unix_time_from_system()
 	_busy=false
