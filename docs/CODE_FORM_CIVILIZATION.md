@@ -241,7 +241,7 @@ The existing TED-RAG worker already blends authored constraints using
 `C(x) = sum(w_i * C_i(x))`. Code Form goal selection now reuses equivalent
 weighted components: every affordable item in a shopping category has the same
 motivation terms, so four category minimum prices replace repeated per-item
-evaluation. The current offered subset is summarized once within a twelve-person
+evaluation. The current offered subset is summarized once within a bounded AI
 batch. Rotation or stock restoration invalidates it immediately; an unknown
 stock provider stays uncached. Standalone decisions read fresh offers, and the
 transaction authority still revalidates each real purchase independently.
@@ -281,6 +281,24 @@ checkpoint invalidation. `tests/weighted_constraint_integration.gd` checks the
 real asynchronous TED-RAG builder, worker reuse, normalized weights and fallback.
 
 ## Verification
+
+The default world now uses the 3D activity bubble described in
+[WORLD_MEMORY.md](WORLD_MEMORY.md). Frequent decisions are local; distant
+citizens share two full AI turns per tick while retaining their identity,
+journeys and global clocks. This deliberately changes simulation frequency.
+The earlier component-cache comparison above preserved frequency; it should
+not be read as the current bubble's workload or as a frame-rate measurement.
+
+In the 1,122-citizen frozen-body diagnostic (256 ticks after 96 warm-up ticks),
+the indexed bubble reduced mean clock/autonomy CPU from 25.64 ms to 11.28 ms
+and p95 from 61.83 ms to 17.70 ms. Its separately measured cell query averaged
+2.53 ms per tick, including periodic index rebuilds. The same interval produced 1,142 rather than 4,224
+decisions, as intended. All identities and coin conservation remained intact.
+The independent building cell index reduced its update from roughly 7-8 ms
+in the preceding full scan to about 1 ms. These are logical CPU measurements;
+the native paired fixture measures frame time and draw calls separately.
+Use `tests/code_form_simulation_profile.gd -- --disable-bubble --label=baseline`
+and a separate enabled run with isolated application-data directories to repeat.
 
 Dedicated fixtures cover registry identity/lifetimes/events, economic ownership
 and migration, bounded autonomy, whole-world checkpoints/instances, physical

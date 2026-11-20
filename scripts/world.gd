@@ -37,6 +37,9 @@ const CareerActions = preload("res://scripts/career_actions.gd")
 const CareerMenu = preload("res://scripts/career_menu.gd")
 const CareerCommute = preload("res://scripts/career_commute.gd")
 const DarkBoxPatrols = preload("res://scripts/dark_box_patrols.gd")
+const CodeFormActivity = preload("res://scripts/code_form_activity.gd")
+var code_form_activity: Node
+@export var activity_bubble_enabled := true
 var dark_box_patrols: Node3D
 var careers: Node
 var career_actions: RefCounted
@@ -259,6 +262,10 @@ func _ready() -> void:
 			dark_box_patrols=DarkBoxPatrols.new()
 			dark_box_patrols.world=self
 			add_child(dark_box_patrols)
+	code_form_activity=CodeFormActivity.new()
+	code_form_activity.world=self
+	code_form_activity.enabled=activity_bubble_enabled
+	add_child(code_form_activity)
 	if not inventory_session.networked():
 		respawn_glyphs=RespawnGlyphs.new()
 		respawn_glyphs.world=self

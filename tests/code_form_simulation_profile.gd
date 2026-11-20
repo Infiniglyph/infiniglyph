@@ -7,6 +7,7 @@ var samples := 256
 var timings: Dictionary = {}
 var failures := 0
 var diagnostic := false
+var bubble_enabled := true
 var recording := false
 var callbacks: Dictionary = {}
 class TimedAutonomy:
@@ -33,6 +34,7 @@ func _initialize() -> void:
 		if argument.begins_with("--label="): label=argument.trim_prefix("--label=").validate_filename()
 		if argument.begins_with("--samples="): samples=clampi(int(argument.trim_prefix("--samples=")),16,1024)
 		if argument=="--diagnostic": diagnostic=true
+		if argument=="--disable-bubble": bubble_enabled=false
 	call_deferred("run")
 
 func frames(count: int=1) -> void:
@@ -47,6 +49,7 @@ func measure(component: String,operation: Callable,record: bool) -> void:
 
 func tick(record: bool) -> void:
 	recording=record
+	measure("activity_query",func(): world.code_form_activity._process(1.0),record)
 	measure("clock_and_autonomy",func():
 		if not world.civilization.advance_real(1.0): failures+=1,record)
 	measure("economic_review",func(): world.civilization.review_economics(),record)
@@ -77,6 +80,7 @@ func wrap_callbacks(model: RefCounted,prefix: String) -> void:
 func run() -> void:
 	create_timer(180).timeout.connect(func(): push_error("Code Form profile watchdog"); quit(2))
 	world=load("res://scenes/main.tscn").instantiate()
+	world.activity_bubble_enabled=bubble_enabled
 	world.inventory_persistence_enabled=false
 	world.world_memory_enabled=false
 	world.boss_encounters_enabled=false
@@ -99,6 +103,7 @@ func run() -> void:
 		profiled.civilization=world.civilization; profiled.report=report_callback
 		profiled.states=previous.states; profiled.cursor=previous.cursor
 		profiled._sources=previous._sources; profiled._regional_records=previous._regional_records
+		profiled._driver_records=previous._driver_records
 		world.civilization.autonomy=profiled
 		wrap_callbacks(world.careers.model,"career/")
 		wrap_callbacks(world.quest_system.model,"quest/")
@@ -115,11 +120,14 @@ func run() -> void:
 	var total_coins:=0
 	for amount: int in economy.balances.values(): total_coins+=amount
 	var result:={"label":label,"samples":samples,"cpu":OS.get_processor_name(),"engine":Engine.get_version_info().string,"components":summary,"active_citizens":world.civilization.registry.slots.size(),"autonomy_states":world.civilization.autonomy.states.size(),"decisions":world.civilization.autonomy.decisions,"completed_actions":world.civilization.autonomy.completed_actions,"world_seconds":world.civilization.world_seconds,"workers":world.careers.model.workers.size(),"employments":world.careers.model.employments.size(),"contracts":world.quest_system.model.instances.size(),"coin_supply_valid":total_coins+economy.destroyed_total==economy.issued_total,"notes":"Frozen production bodies; direct real simulation/service calls. Not an FPS benchmark; other desktop processes remain running."}
+	result.activity_bubble=bubble_enabled
+	result.local_citizens=world.code_form_activity.local_ids.size()
+	result.background_steps=world.civilization.autonomy.last_background_steps
 	print("CODE FORM PROFILE ",JSON.stringify(result))
 	if diagnostic: print("NESTED CALLBACK PROFILE ",JSON.stringify(callbacks))
 	var file:=FileAccess.open("res://.godot/code-form-profile-"+label+".json",FileAccess.WRITE)
 	if file!=null: file.store_string(JSON.stringify(result,"\t")); file.close()
-	if not result.coin_supply_valid or result.active_citizens!=result.autonomy_states: failures+=1
+	if not result.coin_supply_valid or result.autonomy_states>result.active_citizens or not bubble_enabled and result.active_citizens!=result.autonomy_states: failures+=1
 	world.queue_free()
 	await frames(3)
 	quit(1 if failures else 0)

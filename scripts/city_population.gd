@@ -49,6 +49,16 @@ var virtual_count := 0
 var _floor_query := PhysicsRayQueryParameters3D.new()
 var _clear_query := PhysicsShapeQueryParameters3D.new()
 
+func _activity() -> Node:
+	var activity: Node=player.get_parent().get("code_form_activity")
+	return activity if is_instance_valid(activity) and activity.enabled else null
+
+func near_activity(point: Vector3,retiring: bool=false) -> bool:
+	var activity:=_activity()
+	if is_instance_valid(activity): return activity.contains(point,activity.PEOPLE_RETIRE if retiring else activity.PEOPLE_RADIUS)
+	var offset:=point-player.global_position
+	return Vector2(offset.x,offset.z).length()<physical_range+(40 if retiring else 0)+minf(120,Vector2(player.velocity.x,player.velocity.z).length()*.75)
+
 func _ready() -> void:
 	name = "CityPopulation"
 	_capsule.radius = 0.34
@@ -302,6 +312,7 @@ func spawn_on_street(resident: CharacterBody3D, neighborhood: StringName, concea
 			if other.position.distance_to(at)<2: crowded = true
 		if crowded: continue
 		resident.activate(floor.point)
+		if simulation_lod_enabled and not near_activity(floor.point): resident.set_virtualized(true)
 		if not concealed_only: initial_street_residents[resident.profile.id] = true
 		resident.wait = rng.randf_range(0.1,3)
 		return true
@@ -430,8 +441,7 @@ func service_indoors(delta: float) -> void:
 		resident.wait = 0
 		resident.outdoor_stops = 0
 		resident.stops_before_indoor = rng.randi_range(1,3)
-		var distance_from_player := resident.global_position-player.global_position
-		if simulation_lod_enabled and Vector2(distance_from_player.x,distance_from_player.z).length()>physical_range+160:
+		if simulation_lod_enabled and not near_activity(resident.global_position):
 			resident.set_virtualized(true)
 		_indoor_cursor = (int(resident.profile.serial)+1)%residents.size()
 
@@ -585,16 +595,13 @@ func _physics_process(delta: float) -> void:
 
 func advance_simulation_lod(delta: float) -> void:
 	virtual_count = 0
-	# Activation leads fast travel; vertical Sky Jump height cannot retire the
-	# people directly beneath the player. Hysteresis avoids boundary churn.
-	var range_now := physical_range+minf(120,Vector2(player.velocity.x,player.velocity.z).length()*0.75)
+	# The shared three-dimensional swept bubble predicts fast arrivals. The
+	# larger retirement radius prevents churn while crossing its boundary.
 	for resident: CharacterBody3D in active_residents.duplicate():
-		var offset := resident.global_position-player.global_position
-		var distance := Vector2(offset.x,offset.z).length()
 		var protected: bool = resident.state=="talking" or resident.reaction_time>0 or resident.is_in_group("combat_targets")
-		if not simulation_lod_enabled or protected or distance<range_now:
+		if not simulation_lod_enabled or protected or near_activity(resident.global_position):
 			resident.set_virtualized(false)
-		elif distance>range_now+40: resident.set_virtualized(true)
+		elif not near_activity(resident.global_position,true): resident.set_virtualized(true)
 		if resident.virtualized:
 			virtual_count += 1
 			resident.advance_virtual(delta)

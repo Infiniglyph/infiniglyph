@@ -32,9 +32,11 @@ and restores original resident update rates when disabled.
 
 `city_population.gd` separately manages distant original residents: outdoor
 journeys and door leases progress at quarter-second intervals, without movement
-physics or floor/avoidance probes. Activation within 140 m checks supported,
-unoccupied space; retirement beyond 180 m provides hysteresis. Planar distance
-and speed-dependent lead range protect Sky Jump landings and fast approaches.
+physics or floor/avoidance probes. `code_form_activity.gd` supplies a shared
+three-dimensional activity bubble: pedestrians activate within 128 m and retire
+beyond 160 m. A velocity-directed look-ahead of up to 96 m anticipates driving,
+Sky Jump and falling. Activation checks supported, unoccupied space. Height now
+matters: distant street physics can retire while the player is high above it.
 Identity, conversation history and building-entry/exit counters stay on the same
 resident object. Talking, reacting and combat participants retain full updates.
 
@@ -71,6 +73,65 @@ interpolates between the five-Hz route records. Regional pose updates and seated
 driver poses share the existing retrieved 24-32 m / 15-20 Hz / 8-10 Hz policy;
 unavailable retrieval uses the same local defaults. No new worker is launched.
 Uninstantiated regional residents and traffic continue lightweight journeys.
+
+Regional vehicles use the same predictive bubble with 192/240 m activation and
+retirement radii. Existing body/construction budgets remain in force. Active
+combatants, conversations, the player's vehicle and deployed patrols keep their
+existing ownership/protection rules. Outdoor and instanced coordinates never
+share an activity set.
+
+Frequent logical AI is also local: a one-second query of 128 m 3D cells builds
+the nearby identity set, refreshed earlier on a 16 m move, replacement or
+instance change. The cell index rebuilds at most every five seconds during
+ordinary movement. A 40 m journey margin covers unloaded seven-metre-per-second
+traffic between rebuilds; candidate positions are rechecked live. Bounded live
+body pools are always included for fast driving, pushes and respawns. It uses
+current bodies, journey records and driver records, with real home/doorway
+positions for dormant indoor nodes and persisted respawn descriptors as fallback.
+Nearby residents receive up to twelve AI turns
+per clock tick; distant residents share two round-robin turns. Distant arrivals
+still record real visits and progress eligible events, but routine waypoints do
+not invoke extra full career/renovation actions outside this budget. A verified
+workplace-station arrival retains its existing work-completion callback.
+Offline catch-up retains its
+explicit bounded complete-census pass. Persistent clocks, blessings, lifetimes,
+inventories and identity are independent of the bubble. Full distant decisions
+are intentionally less frequent rather than identical to local activity.
+
+City, regional, driveway and window render batches use engine-side 3D visibility
+ranges: 384 m plus each batch's bounding radius, with 32 m hysteresis. The engine
+culls these batches without a GDScript scene traversal every frame. Landmark
+scenes keep their existing visibility. Building interiors use adjacent 128 m
+cells and clear the previously active shells on departure. Geometry and static
+landing/road collision stay in memory; this change reduces active processing
+and drawing, and does not claim to stream all map assets out of RAM.
+
+`World.activity_bubble_enabled` restores the previous scheduler and unlimited
+batch draw ranges for diagnostic comparisons. `tests/code_form_activity.gd`
+checks 3D look-ahead, fairness, instance isolation and offline behavior;
+`tests/activity_bubble_integration.gd` checks real body retirement/reactivation,
+landing collision, menus, spatial interiors and full checkpoint restoration.
+`tests/activity_bubble_performance.gd` measures uncapped native frame/draw costs
+at street and Sky Jump height, with screenshots under `.godot/`.
+
+Native samples on the local Intel HD 620 / ANGLE renderer at 1280x720, with
+VSync disabled and 96 measured frames after 60 settling frames:
+
+| Fixed-census view | Median frame ms, before / bubble | p95 ms, before / bubble | Draw calls, before / bubble |
+| --- | --- | --- | --- |
+| Street | 28.80 / 35.64 | 92.48 / 63.10 | 651 / 532 |
+| Sky Jump | 25.81 / 21.10 | 40.93 / 29.49 | 699 / 620 |
+
+This mode freezes the civilian clock and indoor exits/errands while retaining
+normal body physics and rendering. It isolates pooling/draw-distance behavior;
+the logical scheduler is measured separately. Both street halves retained twelve
+physical city residents. Airborne city physics dropped from twelve to zero.
+Draw counts and p95 improved in both views, but street median did not; these
+results do not establish a universal FPS improvement. A live-census pass also
+improved airborne median from 69.77 to 28.00 ms; its street comparison was
+confounded by crowd growth from sixteen to twenty-seven physical residents.
+Run native comparisons alone; desktop load, warm-up and evolving actors affect
+timings. Nearby character movement/collision remains substantial work.
 
 Construction and route checking are incremental; vehicle obstacle probes reuse
 their shape/query at approximately ten Hz. All nearby character/vehicle sweeps,

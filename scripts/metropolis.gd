@@ -459,4 +459,5 @@ func finish_batches() -> void:
 			visual.mesh = geometry
 			visual.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			add_child(visual)
+			visual.add_to_group("bubble_scenery")
 			render_batches += 1

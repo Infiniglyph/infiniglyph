@@ -90,5 +90,6 @@ func commit() -> void:
 		batch.mesh = mesh
 		batch.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(batch)
+		batch.add_to_group("bubble_scenery")
 		batch_count += 1
 	cells.clear()

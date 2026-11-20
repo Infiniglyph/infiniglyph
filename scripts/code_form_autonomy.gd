@@ -13,6 +13,10 @@ var decisions := 0
 var completed_actions := 0
 var _sources: Dictionary = {}
 var _regional_records: Dictionary = {}
+var _driver_records: Dictionary = {}
+var _local_cursor := 0
+var last_local_steps := 0
+var last_background_steps := 0
 var _batch_active := false
 var _interest_stock: Object
 var _interest_revision := -1
@@ -64,6 +68,7 @@ func bind_source(source: Node) -> void:
 func bind_sources() -> void:
 	_sources.clear()
 	_regional_records.clear()
+	_driver_records.clear()
 	var world=_world()
 	if not is_instance_valid(world): return
 	var population=world.get("population")
@@ -93,7 +98,29 @@ func bind_sources() -> void:
 		vehicle.driver.code_form_id=identity.id
 		vehicle.driver.name=identity.name
 		vehicle.driver.attitude=identity.personality
+		_driver_records[identity.id]=vehicle
 	for source: Node in life.people.values(): bind_source(source)
+	var activity:=_activity()
+	if is_instance_valid(activity): activity.refresh(true)
+
+func _activity() -> Node:
+	var world=_world()
+	var activity: Node=world.get("code_form_activity") if is_instance_valid(world) else null
+	return activity if is_instance_valid(activity) and activity.enabled else null
+
+func simulation_position(id: String) -> Vector3:
+	var source:=_source(id)
+	if is_instance_valid(source):
+		# An unspawned/indoor city body may be parked at scene origin. Its actual
+		# doorway/home is the logical position, not that dormant node transform.
+		if source.get("active") is bool and not source.active:
+			var population: Node=source.get("population")
+			if is_instance_valid(population) and population.points.has(source.home_building): return population.points[source.home_building]
+		else: return source.global_position
+	if _regional_records.has(id): return _regional_records[id].point
+	if _driver_records.has(id): return _driver_records[id].point
+	var point: Array=_registry().records.get(id,{}).get("respawn",{}).get("position",[])
+	return Vector3(float(point[0]),float(point[1]),float(point[2])) if point.size()==3 else Vector3.INF
 
 func _source(id: String) -> Node:
 	var reference: WeakRef=_sources.get(id)
@@ -219,18 +246,38 @@ func choose_goal(record: Dictionary,state: Dictionary) -> String:
 		if score>highest: highest=score; best=goal
 	return best
 
-func process_batch(_delta: float) -> void:
+func process_batch(_delta: float,coarse_all: bool=false) -> void:
 	var registry=_registry()
 	if registry==null: return
 	var ids: Array=registry.active_ids()
 	if ids.is_empty(): return
 	_batch_active=true
 	_interest_stock=null; _interest_prices={}; _interest_revision=-1
+	last_local_steps=0; last_background_steps=0
+	var scheduled: Array[String]=[]
+	var activity:=_activity() if not coarse_all else null
+	if is_instance_valid(activity):
+		activity.refresh()
+		var local: Array=activity.local_ids
+		for offset in range(mini(BATCH_SIZE,local.size())):
+			scheduled.append(local[_local_cursor%local.size()])
+			_local_cursor+=1; last_local_steps+=1
+		# Advance the saved census cursor even when it points at a local person.
+		# Empty local bubbles still service every distant identity fairly.
+		for offset in range(mini(ids.size(),BATCH_SIZE)):
+			if last_background_steps>=activity.BACKGROUND_BUDGET: break
+			var id: String=ids[cursor%ids.size()]
+			cursor=(cursor+1)%ids.size()
+			if activity.is_local(id): continue
+			scheduled.append(id); last_background_steps+=1
+	else:
+		for offset in range(mini(BATCH_SIZE,ids.size())):
+			scheduled.append(ids[cursor%ids.size()])
+			cursor=(cursor+1)%ids.size()
+			last_background_steps+=1
 	# The authoritative clock advances centrally, including capped offline time.
 	# One call never catches up by running an unbounded loop of old decisions.
-	for offset in range(mini(BATCH_SIZE,ids.size())):
-		var id: String=ids[cursor%ids.size()]
-		cursor=(cursor+1)%ids.size()
+	for id: String in scheduled:
 		var record: Dictionary=registry.records.get(id,{})
 		if record.is_empty() or not record.active: continue
 		var state:=_state(id)
@@ -385,6 +432,8 @@ func _arrive(id: String,target: String,source: Node=null) -> void:
 	if not _has_memory(record,"discovery",target):
 		_registry().remember(id,"discovery",target,"Visited "+target.trim_prefix("place/")+".",.6)
 		_event(record,"exploration",target,"common",.35)
+	var activity:=_activity()
+	if is_instance_valid(activity) and not activity.is_local(id): return
 	var state:=_state(id)
 	if _now()<float(state.next_action): return
 	state.next_action=_now()+60*_scale()
