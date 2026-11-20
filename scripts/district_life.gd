@@ -1,4 +1,5 @@
 extends Node3D
+const Presence = preload("res://scripts/code_form_presence.gd")
 ## Small active neighborhoods, persistent virtual journeys across the whole map.
 ## Architecture stays loaded. Only dynamic people/traffic use distance budgets.
 const Regions = preload("res://scripts/world_regions.gd")
@@ -160,6 +161,7 @@ func validate_walk(record: Dictionary) -> bool:
 
 func refresh_active() -> void:
 	var origin := actor.global_position
+	var draw_range:=Presence.draw_range(actor.velocity)
 	for id: int in vehicles.keys():
 		var vehicle: CharacterBody3D = vehicles[id]
 		if not is_instance_valid(vehicle.player_driver) and not vehicle.record.get("patrol_deployed",false) and vehicle.global_position.distance_to(origin)>280:
@@ -170,7 +172,7 @@ func refresh_active() -> void:
 	for id: int in people.keys():
 		var resident: CharacterBody3D = people[id]
 		if resident.record.get("combat",false): continue
-		if resident.global_position.distance_to(origin)>155:
+		if resident.global_position.distance_to(origin)>draw_range+Presence.DRAW_MARGIN:
 			resident.record.point = resident.global_position
 			people.erase(id)
 			resident.queue_free()
@@ -181,7 +183,7 @@ func refresh_active() -> void:
 	_vehicle_queue.assign(nearby)
 	nearby.clear()
 	for record: Dictionary in resident_records:
-		if not people.has(record.id) and not record.get("combat",false) and record.point.distance_squared_to(origin)<125*125 and record.valid: nearby.append(record)
+		if not people.has(record.id) and not record.get("combat",false) and record.point.distance_squared_to(origin)<draw_range*draw_range and record.valid: nearby.append(record)
 	nearby.sort_custom(func(a: Dictionary,b: Dictionary): return a.point.distance_squared_to(origin)<b.point.distance_squared_to(origin))
 	_people_queue.assign(nearby)
 
@@ -208,7 +210,7 @@ func service_spawns() -> void:
 		break # Construct at most one vehicle per frame.
 	if _people_queue.is_empty() or people.size()>=resident_budget: return
 	var record: Dictionary = _people_queue[0]
-	if people.has(record.id) or record.get("combat",false) or record.point.distance_squared_to(actor.global_position)>125*125:
+	if people.has(record.id) or record.get("combat",false) or record.point.distance_to(actor.global_position)>Presence.draw_range(actor.velocity):
 		_people_queue.pop_front()
 		return
 	if validate_walk(record):
@@ -291,12 +293,14 @@ func _physics_process(delta: float) -> void:
 		_pose_policy = actor.visual.retrieval.world_policy()
 		for resident: CharacterBody3D in people.values():
 			if resident.record.get("combat",false): continue
-			var offset := resident.global_position-actor.global_position
-			var distance := Vector2(offset.x,offset.z).length()
-			var range_now := 65.0+minf(100,Vector2(actor.velocity.x,actor.velocity.z).length()*0.75)
-			if not simulation_lod_enabled or distance<range_now or resident.wait>0 and resident.record.meetings>0:
+			var distance := resident.global_position.distance_to(actor.global_position)
+			var range_now:=Presence.physics_range(actor.velocity)
+			var protected: bool=resident.wait>0 and resident.record.meetings>0 and distance<24
+			if not simulation_lod_enabled or distance<range_now or protected:
 				resident.set_virtualized(false)
-			elif distance>range_now+25: resident.set_virtualized(true)
+			elif distance>range_now+Presence.PHYSICS_MARGIN: resident.set_virtualized(true)
+			resident.presence.refresh(true,protected or not simulation_lod_enabled)
+			resident.set_process(resident.virtualized and resident.presence.present)
 			if resident.virtualized: resident.advance_virtual(_lod_clock)
 		_lod_clock = 0
 	_clock += delta

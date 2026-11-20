@@ -42,6 +42,10 @@ func observe_service(event: Dictionary) -> bool:
 	if ok: changed.emit()
 	return ok
 func transaction_active() -> bool: return model.transaction_active()
+func reconcile_contracts(now: float) -> void:
+	var before: int=model.revision
+	model.reconcile_contracts(now)
+	if model.revision!=before: changed.emit()
 func serialize() -> Dictionary: return model.serialize()
 func restore(data: Variant) -> bool:
 	var ok:=model.restore(data)

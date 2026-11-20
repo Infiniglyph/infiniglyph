@@ -5,6 +5,7 @@ const Menu = preload("res://scripts/civilian_menu.gd")
 const Resident = preload("res://scripts/resident_visual.gd")
 const Catalog = preload("res://scripts/item_catalog.gd")
 const Profiles = preload("res://scripts/resident_profiles.gd")
+const Presence = preload("res://scripts/code_form_presence.gd")
 var world: Node3D
 var establishments: Node3D
 var economy: Node
@@ -72,6 +73,12 @@ func _make_keeper(id: String, title: String, role: String, anchor: Node3D, tint:
 	caption.pixel_size=.003
 	caption.modulate=tint
 	person.add_child(caption)
+	var presence:=Presence.new()
+	presence.actor=person
+	presence.viewer=world.player
+	presence.figure=visual
+	person.add_child(presence)
+	presence.refresh()
 	_people.append(person)
 
 func _make_adventurer(id: String, seat: Dictionary, tint: Color, greeting: String) -> void:
@@ -313,7 +320,7 @@ func _process(delta: float) -> void:
 	_clock=.1
 	if menu.is_open and (world.player.health<=0 or world.player.transition_locked or not near(current)): menu.close_menu()
 	for person: Node3D in _people:
-		person.visible=world.dungeon_travel.active_location==world.dungeon_travel.OUTSIDE and person.global_position.distance_to(world.player.global_position)<70
+		person.get_node("CodeFormPresence").refresh(world.dungeon_travel.active_location==world.dungeon_travel.OUTSIDE)
 		if person.visible: person.get_child(0).animate(.1,0,menu.is_open)
 
 func reset_state() -> bool:

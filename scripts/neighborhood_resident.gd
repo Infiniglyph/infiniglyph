@@ -2,6 +2,8 @@ extends CharacterBody3D
 ## Identity and journey live in the regional roster, outside animation lifetime.
 const Visual = preload("res://scripts/resident_visual.gd")
 const Profiles = preload("res://scripts/resident_profiles.gd")
+const Presence = preload("res://scripts/code_form_presence.gd")
+var presence: Node
 var life: Node3D
 var record: Dictionary
 var profile: Dictionary
@@ -71,8 +73,16 @@ func _ready() -> void:
 	caption.pixel_size = 0.004
 	caption.outline_size = 7
 	add_child(caption)
+	presence=Presence.new()
+	presence.actor=self
+	presence.viewer=life.actor
+	presence.figure=visual
+	add_child(presence)
+	presence.refresh()
 	set_process(false)
 	if is_instance_valid(life.reactions): life.reactions.bind_source(self)
+	if life.simulation_lod_enabled and global_position.distance_to(life.actor.global_position)>Presence.physics_range(life.actor.velocity)+Presence.PHYSICS_MARGIN:
+		set_virtualized(true)
 
 func set_virtualized(value: bool) -> bool:
 	if virtualized==value or record.get("combat",false): return true
@@ -88,7 +98,7 @@ func set_virtualized(value: bool) -> bool:
 	collision_mask = 0 if value else 13
 	velocity = Vector3.ZERO
 	set_physics_process(not value)
-	set_process(value)
+	set_process(value and presence.present)
 	visual.position = Vector3.ZERO
 	_render_offset = Vector3.ZERO
 	_virtual_yaw = visual.rotation.y

@@ -101,8 +101,8 @@ static func _values_only(value: Variant,depth: int = 0) -> bool:
 			return true
 	return false
 
-static func _failure(error: Error) -> Dictionary:
-	return {"error":error,"bytes":PackedByteArray()}
+static func _failure(error: Error, stage: String = "encoding") -> Dictionary:
+	return {"error":error,"bytes":PackedByteArray(),"stage":stage}
 
 static func _encode(captured: Dictionary,society_bytes: PackedByteArray,has_society: bool) -> Dictionary:
 	# This static callable retains no encoder/scene object. Every container is
@@ -114,25 +114,26 @@ static func _encode(captured: Dictionary,society_bytes: PackedByteArray,has_soci
 		var decoded: Variant=bytes_to_var(society_bytes)
 		if not decoded is Dictionary or not _values_only(decoded): return _failure(ERR_INVALID_DATA)
 		var society: Dictionary=Civilization.validate(decoded)
-		if society.is_empty(): return _failure(ERR_INVALID_DATA)
+		if society.is_empty(): return _failure(ERR_INVALID_DATA,"civilization")
 		var model: Dictionary=society.registry
 		var active: Array=model.slots.values()
 		var paid: Array=captured.civilian_state.active_ids.duplicate()
 		active.sort(); paid.sort()
-		if active!=paid: return _failure(ERR_INVALID_DATA)
+		if active!=paid: return _failure(ERR_INVALID_DATA,"active census")
 		var history: Array=model.records.keys()
 		var accounts: Array=captured.civilian_state.natural_ids.duplicate()
 		history.sort(); accounts.sort()
-		if history!=accounts: return _failure(ERR_INVALID_DATA)
+		if history!=accounts: return _failure(ERR_INVALID_DATA,"historical census")
 		var interval: float=float(model.config.blessing_days)*float(model.config.day_seconds)
-		if int(captured.civilian_state.last_cycle)!=floori(float(model.world_seconds)/interval): return _failure(ERR_INVALID_DATA)
-		if not Civilization.ledger_matches(society,captured.civilian_state): return _failure(ERR_INVALID_DATA)
-		if captured.has("glyphic_wonders_state") and not Store.wonders_clock_matches(captured.glyphic_wonders_state,model): return _failure(ERR_INVALID_DATA)
+		if int(captured.civilian_state.last_cycle)!=floori(float(model.world_seconds)/interval): return _failure(ERR_INVALID_DATA,"blessing clock")
+		if not Civilization.ledger_matches(society,captured.civilian_state): return _failure(ERR_INVALID_DATA,"economic audit links")
+		if captured.has("glyphic_wonders_state") and not Store.wonders_clock_matches(captured.glyphic_wonders_state,model): return _failure(ERR_INVALID_DATA,"stock clock")
 		captured.civilization_state=society
-	if Store.has_civic_state(captured) and not Store.civic_links_match(captured): return _failure(ERR_INVALID_DATA)
-	if not Store.building_links_match(captured): return _failure(ERR_INVALID_DATA)
-	if not Store.career_links_match(captured): return _failure(ERR_INVALID_DATA)
-	if not Store.dark_box_links_match(captured): return _failure(ERR_INVALID_DATA)
+	if Store.has_civic_state(captured) and not Store.civic_links_match(captured): return _failure(ERR_INVALID_DATA,"civic links")
+	if not Store.building_links_match(captured): return _failure(ERR_INVALID_DATA,"building links")
+	var career_error:=Store.career_link_error(captured)
+	if not career_error.is_empty(): return _failure(ERR_INVALID_DATA,"career links: "+career_error)
+	if not Store.dark_box_links_match(captured): return _failure(ERR_INVALID_DATA,"officer links")
 	var bytes: PackedByteArray=JSON.stringify(captured,"",true,true).to_utf8_buffer()
 	if bytes.size()>Store.MAX_SAVE_BYTES: return _failure(ERR_OUT_OF_MEMORY)
 	return {"error":OK,"bytes":bytes}

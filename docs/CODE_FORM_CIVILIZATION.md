@@ -282,6 +282,22 @@ real asynchronous TED-RAG builder, worker reuse, normalized weights and fallback
 
 ## Verification
 
+Contract employment now reconciles at quest completion and before the civic
+board publishes/prunes more contracts. A transient index visits only active
+contract jobs; it is rebuilt from authoritative employment records after load.
+An expired/pruned quest cannot leave a job marked active until that NPC's next
+AI turn, which previously caused checkpoint validation to fail. Cleanup does not
+pay wages, change rewards or relax the linked-save validators.
+
+Autosaves coalesce changes for 0.75 s, wait at least 15 s between completed jobs,
+and retain dirty live state across failures. Retries back off from 15 to 120 s;
+the initial failure is shown once and the validation/commit stage is logged.
+Changes during encoding still schedule a newer checkpoint. Manual saves and
+loads discard older jobs before their existing atomic authority boundaries.
+`tests/autosave_recovery.gd` covers contract churn, repeated strict disk round
+trips, coalescing, updates during encoding, a real disk failure and recovery with
+the newest inventory. `tests/career_system.gd` covers restored/pruned job cleanup.
+
 Dedicated fixtures cover registry identity/lifetimes/events, economic ownership
 and migration, bounded autonomy, whole-world checkpoints/instances, physical
 combat/driver lifecycle, background checkpoint encoding and logical scale/save

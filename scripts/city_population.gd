@@ -3,6 +3,7 @@ extends Node3D
 ## Simulation stays live regardless of menu state or distance from the player.
 const Resident = preload("res://scripts/city_resident.gd")
 const Profiles = preload("res://scripts/resident_profiles.gd")
+const Presence = preload("res://scripts/code_form_presence.gd")
 @export var resident_count := 100
 @export var max_outdoors := 64
 @export var initial_outdoors := 44
@@ -44,7 +45,7 @@ var _clock := 0.0
 var _last_attack := false
 var _capsule := CapsuleShape3D.new()
 @export var simulation_lod_enabled := true
-@export var physical_range := 140.0
+@export var physical_range := Presence.PHYSICS_DISTANCE
 var virtual_count := 0
 var _floor_query := PhysicsRayQueryParameters3D.new()
 var _clear_query := PhysicsShapeQueryParameters3D.new()
@@ -430,8 +431,7 @@ func service_indoors(delta: float) -> void:
 		resident.wait = 0
 		resident.outdoor_stops = 0
 		resident.stops_before_indoor = rng.randi_range(1,3)
-		var distance_from_player := resident.global_position-player.global_position
-		if simulation_lod_enabled and Vector2(distance_from_player.x,distance_from_player.z).length()>physical_range+160:
+		if simulation_lod_enabled and resident.global_position.distance_to(player.global_position)>physical_range+Presence.lead(player.velocity)+Presence.PHYSICS_MARGIN:
 			resident.set_virtualized(true)
 		_indoor_cursor = (int(resident.profile.serial)+1)%residents.size()
 
@@ -585,16 +585,18 @@ func _physics_process(delta: float) -> void:
 
 func advance_simulation_lod(delta: float) -> void:
 	virtual_count = 0
-	# Activation leads fast travel; vertical Sky Jump height cannot retire the
-	# people directly beneath the player. Hysteresis avoids boundary churn.
-	var range_now := physical_range+minf(120,Vector2(player.velocity.x,player.velocity.z).length()*0.75)
+	var range_now := physical_range+Presence.lead(player.velocity)
 	for resident: CharacterBody3D in active_residents.duplicate():
-		var offset := resident.global_position-player.global_position
-		var distance := Vector2(offset.x,offset.z).length()
-		var protected: bool = resident.state=="talking" or resident.reaction_time>0 or resident.is_in_group("combat_targets")
+		var distance := resident.global_position.distance_to(player.global_position)
+		var protected: bool = (resident.state=="talking" or resident.reaction_time>0) and distance<24 or resident.is_in_group("combat_targets")
 		if not simulation_lod_enabled or protected or distance<range_now:
 			resident.set_virtualized(false)
-		elif distance>range_now+40: resident.set_virtualized(true)
+		elif distance>range_now+Presence.PHYSICS_MARGIN: resident.set_virtualized(true)
+		resident.presence.refresh(resident.active,protected or not simulation_lod_enabled)
 		if resident.virtualized:
 			virtual_count += 1
+			var before: Vector3=resident.global_position
 			resident.advance_virtual(delta)
+			if resident.presence.present and delta>0:
+				resident.face(resident.global_position+(resident.global_position-before),1)
+				resident.visual.animate(delta,(resident.global_position-before).length()/delta,false)

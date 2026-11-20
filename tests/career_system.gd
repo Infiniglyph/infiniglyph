@@ -79,8 +79,24 @@ func run() -> void:
 	var delivery: Dictionary={"event_id":"delivered_meal","actor_id":"worker","event_type":"delivery","item_type":"electron_meal","recipient_id":"owner","target_id":"","timestamp":0}
 	committed[delivery.event_id]=delivery; quests.consume_event(delivery)
 	check(quests.instances[job].status=="completed" and economy.balance("resident:worker")==before_wait+12,"Only an authorized matching actual-event proof settles compensation")
-	model.npc_step("worker",1200)
+	model.reconcile_contracts(1200)
 	check(model.employments[employed].status=="ended" and economy.balance("resident:worker")==before_wait+12,"A completed assignment ends employment without another wage payment")
+	var second: String=quests.create_contract("personal_delivery","owner","resident:owner",{"item_type":"electron_meal","recipient_id":"owner","reward":8},1200)
+	quests.accept(second,"worker",1200)
+	var second_job: String=model.hire("owner","worker","courier","shop/one",second,business)
+	check(not second_job.is_empty(),"A second real funded assignment prepares the stale job regression")
+	var resumed_jobs:=Careers.new(); callbacks(resumed_jobs)
+	check(resumed_jobs.restore(model.serialize()),"A live employment rebuilds its active contract index on restore")
+	quests.cancel(second,"owner")
+	# Simulate the quest board compacting terminal history before this worker's
+	# next scheduled AI turn; there must be no active dangling employment.
+	quests.instances.erase(second)
+	resumed_jobs.reconcile_contracts(1250)
+	check(resumed_jobs.employments[second_job].status=="ended" and resumed_jobs.businesses[business].employees.is_empty(),"Cancelled/pruned contracts end jobs and business assignments without an NPC turn")
+	var end_time: float=resumed_jobs.employments[second_job].ended_at
+	resumed_jobs.reconcile_contracts(1300)
+	check(resumed_jobs.employments[second_job].ended_at==end_time and not Careers.validate(resumed_jobs.serialize()).is_empty(),"Contract cleanup is idempotent and remains strictly saveable")
+	model.reconcile_contracts(1250)
 	for n in range(Careers.BASE_ROLES.size()):
 		var key: String=model.select_career("owner",Careers.BASE_ROLES[n])
 		if not key.is_empty(): model.set_primary("owner",key); model.npc_step("owner",1400+n*130.0)

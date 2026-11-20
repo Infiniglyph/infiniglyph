@@ -202,7 +202,10 @@ static func dark_box_links_match(data: Dictionary) -> bool:
 	return true
 
 static func career_links_match(data: Dictionary) -> bool:
-	if not data.has("career_state"): return true
+	return career_link_error(data).is_empty()
+
+static func career_link_error(data: Dictionary) -> String:
+	if not data.has("career_state"): return ""
 	var careers: Dictionary=data.career_state
 	var registry: Dictionary=data.get("civilization_state",{}).get("registry",{})
 	var persons: Dictionary=registry.get("records",{})
@@ -210,32 +213,32 @@ static func career_links_match(data: Dictionary) -> bool:
 	var organizations: Dictionary=data.get("quest_state",{}).get("organizations",{})
 	var buildings: Dictionary=data.get("building_state",{}).get("records",{})
 	var now:=float(registry.get("world_seconds",0))
-	if persons.is_empty() or float(careers.world_seconds)>now+.00001: return false
+	if persons.is_empty() or float(careers.world_seconds)>now+.00001: return "career clock"
 	for id: String in careers.workers:
-		if not persons.has(id): return false
+		if not persons.has(id): return "unknown worker"
 		if not persons[id].active:
 			for key: String in careers.workers[id].employments:
-				if careers.employments[key].status!="ended": return false
+				if careers.employments[key].status!="ended": return "retired worker"
 	for row: Dictionary in careers.employments.values():
-		if not persons.has(row.employee): return false
+		if not persons.has(row.employee): return "unknown employee"
 		var employer:=String(row.employer)
 		if not persons.has(employer):
 			var group: Dictionary=organizations.get("guilds",{}) if employer.begins_with("guild/") else organizations.get("factions",{}) if employer.begins_with("faction/") else {}
-			if not group.has(employer.get_slice("/",1)): return false
+			if not group.has(employer.get_slice("/",1)): return "unknown employer"
 		if row.compensation.type=="contract":
 			var quest: Dictionary=quests.get(row.quest_id,{})
 			if quest.is_empty():
-				if row.status!="ended": return false
-			elif quest.issuer!=employer or quest.participant!=row.employee or int(quest.reward)!=int(row.compensation.amount) or quest.source!=row.compensation.source: return false
+				if row.status!="ended": return "missing contract"
+			elif quest.issuer!=employer or quest.participant!=row.employee or int(quest.reward)!=int(row.compensation.amount) or quest.source!=row.compensation.source: return "contract terms"
 		if row.status=="office":
 			var group: Dictionary=organizations.get("guilds",{}) if row.career=="guild_leader" else organizations.get("factions",{})
-			if not group.has(row.role_ref) or group[row.role_ref].leader!=row.employee or group[row.role_ref].get("status","active")!="active": return false
+			if not group.has(row.role_ref) or group[row.role_ref].leader!=row.employee or group[row.role_ref].get("status","active")!="active": return "office succession"
 		var workplace:=String(row.workplace)
-		if not workplace.is_empty() and not workplace.begins_with("establishment/") and not buildings.has(workplace): return false
+		if not workplace.is_empty() and not workplace.begins_with("establishment/") and not buildings.has(workplace): return "unknown workplace"
 	for row: Dictionary in careers.businesses.values():
-		if not persons.has(row.owner) or not buildings.has(row.workplace): return false
-		if row.status=="active" and (not persons[row.owner].active or buildings[row.workplace].owner!=row.owner): return false
-	return true
+		if not persons.has(row.owner) or not buildings.has(row.workplace): return "unknown business owner/premises"
+		if row.status=="active" and (not persons[row.owner].active or buildings[row.workplace].owner!=row.owner): return "business ownership"
+	return ""
 
 static func building_links_match(data: Dictionary) -> bool:
 	var organizations: Dictionary=data.get("quest_state",{}).get("organizations",{})

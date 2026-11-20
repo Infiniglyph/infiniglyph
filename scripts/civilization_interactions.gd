@@ -579,6 +579,7 @@ func finance_quest(request: Dictionary) -> bool:
 	return false
 
 func quest_outcome(result: Dictionary) -> void:
+	world.careers.reconcile_contracts(_now())
 	for id: String in [String(result.issuer),String(result.participant)]:
 		if _registry().records.get(id,{}).get("active",false):
 			_registry().remember(id,"quest",String(result.quest_id),String(result.status)+" "+String(result.kind)+" obligation.",.7)
@@ -772,6 +773,7 @@ func _process(delta: float) -> void:
 	_flush_career_events()
 	_quests().advance_to(_now())
 	_publish_cases()
+	world.careers.reconcile_contracts(_now())
 	if world.dungeon_travel.active_location==world.dungeon_travel.OUTSIDE and world.player.health>0:
 		for row: Dictionary in _quests().for_participant("player",false):
 			if row.kind in ["service","discovery"]: arrived("player",row.objective.target_id)

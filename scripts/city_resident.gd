@@ -1,6 +1,8 @@
 extends CharacterBody3D
 const Visual = preload("res://scripts/resident_visual.gd")
 const Profiles = preload("res://scripts/resident_profiles.gd")
+const Presence = preload("res://scripts/code_form_presence.gd")
+var presence: Node
 var population: Node3D
 var profile: Dictionary
 var code_form_id := ""
@@ -99,6 +101,11 @@ func _ready() -> void:
 	caption.width = 460
 	caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	caption.hide()
+	presence=Presence.new()
+	presence.actor=self
+	presence.viewer=population.player
+	presence.figure=visual
+	add_child(presence)
 	speed = 1.35+float(index%5)*0.09
 	wait = 1.0+float(index%4)*0.7
 	social_cooldown = 0.8+float(index)*0.05
@@ -129,6 +136,9 @@ func activate(at: Vector3) -> void:
 	body_shape.disabled = false
 	set_physics_process(true)
 	show()
+	presence.refresh()
+	if population.simulation_lod_enabled and global_position.distance_to(population.player.global_position)>Presence.physics_range(population.player.velocity)+Presence.PHYSICS_MARGIN:
+		set_virtualized(true)
 	if not self in population.active_residents: population.active_residents.append(self)
 
 func deactivate() -> void:
@@ -145,6 +155,7 @@ func deactivate() -> void:
 	speech_time = 0
 	reply_time = 0
 	set_physics_process(false)
+	presence.conceal()
 	hide()
 
 func label_at(height: float, font: int, pixels: float) -> Label3D:
@@ -290,7 +301,11 @@ func set_virtualized(value: bool) -> bool:
 	probe_clock = 0
 	_curb_hold = 0
 	set_physics_process(not value)
-	visible = not value
+	if value:
+		nameplate.hide()
+		caption.hide()
+		if is_instance_valid(light): light.hide()
+	presence.refresh(active)
 	return true
 
 func advance_virtual(delta: float) -> void:

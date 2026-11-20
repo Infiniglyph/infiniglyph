@@ -192,6 +192,11 @@ func run() -> void:
 	var prepare_start:=Time.get_ticks_usec()
 	session._dirty()
 	await frames(1)
+	check(session._save_queued and not session._encoder.pending(),"Civilian autosave bursts wait for the coalescing window before capture")
+	# This fixture exercises private capture/worker ownership; the dedicated
+	# autosave recovery fixture checks actual delay and retry policy.
+	session._autosave_wait=0
+	session._autosave()
 	print("Civilian autosave capture/dispatch wall ms: ",float(Time.get_ticks_usec()-prepare_start)/1000.0)
 	check(session._encoder.pending(),"Large civilian autosaves dispatch immutable validation and encoding to a private worker")
 	society.registry.remember(id,"discovery","async/latest","A discovery made while the previous save was encoding.",.7)
@@ -199,6 +204,7 @@ func run() -> void:
 	var frames_during_save:=0
 	for i in range(600):
 		if not session._save_queued: break
+		if not session._encoder.pending(): session._autosave_wait=0
 		await frames(1)
 		frames_during_save+=1
 	check(not session._save_queued and frames_during_save>0,"The scene continues processing frames while the autosave worker finishes")
@@ -210,6 +216,7 @@ func run() -> void:
 	check(latest_saved,"A change during encoding queues a fresh checkpoint after the earlier snapshot commits")
 	session._dirty()
 	await frames(1)
+	session._autosave_wait=0; session._autosave()
 	check(not session.load_checkpoint("user://tests/missing_code_form_checkpoint.json") and session._encoder.pending(),"A failed load leaves an already captured autosave queued for the unchanged live world")
 	check(session.load_checkpoint(save_path) and not session._encoder.pending(),"Manual checkpoint load joins and discards an older autosave before replacing live state")
 	session.persistence_enabled=false

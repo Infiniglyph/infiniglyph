@@ -22,6 +22,7 @@ var next_business:=1
 var revision:=0
 var _callbacks: Dictionary={}
 var _busy:=false
+var _contract_jobs: Dictionary={}
 var _events:=PackedByteArray()
 func _init() -> void:
 	var data: Variant=JSON.parse_string(FileAccess.get_file_as_string("res://data/careers.json"))
@@ -62,6 +63,7 @@ func _add(id: String,career: String,employer: String,workplace: String,compensat
 	var key:="employment_"+str(next_id)
 	employments[key]={"id":key,"employee":id,"career":career,"employer":employer,"workplace":workplace,"compensation":compensation,"quest_id":quest_id,"status":status,"started_at":world_seconds,"ended_at":0.0,"business":business,"role_ref":role_ref}
 	worker.employments.append(key); next_id+=1
+	if compensation.type=="contract" and status!="ended": _contract_jobs[quest_id]=key
 	if worker.primary.is_empty(): worker.primary=key
 	while worker.employments.size()>24:
 		var removed:=false
@@ -106,6 +108,7 @@ func end_employment(id: String,key: String) -> bool:
 	if _busy or not employments.has(key) or employments[key].employee!=id or employments[key].status=="ended": return false
 	var row: Dictionary=employments[key]
 	row.status="ended"; row.ended_at=world_seconds
+	if _contract_jobs.get(row.quest_id)==key: _contract_jobs.erase(row.quest_id)
 	if not row.business.is_empty() and businesses.has(row.business): businesses[row.business].employees.erase(key)
 	if workers[id].primary==key:
 		workers[id].primary=""
@@ -206,6 +209,18 @@ func _reconcile_jobs(id: String) -> void:
 		if row.status!="active": continue
 		var proof: Variant=_call("quest",["inspect",{"quest_id":row.quest_id}],{})
 		if not proof is Dictionary or proof.get("row",{}).get("status","") not in ["active","ready"]: end_employment(id,row.id)
+
+func reconcile_contracts(now: float) -> void:
+	if _busy or not _time(now) or now<world_seconds: return
+	# A quest can expire and its bounded history can be pruned long before the
+	# employee's next AI turn. Settle job status at that authority boundary, not
+	# when a rendered NPC happens to get a turn. Only active contracts are visited.
+	for quest_id: String in _contract_jobs.keys():
+		var proof: Variant=_call("quest",["inspect",{"quest_id":quest_id}],{})
+		if proof is Dictionary and proof.get("row",{}).get("status","") in ["active","ready"]: continue
+		var row: Dictionary=employments[_contract_jobs[quest_id]]
+		world_seconds=now
+		end_employment(row.employee,row.id)
 func npc_step(id: String,now: float) -> Dictionary:
 	if _busy or _person(id).is_empty() or not _time(now) or now<world_seconds: return {}
 	world_seconds=now
@@ -270,13 +285,16 @@ func restore(data: Variant) -> bool:
 	if _busy: return false
 	if data==null:
 		for key: String in custom_definitions: definitions.erase(key)
-		custom_definitions.clear(); workers.clear(); employments.clear(); businesses.clear(); candidates.clear(); world_seconds=0; next_id=1; next_business=1; _events.fill(0); revision+=1; return true
+		custom_definitions.clear(); workers.clear(); employments.clear(); businesses.clear(); candidates.clear(); _contract_jobs.clear(); world_seconds=0; next_id=1; next_business=1; _events.fill(0); revision+=1; return true
 	var decoded:=validate(data)
 	if decoded.is_empty(): return false
 	for key: String in custom_definitions: definitions.erase(key)
 	custom_definitions=decoded.custom_definitions
 	for key: String in custom_definitions: definitions[key]=custom_definitions[key]
 	workers=decoded.workers; employments=decoded.employments; businesses=decoded.businesses; candidates=decoded.candidates
+	_contract_jobs.clear()
+	for row: Dictionary in employments.values():
+		if row.compensation.type=="contract" and row.status!="ended": _contract_jobs[row.quest_id]=row.id
 	world_seconds=decoded.world_seconds; next_id=decoded.next_id; next_business=decoded.next_business; _events=String(decoded.event_bloom).hex_decode(); revision+=1; return true
 static func _text(value: Variant,empty: bool=false) -> bool: return Item.valid_text(value,empty,128) and not "\n" in String(value) and not "\r" in String(value)
 static func _time(value: Variant) -> bool: return (value is int or value is float) and is_finite(float(value)) and float(value)>=0 and float(value)<=9e12

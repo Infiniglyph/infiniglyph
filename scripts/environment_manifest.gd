@@ -5,7 +5,7 @@ var pieces: Array[Dictionary] = []
 var labels: Array[Dictionary] = []
 var effects: Array[ShaderMaterial] = []
 
-func capture(root: Node3D, anchor: Vector3) -> void:
+func capture(root: Node3D, anchor: Vector3, cell_size: Vector3=Vector3(2.6,1.25,2.6), height_range: float=18.0) -> void:
 	restore()
 	var palette: Dictionary={}
 	for mesh: GeometryInstance3D in root.find_children("*","GeometryInstance3D",true,false):
@@ -26,6 +26,8 @@ func capture(root: Node3D, anchor: Vector3) -> void:
 			material.shader=SHADER
 			material.set_shader_parameter("anchor",anchor)
 			material.set_shader_parameter("tint",tint)
+			material.set_shader_parameter("cell_size",cell_size)
+			material.set_shader_parameter("height_range",height_range)
 			palette[tint]=material
 			effects.append(material)
 		pieces.append({"node":mesh,"original":original})

@@ -32,11 +32,27 @@ and restores original resident update rates when disabled.
 
 `city_population.gd` separately manages distant original residents: outdoor
 journeys and door leases progress at quarter-second intervals, without movement
-physics or floor/avoidance probes. Activation within 140 m checks supported,
-unoccupied space; retirement beyond 180 m provides hysteresis. Planar distance
-and speed-dependent lead range protect Sky Jump landings and fast approaches.
+physics or floor/avoidance probes. Activation within 48 m checks supported,
+unoccupied space; retirement beyond 64 m provides hysteresis. Three-dimensional
+distance includes Sky Jump height; speed-dependent lead adds up to 32 m for fast approaches.
 Identity, conversation history and building-entry/exit counters stay on the same
-resident object. Talking, reacting and combat participants retain full updates.
+resident object. Nearby talking/reacting residents and combat participants retain full updates.
+
+NPC rendering is independent of that physics tier. `code_form_presence.gd`
+reconstructs bodies on approach at 96 m and hides them beyond 128 m (both receive
+the same bounded speed lead). It applies the existing instance reconstruction
+shader only to that resident's meshes, with 16 cm cells and a 0.55 second assembly.
+An arrival inside 12 m completes immediately, preventing an invisible close-range
+body after teleporting. Materials are restored and the effect callback stops on
+completion. Far original residents have no rendering or per-body physics/pose
+callbacks; regional residents retain only their existing route records after
+their pooled bodies retire. Nearby virtual regional poses retain interpolation.
+Guild/tavern staff share the same appearance effect and distance threshold.
+
+The experimental predictive activity bubble has been reverted in full. It does
+not control scenery, buildings, street lights, collision, vehicle residency or
+the logical society scheduler. World visibility and the pre-bubble autonomous
+simulation remain in place; this revision changes NPC presentation/body tiers.
 
 The original hundred residents now occupy the wider city as well as the hub.
 Thirty-two retain their identities in eight existing outer-city block circuits;
@@ -66,7 +82,7 @@ disabled in both runs; they are not a frame-rate benchmark. Both runs found
 zero unsupported positions or solid penetrations beyond the 2 cm tolerance.
 
 `district_life.gd` retains the existing bounded physical neighborhoods and adds
-65/90 m physical/virtual tiers for regional pedestrians. Visible virtual motion
+48/64 m physical/virtual tiers for regional pedestrians. Visible virtual motion
 interpolates between the five-Hz route records. Regional pose updates and seated
 driver poses share the existing retrieved 24-32 m / 15-20 Hz / 8-10 Hz policy;
 unavailable retrieval uses the same local defaults. No new worker is launched.
@@ -85,6 +101,11 @@ constraint weights, the shared worker, authored limits and local fallback.
 The historical `tests/world_memory.gd` scene/capture fixture below still names
 the former `CentralDistrict` node and needs migration to the current metropolis
 before it can serve as a full-world regression gate.
+
+`tests/code_form_presence.gd` exercises actual city/regional actors, shader
+restoration, draw/physics hysteresis, vertical and sudden close arrivals, persistent
+identity, combat reservations and unchanged map visibility. Native visual QA is
+available through `tests/capture_code_form_presence.gd`.
 
 ```powershell
 godot --headless --path . --fixed-fps 60 --script res://tests/world_memory.gd

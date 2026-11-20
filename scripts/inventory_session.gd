@@ -9,6 +9,8 @@ const Regions = preload("res://scripts/world_regions.gd")
 const Shields = preload("res://scripts/shield_glyphs.gd")
 const CheckpointEncoder = preload("res://scripts/checkpoint_encoder.gd")
 const LOST_GEAR_HOLD_TIME := .7
+const AUTOSAVE_DEBOUNCE := .75
+const AUTOSAVE_INTERVAL := 15.0
 var actor: CharacterBody3D
 var controls: Node
 var duel: CanvasLayer
@@ -29,6 +31,9 @@ var _loading := false
 var _restoring_checkpoint := false
 var _save_queued := false
 var _save_again := false
+var _autosave_wait := 0.0
+var _autosave_failures := 0
+var last_autosave_error := ""
 var _encoder := CheckpointEncoder.new()
 var _previous_mouse := Input.MOUSE_MODE_CAPTURED
 var _hint_clock := 0.0
@@ -372,6 +377,8 @@ func _collect_while_writing(delta: float) -> void:
 
 func _process(delta: float) -> void:
 	_poll_autosave()
+	_autosave_wait=maxf(0,_autosave_wait-delta)
+	if _save_queued and not _encoder.pending() and _autosave_wait<=0: _autosave()
 	if not is_instance_valid(ui) or _checkpoint_pending: return
 	_advance_inventory_hold(delta)
 	_collect_while_writing(delta)
@@ -496,18 +503,30 @@ func _dirty() -> void:
 		_save_again=true
 		return
 	_save_queued = true
-	call_deferred("_autosave")
+	_autosave_wait=maxf(_autosave_wait,AUTOSAVE_DEBOUNCE)
 
 func _autosave() -> void:
-	if not _save_queued or _encoder.pending(): return
+	if not _save_queued or _encoder.pending() or _autosave_wait>0: return
 	if not is_inside_tree() or _exiting or not persistence_enabled or networked(): _save_queued=false; return
 	_save_again=false
 	var snapshot:=_capture_checkpoint()
-	if snapshot.is_empty(): _save_queued=false; return
+	if snapshot.is_empty(): _autosave_wait=AUTOSAVE_DEBOUNCE; return
 	var error: Error=_encoder.start(snapshot)
 	if error!=OK:
-		_save_queued=false
-		show_notice("Inventory autosave could not be prepared; current items remain in memory.",6)
+		_autosave_failed(error,"capture validation")
+
+func _autosave_failed(error: int, stage: String) -> void:
+	# Keep the newest live state dirty. A rejected job must never cause an
+	# immediate capture/encode loop, especially on a large populated checkpoint.
+	_save_queued=true
+	_save_again=false
+	_autosave_failures+=1
+	_autosave_wait=minf(120,15*pow(2,mini(3,_autosave_failures-1)))
+	var detail:="%s: %s" % [stage,error_string(error)]
+	if detail!=last_autosave_error:
+		push_warning("Inventory autosave rejected at "+detail+"; retaining live items and delaying retries.")
+	if _autosave_failures==1: show_notice("Inventory autosave failed; current items remain in memory. Retrying shortly.",6)
+	last_autosave_error=detail
 
 func _poll_autosave() -> void:
 	if not _encoder.ready(): return
@@ -515,8 +534,13 @@ func _poll_autosave() -> void:
 	if _exiting or not persistence_enabled or networked(): _save_queued=false; _save_again=false; return
 	var error:=int(result.get("error",ERR_INVALID_DATA))
 	if error==OK: error=Store._commit_encoded(save_path,result.bytes)
+	if error!=OK:
+		_autosave_failed(error,String(result.get("stage","disk commit")))
+		return
 	_save_queued=false
-	if error!=OK: show_notice("Inventory autosave failed; current items remain in memory.",6)
+	_autosave_failures=0
+	last_autosave_error=""
+	_autosave_wait=AUTOSAVE_INTERVAL
 	if _save_again:
 		_save_again=false
 		_dirty()
@@ -525,6 +549,9 @@ func _discard_autosave() -> void:
 	_encoder.finish(true)
 	_save_queued=false
 	_save_again=false
+	_autosave_wait=0
+	_autosave_failures=0
+	last_autosave_error=""
 
 func _capture_checkpoint() -> Dictionary:
 	if _exiting or _loading or _checkpoint_pending or not is_inside_tree() or loot.transaction_active() or networked(): return {}

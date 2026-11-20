@@ -117,6 +117,9 @@ func run() -> void:
 	vehicle.set_physics_process(false)
 	check(vehicle.signed_speed>vehicle.top_speed and vehicle.signed_speed<=vehicle.top_speed*vehicle.boost_multiplier+.01,"Native traffic reaches the same bounded boosted top speed as the player")
 	var victim: CharacterBody3D=world.population.residents[0]
+	# This tests a physical civilian. Distant residents now intentionally have
+	# no visible/collidable body; bring the observer to this isolated test road.
+	world.player.global_position=Vector3(2005,.05,-296)
 	victim.activate(Vector3(2005,.05,-300)); victim.set_physics_process(false)
 	var victim_id: String=world.civilization.id_for_source(victim)
 	var xp: int=world.civilization.registry.records[victim_id].experience
