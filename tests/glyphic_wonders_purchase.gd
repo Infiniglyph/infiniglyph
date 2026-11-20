@@ -121,7 +121,7 @@ func run() -> void:
 	economy.external_transaction_guard=Callable()
 	check(callback_safe and callback_accepts==0,"Authorization, commit and ownership callbacks cannot reenter the economy or replay a token")
 	check(circulation()+economy.destroyed_total==economy.issued_total and not Economy.validate(economy.serialize(),inventory.serialize()).is_empty(),"The final real inventories and permanently destroyed supply remain canonically auditable")
-	check(economy.serialize().size()==19 and economy.serialize().version==4,"Retail quotes remain ephemeral within the audited guild/faction-and-escrow economy checkpoint schema")
+	check(economy.serialize().size()==19 and economy.serialize().version==5,"Retail quotes remain ephemeral within the audited guild/faction-and-escrow economy checkpoint schema")
 	# Permanent respawn stock uses the same real quote, ownership and coin
 	# destruction boundary; no free inventory insertion or alternate seller.
 	check(economy.transfer("resident:natural_a",economy.player_account,50,"Fund reusable reconstruction glyph purchases"),"Existing resident coins fund the reusable respawn purchases")

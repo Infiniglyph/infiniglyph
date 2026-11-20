@@ -13,6 +13,10 @@ var decisions := 0
 var completed_actions := 0
 var _sources: Dictionary = {}
 var _regional_records: Dictionary = {}
+var _batch_active := false
+var _interest_stock: Object
+var _interest_revision := -1
+var _interest_prices: Dictionary = {}
 
 func _registry(): return civilization.registry if is_instance_valid(civilization) else null
 func _now() -> float: return float(_registry().world_seconds) if _registry()!=null else 0.0
@@ -132,24 +136,44 @@ func shopping_position(id: String) -> Vector3:
 	var record: Dictionary=_regional_records.get(id,{})
 	return record.get("point",Vector3(INF,INF,INF))
 
+func _shopping_components(stock: Object) -> Dictionary:
+	var revision: Variant=stock.get("revision")
+	if _batch_active and revision is int and stock==_interest_stock and revision==_interest_revision: return _interest_prices
+	var prices: Dictionary={}
+	# Every item in one category has the same weighted motivation terms. The
+	# cheapest offered price is an exact affordability test for that component.
+	# Share this read-only summary inside one AI batch, never across ticks or
+	# with quote/transaction authority. Unknown stock providers stay uncached.
+	for offer: Dictionary in stock.offers():
+		var price:=int(offer.get("price",0))
+		if price<=0: continue
+		var definition: Resource=Catalog.get_definition(StringName(offer.get("type_id","")))
+		if definition==null: continue
+		var component:="other"
+		if String(definition.item_type_id).begins_with("health_glyph") or String(definition.item_type_id).begins_with("shield_glyph"):
+			component="protection"
+		elif definition.category==&"weapons": component="weapons"
+		elif definition.category==&"materials": component="materials"
+		prices[component]=mini(price,int(prices.get(component,price)))
+	if _batch_active and revision is int:
+		_interest_stock=stock; _interest_revision=revision; _interest_prices=prices
+	return prices
+
 func _shopping_interest(record: Dictionary,coins: int) -> float:
 	var shop:=_shop()
 	if not is_instance_valid(shop): return 0.0
-	var stock=shop.get("stock")
+	var stock: Object=shop.get("stock")
 	if stock==null or not stock.has_method("offers"): return 0.0
+	var prices:=_shopping_components(stock)
 	var interest:=0.0
-	# Inspect the currently offered subset, never the developer exchange or an
-	# independent list of retail goods. Root commerce still validates the quote.
-	for offer: Dictionary in stock.offers():
-		if int(offer.get("price",0))<=0 or int(offer.price)>coins: continue
-		var definition: Resource=Catalog.get_definition(StringName(offer.get("type_id","")))
-		if definition==null: continue
+	for component: String in prices:
+		if int(prices[component])>coins: continue
 		var value:=.2+_motivation(record,"novelty")*.5
-		if String(definition.item_type_id).begins_with("health_glyph") or String(definition.item_type_id).begins_with("shield_glyph"):
-			value+=_motivation(record,"security")*.55+_motivation(record,"survival")*.35
-		elif definition.category==&"weapons": value+=_motivation(record,"mastery")*.7
-		elif definition.category==&"materials": value+=_motivation(record,"knowledge")*.45+_motivation(record,"wealth")*.25
-		else: value+=_motivation(record,"social")*.25+_motivation(record,"wealth")*.25
+		match component:
+			"protection": value+=_motivation(record,"security")*.55+_motivation(record,"survival")*.35
+			"weapons": value+=_motivation(record,"mastery")*.7
+			"materials": value+=_motivation(record,"knowledge")*.45+_motivation(record,"wealth")*.25
+			_: value+=_motivation(record,"social")*.25+_motivation(record,"wealth")*.25
 		interest=maxf(interest,value)
 	return interest
 
@@ -200,6 +224,8 @@ func process_batch(_delta: float) -> void:
 	if registry==null: return
 	var ids: Array=registry.active_ids()
 	if ids.is_empty(): return
+	_batch_active=true
+	_interest_stock=null; _interest_prices={}; _interest_revision=-1
 	# The authoritative clock advances centrally, including capped offline time.
 	# One call never catches up by running an unbounded loop of old decisions.
 	for offset in range(mini(BATCH_SIZE,ids.size())):
@@ -224,6 +250,8 @@ func process_batch(_delta: float) -> void:
 		# virtual and indoor identities use the same bounded economic model.
 		if is_instance_valid(source) and source.is_visible_in_tree() and source.get("virtualized")!=true: continue
 		perform_action(record,state,false)
+	_batch_active=false
+	_interest_stock=null; _interest_prices={}
 
 func _event(record: Dictionary,type: String,target: String,rarity: String="common",significance: float=.5) -> void:
 	civilization.record_event({"event_type":type,"actor_id":record.id,"target_id":target,"rarity":rarity,"significance":significance,"event_id":type+"/"+String(record.id)+"/"+target})

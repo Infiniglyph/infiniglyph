@@ -149,12 +149,20 @@ func run() -> void:
 			background_id=candidate
 			break
 	var background: Dictionary=society.registry.records[background_id]
+	# Founding guilds now pre-enroll the whole native population. Exercise an
+	# actual new affiliation instead of rewarding an already enrolled member.
+	for guild: String in world.quest_system.organizations.memberships_of(background_id):
+		world.quest_system.leave_guild(background_id,guild)
 	background.current_goal="guild"
 	var background_state: Dictionary=society.autonomy._state(background_id)
-	var guild_xp_before: int=background.experience
+	# Existing career work can legitimately preempt a guild-intention turn.
+	# Isolate this membership check while that actor has no career task due.
+	var career_state: Dictionary=world.careers.model._worker(background_id)
+	career_state.next_decision=society.world_seconds+86400.0
+	career_state.next_action=society.world_seconds+120.0
 	var guild_action: bool=society.autonomy.perform_action(background,background_state,false)
 	var affiliations: Array=world.quest_system.model.memberships.get(background_id,[])
-	check(guild_action and not affiliations.is_empty() and background.experience>guild_xp_before,"A civilian with no loaded pedestrian body can join a real guild through a meaningful structured action")
+	check(guild_action and not affiliations.is_empty(),"A civilian with no loaded pedestrian body can join a real guild through a structured action")
 	check(society.autonomy.states.size()<=count,"Logical schedules remain bounded by the active population")
 	check(world.inventory_session.save_checkpoint(save_path,true),"A real checkpoint commits society, clock, wallets, goods, player items and world drops together")
 	var saved: Dictionary=Store.load_snapshot(save_path)

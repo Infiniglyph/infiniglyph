@@ -168,15 +168,15 @@ func career_context(id: String) -> Dictionary:
 		if definition.is_equippable: equipment.append(type); equipment.append(String(definition.category))
 	var workplaces: Array=[]
 	if is_instance_valid(world.get("building_civilization")):
-		for row: Dictionary in world.building_civilization.model.records.values():
-			if row.owner==id or id in row.tenants: workplaces.append(String(row.usage))
+		for key: String in world.building_civilization.model.properties_for(id,true):
+			workplaces.append(String(world.building_civilization.model.records[key].usage))
 	return {"guilds":_quests().organizations.memberships_of(id),"equipment":equipment,"skills":[],"workplaces":workplaces,"occupation":String(person.get("occupation","")),"resources":resources,"level":int(person.get("level",1))}
 
 func career_workplace(id: String,career: String) -> String:
 	if not is_instance_valid(world.get("building_civilization")) or not world.careers.definitions.has(career): return ""
 	var kinds: Array=world.careers.definitions[career].workplaces
-	for row: Dictionary in world.building_civilization.model.records.values():
-		if row.owner!=id: continue
+	for key: String in world.building_civilization.model.properties_for(id):
+		var row: Dictionary=world.building_civilization.model.records[key]
 		var sector:=String(world.careers.definitions[career].sector)
 		var desired: String={"commerce":"shop","crafting":"workshop","hospitality":"tavern","knowledge":"office"}.get(sector,"")
 		if not desired.is_empty() and row.usage=="residence":
@@ -768,6 +768,7 @@ func _process(delta: float) -> void:
 	_clock-=delta
 	if _clock>0 or not initialized or world.inventory_session._loading or _society().transaction_active(): return
 	_clock=.75
+	_society().ensure_starter_capital()
 	_flush_career_events()
 	_quests().advance_to(_now())
 	_publish_cases()

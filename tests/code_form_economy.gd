@@ -42,10 +42,10 @@ func legacy_snapshot(current: Dictionary) -> Dictionary:
 	# The exact previous production schema, before dynamic eligibility existed.
 	var old := current.duplicate(true)
 	old.version = 1
-	for key: String in ["active_ids","destroyed_total","npc_stores","service_tokens","factions","contracts"]: old.erase(key)
+	for key: String in ["active_ids","destroyed_total","npc_stores","service_tokens","factions","contracts","guilds"]: old.erase(key)
 	old.balances.erase(Economy.ESCROW_ACCOUNT)
 	old.audit_base.balances.erase(Economy.ESCROW_ACCOUNT)
-	for key: String in ["known_ids","active_ids","destroyed_total"]: old.audit_base.erase(key)
+	for key: String in ["known_ids","active_ids","destroyed_total","starter_influx"]: old.audit_base.erase(key)
 	for event: Dictionary in old.journal:
 		if event.kind=="issue": event.erase("recipients")
 	return old
@@ -69,7 +69,7 @@ func run() -> void:
 	check(receipts.is_empty(),"Issuance and founder transfers emit no commerce XP receipt")
 	var old := legacy_snapshot(economy.serialize())
 	var migrated: Dictionary = Economy.validate(JSON.parse_string(JSON.stringify(old)),inventory.serialize())
-	check(not migrated.is_empty() and migrated.version==3 and migrated.last_cycle==0 and migrated.destroyed_total==0 and migrated.active_ids==migrated.natural_ids,"Version-one civilian checkpoints migrate without reissuing their opening blessing")
+	check(not migrated.is_empty() and migrated.version==5 and migrated.last_cycle==0 and migrated.destroyed_total==0 and migrated.active_ids==migrated.natural_ids,"Version-one civilian checkpoints migrate without reissuing their opening blessing")
 	var expected_balances: Dictionary=old.balances.duplicate(); expected_balances[Economy.ESCROW_ACCOUNT]=0
 	check(migrated.balances==expected_balances and migrated.room_stores==old.room_stores and migrated.guild_stock==old.guild_stock,"Migration preserves every existing wallet, room inventory and treasury stock while opening only an empty escrow account")
 	check(migrated.journal[0].recipients==migrated.natural_ids and economy.restore(migrated),"Historical version-one issues retain their exact saved recipient census")

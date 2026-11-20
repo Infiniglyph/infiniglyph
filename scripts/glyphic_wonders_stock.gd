@@ -15,6 +15,7 @@ const CATEGORY_PRICES := {"weapons":80,"cosmetics":40,"materials":12,"consumable
 var seed := 0
 var cycle := -1
 var next_rotation := 0.0
+var revision := 0 # Runtime cache invalidation only; the checkpoint stays version one.
 var config := {"day_seconds":86400.0,"interval_days":7,"pedestal_count":12}
 var _pool: Array[String] = []
 var _selection: Array[String] = []
@@ -96,6 +97,7 @@ func advance(now: float) -> bool:
 	_selection=_choose(_pool,seed,target,int(config.pedestal_count))
 	cycle=target
 	next_rotation=(cycle+1)*interval
+	revision+=1
 	return true
 
 func permanent_ids() -> Array[String]: return PERMANENT.duplicate()
@@ -154,4 +156,5 @@ func restore(input: Variant) -> bool:
 	config=decoded.config
 	_pool.assign(decoded.pool)
 	_selection.assign(decoded.selection)
+	revision+=1
 	return true

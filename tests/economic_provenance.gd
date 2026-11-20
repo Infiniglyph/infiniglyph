@@ -46,7 +46,7 @@ func receive(entry: Dictionary) -> void:
 	reentrant=reentrant or econ.transfer("resident:a","resident:b",1,"Nested")
 func legacy_v2(data: Dictionary) -> Dictionary:
 	var old:=data.duplicate(true)
-	old.version=2; old.erase("factions"); old.erase("contracts")
+	old.version=2; old.erase("factions"); old.erase("contracts"); old.erase("guilds"); old.audit_base.erase("starter_influx")
 	old.balances.erase(Economy.ESCROW_ACCOUNT); old.audit_base.balances.erase(Economy.ESCROW_ACCOUNT)
 	return old
 func run() -> void:
@@ -66,7 +66,7 @@ func run() -> void:
 	check(econ.transfer("resident:guild_receptionist",econ.guild_account,100,"Opening capital") and econ.transfer("resident:tavern_bartender",econ.tavern_account,100,"Opening capital") and receipts.is_empty(),"Founder capital and generic gifts produce no manufactured XP")
 	var old:=legacy_v2(econ.serialize())
 	var migrated: Dictionary=Economy.validate(JSON.parse_string(JSON.stringify(old)))
-	check(not migrated.is_empty() and migrated.version==3 and migrated.balances[Economy.ESCROW_ACCOUNT]==0 and migrated.issued_total==5000,"Old v2 balances migrate with a zero-funded escrow and no issuance")
+	check(not migrated.is_empty() and migrated.version==5 and migrated.balances[Economy.ESCROW_ACCOUNT]==0 and migrated.issued_total==5000,"Old v2 balances migrate with a zero-funded escrow and no issuance")
 	var first_legacy:=old.duplicate(true)
 	first_legacy.version=1
 	for key: String in ["active_ids","destroyed_total","npc_stores","service_tokens"]: first_legacy.erase(key)
@@ -74,7 +74,7 @@ func run() -> void:
 	for event: Dictionary in first_legacy.journal:
 		if event.kind=="issue": event.erase("recipients")
 	var first_migration: Dictionary=Economy.validate(JSON.parse_string(JSON.stringify(first_legacy)))
-	check(not first_migration.is_empty() and first_migration.version==3 and first_migration.issued_total==5000 and first_migration.balances==migrated.balances,"Original v1 civilian finance retains every wallet and coin through both schema migrations")
+	check(not first_migration.is_empty() and first_migration.version==5 and first_migration.issued_total==5000 and first_migration.balances==migrated.balances,"Original v1 civilian finance retains every wallet and coin through schema migrations")
 	check(econ.register_faction("underworld") and econ.register_faction("security") and not econ.register_faction("underworld"),"Separate faction treasury registration is bounded and idempotent")
 	check(econ.transfer("resident:c",econ.faction_account("underworld"),100,"Founder donation") and econ.balance(econ.faction_account("underworld"))==100 and receipts.is_empty(),"Faction treasury receives conserved existing founder coins")
 	check(econ.reserve_contract("criminal_1",econ.faction_account("underworld"),60) and not econ.reserve_contract("criminal_2",econ.faction_account("underworld"),60),"Publication reserves finite coins and prevents oversubscribed promises")

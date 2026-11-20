@@ -3,6 +3,7 @@ extends Node
 const Registry = preload("res://scripts/code_form_registry.gd")
 const Autonomy = preload("res://scripts/code_form_autonomy.gd")
 const EconomicAudit = preload("res://scripts/economic_xp_audit.gd")
+const StarterCapital = preload("res://scripts/code_form_starter_capital.gd")
 signal identities_replaced(changes: Array)
 var world: Node3D
 var registry := Registry.new()
@@ -138,6 +139,14 @@ func id_for_source(source: Node) -> String:
 	if id.is_empty() and "code_form_id" in source: id=String(source.get("code_form_id"))
 	if id.is_empty() and source.get("record") is Dictionary: id=String(source.record.get("code_form_id",""))
 	return id if registry.records.get(id,{}).get("active",false) else ""
+
+func ensure_starter_capital() -> bool:
+	if economy.starter_influx_applied: return true
+	# Wait until checkpoint, census, governance and careers are authoritative.
+	# No per-body calls and no scans at all after this single ledger event.
+	if _busy or not ready_for_simulation or not _ledger_ready or world.inventory_session._checkpoint_pending or world.inventory_session._loading or not world.civic_interactions.initialized: return false
+	var amounts:=StarterCapital.payouts(registry.records,registry.active_ids(),world.quest_system.organizations,world.careers.model)
+	return economy.issue_starter_influx(amounts)
 
 func record_event(event: Dictionary) -> Dictionary:
 	if not ready_for_simulation or event.get("event_type")=="economic" or event.get("type")=="economic": return {}

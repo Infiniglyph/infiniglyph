@@ -21,6 +21,8 @@ var slots: Dictionary = {}
 var world_seconds := 0.0
 var replacement_serial := 0
 var last_error := ""
+var _active_census: Array[String] = []
+var _census_dirty := true
 
 static func _number(value: Variant, low: float, high: float) -> bool:
 	return (value is int or value is float) and is_finite(float(value)) and value>=low and value<=high
@@ -117,13 +119,16 @@ func bootstrap(rows: Array[Dictionary]) -> bool:
 	for row: Dictionary in additions:
 		records[row.id] = _new_record(row,world_seconds)
 		slots[row.slot] = row.id
+	if not additions.is_empty(): _census_dirty=true
 	return true
 
 func active_ids() -> Array[String]:
-	var result: Array[String] = []
-	for id: String in slots.values(): result.append(id)
-	result.sort()
-	return result
+	if _census_dirty:
+		_active_census.assign(slots.values())
+		_active_census.sort()
+		_census_dirty=false
+	# Callers may sort/shuffle a census without mutating this shared index.
+	return _active_census.duplicate()
 
 func for_slot(slot: String) -> Dictionary: return records.get(slots.get(slot,""),{})
 func remaining_lifetime(id: String) -> float:
@@ -173,6 +178,7 @@ func advance_to(target: float) -> Array[Dictionary]:
 			replacements.append({"slot":slot,"old_id":String(old.id),"new_id":id})
 			old = next
 	world_seconds = target
+	if not replacements.is_empty(): _census_dirty=true
 	return replacements
 
 func grant_xp(id: String, amount: int) -> int:
@@ -388,5 +394,6 @@ func restore(data: Variant) -> bool:
 	replacement_serial=decoded.replacement_serial
 	records=decoded.records
 	slots=decoded.slots
+	_census_dirty=true
 	last_error=""
 	return true

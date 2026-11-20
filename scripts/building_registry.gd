@@ -9,6 +9,29 @@ const USES:=["vacant","residence","shop","tavern","workshop","warehouse","guild_
 var records: Dictionary={}
 var revision:=0
 var last_error:=""
+var _property_revision:=-1
+var _owned: Dictionary={}
+var _accessible: Dictionary={}
+
+func properties_for(actor: String,include_tenancies: bool=false) -> Array[String]:
+	# A transient index over authoritative rows, rebuilt after any model change
+	# or restore. Preserve manifest order for the existing AI's tie breaking.
+	if _property_revision!=revision:
+		_owned.clear(); _accessible.clear()
+		for row: Dictionary in records.values():
+			var owner:=String(row.owner)
+			if not owner.is_empty():
+				if not _owned.has(owner): _owned[owner]=[]
+				_owned[owner].append(String(row.id))
+			var people: Array=row.tenants.duplicate()
+			if not owner.is_empty() and owner not in people: people.append(owner)
+			for person: String in people:
+				if not _accessible.has(person): _accessible[person]=[]
+				_accessible[person].append(String(row.id))
+		_property_revision=revision
+	var result: Array[String]=[]
+	result.assign((_accessible if include_tenancies else _owned).get(actor,[]))
+	return result
 
 static func owner_key(id: String) -> String: return "building:"+id
 static func _number(value: Variant,low: float,high: float) -> bool:

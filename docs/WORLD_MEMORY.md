@@ -79,6 +79,13 @@ collider is retired with a civilian. Gameplay menus never disable simulation.
 
 ## Verification and profiling
 
+The current focused helper regression is
+`tests/weighted_constraint_integration.gd`: it checks live retrieval, normalized
+constraint weights, the shared worker, authored limits and local fallback.
+The historical `tests/world_memory.gd` scene/capture fixture below still names
+the former `CentralDistrict` node and needs migration to the current metropolis
+before it can serve as a full-world regression gate.
+
 ```powershell
 godot --headless --path . --fixed-fps 60 --script res://tests/world_memory.gd
 godot --path . --fixed-fps 60 --script res://tests/world_memory.gd -- --capture

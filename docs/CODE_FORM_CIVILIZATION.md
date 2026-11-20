@@ -23,13 +23,55 @@ Player characters, bosses, dungeon enemies, monsters and temporary summons are
 excluded. No player XP, leveling or lifetime system is introduced. Existing
 damage, movement, weapon animations and dungeon enemy respawns remain unchanged.
 
-Version-one economy checkpoints migrate to the audited version-two ledger.
+Economy checkpoints from versions one through four migrate to the audited
+version-five ledger.
 Existing wallets, treasuries, rentals, room storage and guild crystal stock retain
 their values. Newly identified civilians receive their opening 100-coin blessing
 once; old residents do not receive another opening payment. A legacy checkpoint
 without a civilian clock starts at its latest paid blessing boundary, with fresh
 100-year civilian lifetimes. Rental and lost-item deadlines retain their existing
 real-world Unix timing.
+
+### One-time starter capital
+
+The current native population receives an additional, host-issued coin influx
+once governance and checkpoint restoration are complete. It applies to existing
+saves as well as new worlds. The amount uses the person's current occupation,
+active employment, business ownership and actual elected/appointed offices:
+
+| Position | Additional coins |
+| --- | ---: |
+| Ordinary resident | 500 |
+| Routine worker / active employment | 800 |
+| Merchant / establishment keeper | 1,200 |
+| Active business owner | 1,800 |
+| Active guild leader | 2,400 |
+| Faction leader | 3,200 |
+
+Use the highest applicable tier, plus 50 per level above one, capped at a 500-coin
+experience bonus. Positions do not stack payments. Ended jobs, closed businesses
+and dissolved guilds do not qualify. `code_form_starter_capital.gd` owns the policy
+and builds position indexes once, rather than scanning every job per citizen.
+
+The influx adds to existing wallets; it does not set balances to a target or pay
+repeatedly when they run low. A single audited `starter_influx` event records the
+complete active census and exact payouts. Its boolean receipt folds into the
+audit base when journal history is compacted, preventing repeats after reload,
+death, travel, changing jobs or leadership succession. New individuals born after
+the rollout retain the ordinary empty-wallet and equal-blessing rules. Players,
+bosses, monsters and Avat Ar receive none. Grants generate no commerce XP.
+
+Only this explicitly requested influx increases `issued_total`; ordinary trade,
+wages and organizational funding still transfer existing coins. Strict replay
+validation rejects partial censuses, outsiders, fractional amounts, over-cap
+issuance and duplicate receipts before committing any wallet mutation.
+The isolated fresh-world fixture issued 853,100 additional coins to 1,122 people;
+existing saves vary with their current offices, careers and experience.
+
+`tests/code_form_starter_capital.gd` covers tiering, atomic issuance, migration,
+guards, JSON restore, compaction, duplicate rejection and later blessings.
+`tests/starter_capital_integration.gd` exercises the production civic loop and
+complete checkpoint save/load with all 1,122 citizens.
 
 ## Clock, life and progression
 
@@ -177,8 +219,8 @@ Measured isolated scale fixtures produced these checkpoint sizes:
 | 1,122 | 2.04 MiB | 19.01 MiB | 33.10 MiB |
 | 2,048 | 3.80 MiB | 34.68 MiB | 60.37 MiB |
 
-The normal 1,122-person logical batch averaged about 8 ms once per real second
-in the local scale run. Economy membership validation optimizations reduced
+An earlier isolated 1,122-person model fixture, without the later civic/career
+adapters, averaged about 8 ms per batch. Economy membership optimizations reduced
 median encoder dispatch from 217 ms to 96 ms in its separate local fixture.
 These are wall-clock observations, not whole-game FPS guarantees. Capturing and
 committing a large state still costs main-thread time; explicit save/load and
@@ -192,6 +234,51 @@ batch unchanged. This foundation does not silently discard old wallets or mint
 unbounded replacements. Long-running worlds approaching the historical cap will
 need a future archival policy. This is deterministic local simulation and needs
 no external language-model API.
+
+### Shared weighted components and indexes
+
+The existing TED-RAG worker already blends authored constraints using
+`C(x) = sum(w_i * C_i(x))`. Code Form goal selection now reuses equivalent
+weighted components: every affordable item in a shopping category has the same
+motivation terms, so four category minimum prices replace repeated per-item
+evaluation. The current offered subset is summarized once within a twelve-person
+batch. Rotation or stock restoration invalidates it immediately; an unknown
+stock provider stays uncached. Standalone decisions read fresh offers, and the
+transaction authority still revalidates each real purchase independently.
+
+Sorted active identities are reused until admission, lifetime replacement or
+restore. A property index replaces repeated whole-city ownership/tenancy scans,
+with model revisions invalidating it. Both indexes preserve the previous order
+and return caller-owned arrays. These caches are transient and bounded; save
+schemas, clock rate, decision cadence, identities, memories and economic rules
+retain their existing behavior. TED-RAG keeps its existing single asynchronous
+motion worker and bounded pose policy.
+
+The production-world CPU fixture includes all 1,122 citizens and the current
+career, guild, property and shop adapters. On the local i5-7200U with Godot 4.7.2
+debug, after 96 warm-up ticks and across 256 sampled one-second advances. Both
+versions include the same starter-capital policy and current founding governance:
+
+| Society clock and autonomy | Before | After |
+| --- | ---: | ---: |
+| Mean CPU time | 45.75 ms | 28.56 ms |
+| Median CPU time | 38.32 ms | 22.94 ms |
+| 95th percentile | 82.94 ms | 60.64 ms |
+
+The mean reduction is about 38%. Both runs retained 1,122 citizens and produced
+4,224 decisions, 1,300 completed actions, 885 employment records and 184 contracts,
+with conserved finite coin supply. This diagnostic freezes rendered bodies and
+times direct production simulation/service calls. It measures logical CPU cost;
+it is not a frame-rate comparison. Rendering and other desktop activity remain
+separate sources of variability.
+
+Run `tests/code_form_simulation_profile.gd -- --label=local` with an isolated
+application-data profile to write the component timings under `.godot/`.
+`--diagnostic` additionally times nested autonomy and authority callbacks.
+`tests/code_form_constraint_cache.gd` compares 560 weighted utility cases with
+the original scan and exercises admission, replacement, tenancy, rotation and
+checkpoint invalidation. `tests/weighted_constraint_integration.gd` checks the
+real asynchronous TED-RAG builder, worker reuse, normalized weights and fallback.
 
 ## Verification
 

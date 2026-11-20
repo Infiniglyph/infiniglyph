@@ -385,8 +385,8 @@ func npc_step(record: Dictionary) -> bool:
 	_request_workplace_visit(record)
 	var home:=String(_homes.get(id,""))
 	if home.is_empty():
-		for key: String in model.records:
-			if model.records[key].owner==id: home=key; _homes[id]=home; break
+		var owned: Array[String]=model.properties_for(id)
+		if not owned.is_empty(): home=owned[0]; _homes[id]=home
 	var location: Vector3=world.civic_interactions.position_for(id)
 	if not location.is_finite(): return false
 	if home.is_empty() and float(record.motivations.get("security",.5))>.55:

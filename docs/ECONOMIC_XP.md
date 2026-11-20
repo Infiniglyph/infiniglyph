@@ -19,7 +19,7 @@ asset IDs where applicable. Asset owner fields use raw civilian IDs, the real
 human inventory owner, or `guild`; financial account fields retain their
 `resident:`, `player:`, `business:` and `faction:` prefixes.
 
-Generic transfers, blessings, founder donations, storage moves, theft itself,
+Generic transfers, blessings, the one-time role-based starter influx, founder donations, storage moves, theft itself,
 and consumption do not award commerce XP. `Civilization.record_event` rejects
 both economic event aliases; its economic adapter accepts only the economy's
 currently committed financial sequence and exact amount/accounts. NPC theft
