@@ -1,9 +1,9 @@
 {
   "version": 1,
   "factions": [
-    {"id":"security","name":"Security Guild","public":true,"board":"board_security","color":"53deff","purpose":"Public safety, investigations and recovery."},
-    {"id":"commerce","name":"Commerce Guild","public":true,"board":"board_commerce","color":"ffd166","purpose":"Supplies, deliveries and completed services."},
-    {"id":"exploration","name":"Exploration Guild","public":true,"board":"board_exploration","color":"a58cff","purpose":"Discoveries, reconnaissance and expeditions."},
+    {"id":"security","name":"Security","public":true,"board":"board_security","color":"53deff","purpose":"Law enforcement, investigations, protection, and public safety."},
+    {"id":"commerce","name":"Commerce","public":true,"board":"board_commerce","color":"ffd166","purpose":"Trade, manufacturing, logistics, and economic coordination."},
+    {"id":"exploration","name":"Exploration","public":true,"board":"board_exploration","color":"a58cff","purpose":"Discovery, expeditions, dungeon exploration, monster hunting, and artifact recovery."},
     {"id":"underworld","name":"Underworld","public":false,"board":"","color":"eb5caa","purpose":"Private work arranged through trusted contacts."}
   ]
 }

@@ -47,7 +47,7 @@ func _ready() -> void:
 	var bar := HBoxContainer.new()
 	layout.add_child(bar)
 	query = LineEdit.new()
-	query.placeholder_text = "Search name or weapon family..."
+	query.placeholder_text = "Search name or item type..."
 	query.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	query.text_changed.connect(func(_text: String): page=0; refresh())
 	bar.add_child(query)
@@ -100,21 +100,22 @@ func entry_for(id: StringName) -> Dictionary:
 	return Entry.for_id(id)
 
 func set_category(value: String) -> void:
-	category = value if value in ["weapons","items","armour"] else "weapons"
-	category_heading.text = category.to_upper()+"  /  TOWER EXCHANGE"
+	category = value if value in shop.CATEGORIES else "weapons"
+	category_heading.text = String(Catalog.CIVIC_GROUPS.get(category,category)).to_upper()+"  /  TOWER EXCHANGE"
 	query.text = ""
 	page = 0
 	selected = &""
 	filter.clear()
-	var choices: Array = Filters.WEAPON_NAMES if category=="weapons" else ["ALL","BODY","HEAD","HANDS","LEGS"] if category=="armour" else ["ALL","GLYPHS","RINGS"]
+	var choices: Array = Filters.WEAPON_NAMES if category=="weapons" else ["ALL","BODY","HEAD","HANDS","LEGS"] if category=="armour" else ["ALL","GLYPHS","RINGS"] if category=="items" else ["ALL"]
 	for choice: String in choices: filter.add_item(choice)
 	filter.select(0)
 
 func matches(entry: Dictionary) -> bool:
 	var fam: String = entry.family
+	if category in Catalog.CIVIC_GROUPS: return entry.get("catalog_group","")==category
 	if category=="weapons" and entry.category!="weapons": return false
 	if category=="armour" and entry.category!="cosmetics": return false
-	if category=="items" and entry.category in ["weapons","cosmetics"]: return false
+	if category=="items" and (entry.category in ["weapons","cosmetics"] or entry.get("catalog_group","") in Catalog.CIVIC_GROUPS): return false
 	if filter.selected==0: return true
 	if category=="armour": return fam==["","body","head","hands","legs"][filter.selected]
 	if category=="items": return fam==("consumable" if filter.selected==1 else "ring")
@@ -128,8 +129,8 @@ func cycle_filter() -> void:
 func refresh() -> void:
 	var had_focus := get_viewport().gui_get_focus_owner() in buttons
 	if _ordered.is_empty():
-		for entry: Dictionary in Database.all(): _ordered.append(StringName(entry.id))
-		for id: StringName in shop.ITEMS: _ordered.append(id)
+		for definition: Resource in Catalog.all():
+			if not shop.offer(definition.item_type_id).is_empty(): _ordered.append(definition.item_type_id)
 		_ordered.sort_custom(func(a: StringName,b: StringName):
 			if (a in shop.ITEMS)!=(b in shop.ITEMS): return a in shop.ITEMS
 			if a in shop.ITEMS and b in shop.ITEMS: return shop.ITEMS.find(a)<shop.ITEMS.find(b)
@@ -211,7 +212,7 @@ func show_item(id: StringName) -> void:
 	if reuse:
 		model.show()
 		model.process_mode = Node.PROCESS_MODE_INHERIT if is_visible_in_tree() else Node.PROCESS_MODE_DISABLED
-		preview.render_target_update_mode = SubViewport.UPDATE_ALWAYS if entry.geometry.has("renderer") else SubViewport.UPDATE_ONCE
+		preview.render_target_update_mode = SubViewport.UPDATE_ALWAYS if entry.geometry.has("renderer") and entry.geometry.renderer!="civic_item" else SubViewport.UPDATE_ONCE
 		return
 	if is_instance_valid(model):
 		stage.remove_child(model)
@@ -239,6 +240,10 @@ func show_item(id: StringName) -> void:
 		center.y = .52
 		distance = 1.8
 	elif entry.family=="ring": distance=.55
-	camera.position = center+Vector3(0,0,distance)
+	elif entry.geometry.get("renderer")=="civic_item":
+		center.y=float(entry.geometry.size[1])*.5
+		distance=maxf(1.0,length*1.35)
+		camera.fov=50
+	camera.position = center+(Vector3(1.1,.75,1.4).normalized()*distance if entry.geometry.get("renderer")=="civic_item" else Vector3(0,0,distance))
 	camera.look_at(center)
-	preview.render_target_update_mode = SubViewport.UPDATE_ALWAYS if entry.geometry.has("renderer") else SubViewport.UPDATE_ONCE
+	preview.render_target_update_mode = SubViewport.UPDATE_ALWAYS if entry.geometry.has("renderer") and entry.geometry.renderer!="civic_item" else SubViewport.UPDATE_ONCE

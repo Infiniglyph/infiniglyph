@@ -9,6 +9,8 @@ const Civilization = preload("res://scripts/code_form_civilization.gd")
 const WonderStock = preload("res://scripts/glyphic_wonders_stock.gd")
 const Quests = preload("res://scripts/universal_quests.gd")
 const Law = preload("res://scripts/civilian_law.gd")
+const Buildings = preload("res://scripts/building_registry.gd")
+const Careers = preload("res://scripts/career_registry.gd")
 const CIVIC_FIELDS := ["quest_state","communication_state","law_state"]
 const VERSION := 1
 const POLICY := "singleplayer_checkpoint"
@@ -149,7 +151,89 @@ static func _decode(data: Variant,deferred_civic_links: bool) -> Dictionary:
 		if civic.is_empty(): return {}
 		decoded.merge(civic)
 		if not civic_links_match(decoded): return {}
+	if data.has("building_state"):
+		var buildings:=Buildings.validate(data.building_state)
+		if buildings.is_empty(): return {}
+		decoded.building_state=buildings
+		if not building_links_match(decoded): return {}
+	if data.has("career_state"):
+		var careers:=Careers.validate(data.career_state)
+		if careers.is_empty(): return {}
+		decoded.career_state=careers
+		if not career_links_match(decoded): return {}
 	return decoded
+
+static func career_links_match(data: Dictionary) -> bool:
+	if not data.has("career_state"): return true
+	var careers: Dictionary=data.career_state
+	var registry: Dictionary=data.get("civilization_state",{}).get("registry",{})
+	var persons: Dictionary=registry.get("records",{})
+	var quests: Dictionary=data.get("quest_state",{}).get("instances",{})
+	var organizations: Dictionary=data.get("quest_state",{}).get("organizations",{})
+	var buildings: Dictionary=data.get("building_state",{}).get("records",{})
+	var now:=float(registry.get("world_seconds",0))
+	if persons.is_empty() or float(careers.world_seconds)>now+.00001: return false
+	for id: String in careers.workers:
+		if not persons.has(id): return false
+		if not persons[id].active:
+			for key: String in careers.workers[id].employments:
+				if careers.employments[key].status!="ended": return false
+	for row: Dictionary in careers.employments.values():
+		if not persons.has(row.employee): return false
+		var employer:=String(row.employer)
+		if not persons.has(employer):
+			var group: Dictionary=organizations.get("guilds",{}) if employer.begins_with("guild/") else organizations.get("factions",{}) if employer.begins_with("faction/") else {}
+			if not group.has(employer.get_slice("/",1)): return false
+		if row.compensation.type=="contract":
+			var quest: Dictionary=quests.get(row.quest_id,{})
+			if quest.is_empty():
+				if row.status!="ended": return false
+			elif quest.issuer!=employer or quest.participant!=row.employee or int(quest.reward)!=int(row.compensation.amount) or quest.source!=row.compensation.source: return false
+		if row.status=="office":
+			var group: Dictionary=organizations.get("guilds",{}) if row.career=="guild_leader" else organizations.get("factions",{})
+			if not group.has(row.role_ref) or group[row.role_ref].leader!=row.employee or group[row.role_ref].get("status","active")!="active": return false
+		var workplace:=String(row.workplace)
+		if not workplace.is_empty() and not workplace.begins_with("establishment/") and not buildings.has(workplace): return false
+	for row: Dictionary in careers.businesses.values():
+		if not persons.has(row.owner) or not buildings.has(row.workplace): return false
+		if row.status=="active" and (not persons[row.owner].active or buildings[row.workplace].owner!=row.owner): return false
+	return true
+
+static func building_links_match(data: Dictionary) -> bool:
+	var organizations: Dictionary=data.get("quest_state",{}).get("organizations",{})
+	var properties: Dictionary=data.get("building_state",{}).get("records",{})
+	for group: String in ["guilds","factions"]:
+		for institution: Dictionary in organizations.get(group,{}).values():
+			if institution.get("status","active")!="active": continue
+			var reference:=String(institution.get("headquarters",""))
+			if reference.is_empty() or reference=="establishment/adventurers_guild" and institution.id=="adventurers_guild": continue
+			if not properties.has(reference) or properties[reference].owner!=("guild/" if group=="guilds" else "faction/")+String(institution.id): return false
+	if not data.has("building_state"): return true
+	var ids: Dictionary={}
+	for item: Dictionary in data.inventory.items: ids[item.instance_id]=true
+	for drop: Dictionary in data.world_drops: ids[drop.item.instance_id]=true
+	var economy: Dictionary=data.get("civilian_state",{})
+	for key: String in ["npc_stores","room_stores"]:
+		for store: Dictionary in economy.get(key,{}).values():
+			for item: Dictionary in store.items: ids[item.instance_id]=true
+	if economy.get("guild_stock") is Dictionary:
+		for item: Dictionary in economy.guild_stock.items: ids[item.instance_id]=true
+	var registry: Dictionary=data.get("civilization_state",{}).get("registry",{})
+	for row: Dictionary in data.building_state.records.values():
+		for person: String in [String(row.owner)]+row.tenants+row.occupants:
+			if person=="player" or registry.get("records",{}).has(person): continue
+			if person.begins_with("guild/") and organizations.get("guilds",{}).has(person.trim_prefix("guild/")): continue
+			if person.begins_with("faction/") and organizations.get("factions",{}).has(person.trim_prefix("faction/")): continue
+			return false
+		for entry: Dictionary in row.history:
+			if float(entry.timestamp)>float(registry.get("world_seconds",0))+.00001: return false
+		for object: Dictionary in row.placements.values():
+			if ids.has(object.item.instance_id): return false
+			ids[object.item.instance_id]=true
+		for item: Dictionary in row.storage.items:
+			if ids.has(item.instance_id): return false
+			ids[item.instance_id]=true
+	return true
 
 static func has_civic_state(data: Dictionary) -> bool:
 	for key: String in CIVIC_FIELDS:
@@ -172,8 +256,9 @@ static func canonical_civic_state(data: Dictionary) -> Dictionary:
 static func _known_person(id: String,registry: Dictionary) -> bool:
 	return id=="player" or registry.records.has(id)
 
-static func _known_speaker(id: String,registry: Dictionary) -> bool:
+static func _known_speaker(id: String,registry: Dictionary,organizations: Dictionary={}) -> bool:
 	if _known_person(id,registry) or id=="avat_ar": return true
+	if id.begins_with("guild/"): return organizations.get("guilds",{}).has(id.trim_prefix("guild/"))
 	if id in ["board/security","board/commerce","board/exploration"]: return true
 	return id in ["faction/security","faction/commerce","faction/exploration","faction/underworld"]
 
@@ -186,8 +271,32 @@ static func civic_links_match(data: Dictionary) -> bool:
 	var registry: Dictionary=data.civilization_state.registry
 	var ledger: Dictionary=data.civilian_state
 	var quests: Dictionary=data.quest_state
+	var organizations: Dictionary=quests.organizations
 	var now: float=float(registry.world_seconds)
 	if float(quests.world_seconds)>now+.00001: return false
+	if float(organizations.world_seconds)>now+.00001: return false
+	var institution_ids: Array=organizations.guilds.keys()
+	var ledger_guilds: Array=ledger.guilds.duplicate()
+	institution_ids.sort(); ledger_guilds.sort()
+	if institution_ids!=ledger_guilds: return false
+	for row: Dictionary in organizations.guilds.values():
+		if not row.faction in ledger.factions or not ledger.balances.has(row.treasury): return false
+		for member: String in row.members:
+			if not _known_person(member,registry): return false
+			if row.status=="active" and member!="player" and not registry.records[member].active: return false
+		for leader: String in [row.leader,row.successor]:
+			if not leader.is_empty() and (leader=="player" or not registry.records.has(leader) or not registry.records[leader].active): return false
+		for history: Dictionary in row.history:
+			if not history.actor.is_empty() and not _known_person(history.actor,registry): return false
+	for row: Dictionary in organizations.factions.values():
+		if not row.id in ledger.factions: return false
+		if not row.leader.is_empty() and (not registry.records.has(row.leader) or not registry.records[row.leader].active): return false
+		for history: Dictionary in row.history:
+			if not history.actor.is_empty() and not _known_person(history.actor,registry): return false
+	for founder: String in organizations.supports:
+		if not registry.records.has(founder) or not registry.records[founder].active: return false
+		for supporter: String in organizations.supports[founder].supporters:
+			if not registry.records.has(supporter) or not registry.records[supporter].active: return false
 	for id: String in quests.memberships:
 		if not _known_person(id,registry): return false
 		for faction: String in quests.memberships[id]:
@@ -196,12 +305,13 @@ static func civic_links_match(data: Dictionary) -> bool:
 		if not _known_person(id,registry) or not _known_person(quests.introductions[id],registry): return false
 	for id: String in quests.instances:
 		var row: Dictionary=quests.instances[id]
-		if not _known_person(row.issuer,registry) and not row.issuer in ["faction/security","faction/commerce","faction/exploration","faction/underworld"]: return false
+		if not _known_person(row.issuer,registry) and not _known_speaker(row.issuer,registry,organizations): return false
+		if not String(row.guild_id).is_empty() and not organizations.guilds.is_empty() and not organizations.guilds.has(row.guild_id): return false
 		if not row.participant.is_empty() and not _known_person(row.participant,registry): return false
 		if not row.faction.is_empty() and not row.faction in ledger.factions: return false
 		for eligible: String in row.eligible:
 			if not _known_person(eligible,registry): return false
-		if not String(row.objective.recipient_id).is_empty() and row.objective.recipient_id!="guild" and not _known_speaker(row.objective.recipient_id,registry): return false
+		if not String(row.objective.recipient_id).is_empty() and row.objective.recipient_id!="guild" and not _known_speaker(row.objective.recipient_id,registry,organizations): return false
 		if row.status in ["active","ready"] and row.participant!="player" and not registry.records[row.participant].active: return false
 		if not ledger.contracts.has(id): return false
 		var escrow: Dictionary=ledger.contracts[id]
@@ -223,12 +333,12 @@ static func civic_links_match(data: Dictionary) -> bool:
 			if not _known_person(witness,registry): return false
 	var communication: Dictionary=data.communication_state
 	for id: String in communication.profiles.records:
-		if not _known_speaker(id,registry): return false
+		if not _known_speaker(id,registry,organizations): return false
 		for context: Dictionary in communication.profiles.records[id].context:
-			if not _known_speaker(context.listener_id,registry): return false
+			if not _known_speaker(context.listener_id,registry,organizations): return false
 	for rows: Array in [communication.protocol.recent,communication.protocol.facts]:
 		for row: Dictionary in rows:
-			if not _known_speaker(row.speaker_id,registry) or not _known_speaker(row.listener_id,registry) or float(row.world_timestamp)>now+.00001: return false
+			if not _known_speaker(row.speaker_id,registry,organizations) or not _known_speaker(row.listener_id,registry,organizations) or float(row.world_timestamp)>now+.00001: return false
 	return true
 
 static func wonders_clock_matches(stock: Dictionary,registry: Dictionary) -> bool:

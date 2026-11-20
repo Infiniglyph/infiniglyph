@@ -37,6 +37,21 @@ prices, conservation of coins, storage, room instances and current placeholders.
 
 ## Persistent Code Form civilians
 
+The four factions now contain **12 independent founding guilds**, with separate
+leaders, treasuries, membership and headquarters. Suitable scenery buildings are
+enterable shells: occupy a vacant one with **G / tap RT**, then install real owned
+furniture, change its use, store goods or control access. NPCs can occupy and
+furnish their own premises. The shared catalogue adds **56 placeables and 24
+foods/drinks**; food restores HP and drinks restore shield according to rarity,
+quality and preparation complexity.
+
+**74 careers** share eight reusable work templates. Native Code Forms choose
+and reconsider occupations, take funded jobs, operate businesses and retain
+employment histories. Ask about a resident's identity, then choose **Career and
+employment** to inspect their actual work. Titles and waiting do not pay wages.
+See [guilds, buildings and careers](docs/GUILDS_BUILDINGS_AND_CAREERS.md) for
+locations, controls, economic rules and the current production recipes.
+
 Residents and keepers now share a six-choice intent conversation system, with
 procedural electronic voices and live subtitles. The guild has separate Security,
 Commerce and Exploration boards with finite funded contracts; private Underworld

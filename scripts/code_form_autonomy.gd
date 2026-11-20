@@ -240,16 +240,24 @@ func perform_action(record: Dictionary,state: Dictionary,physical: bool) -> bool
 	if not success:
 		match String(record.current_goal):
 			"work":
-				if is_instance_valid(economy):
+				if is_instance_valid(economy) and (not is_instance_valid(_world()) or not is_instance_valid(_world().get("careers"))):
 					var tavern: bool=String(record.slot).begins_with("service/tavern") or String(record.occupation).to_lower().contains("tavern") or String(record.occupation).to_lower().contains("bartender")
 					var key: String="tavern_work" if tavern else "guild_work"
 					success=economy.npc_service_wage(id,key,floori(_now()/_day()))
 					if success: registry.remember(id,"work",key,"Completed paid civilian work.",.4)
 			"eat":
 				if is_instance_valid(economy):
-					success=economy.npc_consume_food(id,&"electron_meal")
+					var pantry: Node=economy.npc_store(id) if economy.has_method("npc_store") else null
+					# Owned meals and desserts take priority over drinks and buying
+					# another meal; the same authority consumes the real item.
+					for drinks: bool in [false,true]:
+						if success or not is_instance_valid(pantry): break
+						for item: Resource in pantry.items.values():
+							var definition: Resource=Catalog.get_definition(item.item_type_id)
+							if definition==null or not definition.custom_properties.get("civilian_food",false) or (definition.custom_properties.get("cuisine_kind")=="drink")!=drinks: continue
+							if economy.npc_consume_food(id,item.item_type_id): success=true; break
 					if not success and economy.npc_buy_food(id,&"electron_meal"): success=economy.npc_consume_food(id,&"electron_meal")
-					if success: state.hunger=0.0; registry.remember(id,"meal","tavern","A purchased meal restored my appetite.",.3)
+					if success: state.hunger=0.0; registry.remember(id,"meal","cuisine","Enjoyed some owned Electron cuisine.",.3)
 			"trade":
 				if is_instance_valid(economy):
 					var inventory: Node=economy.npc_store(id)
@@ -363,6 +371,9 @@ func on_arrival(source: Node) -> void:
 	else: _arrive(_id(source),"place/"+String(source.goal),source)
 
 func on_regional_arrival(record: Dictionary) -> void:
+	var world=_world()
+	var commute=world.get("career_commute") if is_instance_valid(world) else null
+	if is_instance_valid(commute) and commute.on_arrival(record): return
 	var id: String=record.get("code_form_id","")
 	var slot: String=record.get("code_form_slot","region/"+str(record.id))
 	var anchor:=_shop_anchor()

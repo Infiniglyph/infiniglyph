@@ -31,6 +31,16 @@ const QuestSystem = preload("res://scripts/quest_system.gd")
 const CivilianLaw = preload("res://scripts/civilian_law.gd")
 const Communication = preload("res://scripts/universal_communication.gd")
 const CivicInteractions = preload("res://scripts/civilization_interactions.gd")
+const BuildingCivilization = preload("res://scripts/building_civilization.gd")
+const CareerSystem = preload("res://scripts/career_system.gd")
+const CareerActions = preload("res://scripts/career_actions.gd")
+const CareerMenu = preload("res://scripts/career_menu.gd")
+const CareerCommute = preload("res://scripts/career_commute.gd")
+var careers: Node
+var career_actions: RefCounted
+var career_menu: Node
+var career_commute: RefCounted
+var building_civilization: Node3D
 var quest_system: Node
 var law: Node
 var communication: CanvasLayer
@@ -226,9 +236,22 @@ func _ready() -> void:
 		communication.world=self
 		add_child(communication)
 		start_menu.apply_communication_settings()
+		career_actions=CareerActions.new()
+		career_actions.world=self
+		career_commute=CareerCommute.new()
+		career_commute.world=self
+		careers=CareerSystem.new()
+		careers.world=self
+		add_child(careers)
 		civic_interactions=CivicInteractions.new()
 		civic_interactions.world=self
 		add_child(civic_interactions)
+		building_civilization=BuildingCivilization.new()
+		building_civilization.world=self
+		add_child(building_civilization)
+		career_menu=CareerMenu.new()
+		career_menu.world=self
+		add_child(career_menu)
 	if not inventory_session.networked():
 		respawn_glyphs=RespawnGlyphs.new()
 		respawn_glyphs.world=self

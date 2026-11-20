@@ -31,7 +31,9 @@ cyan wireframes and restrained colored window accents.
   interaction ends the resting pose.
 - Tavern purchases enter your actual inventory. Consume them from the bar or
   table menu, or choose **Eat / Drink** when inspecting them in inventory.
-  One timed recovery effect can run at a time. Full-health consumption is refused.
+  One timed recovery effect can run at a time. Food needs missing HP; drinks need
+  missing shield and can be consumed at full HP. Rarity, quality and preparation
+  complexity modify the amount without granting eating XP.
 - Menus accept **D-pad / stick / arrows / W/S**, **A / Enter** to choose,
   **B / Escape** to go back, and **Left / Right** for pages. **PgUp / PgDn**
   scroll details; **F5** saves. **Select / View** switches to inventory;
@@ -41,7 +43,7 @@ cyan wireframes and restrained colored window accents.
 | --- | ---: | ---: | --- |
 | Private room rental | 30 coins | 60 real minutes | Access to one room |
 | Electron Meal | 8 coins | 2 seconds | Recover 60 HP |
-| Electron Draught | 12 coins | 3 seconds | Recover 120 HP |
+| Electron Draught | 12 coins | 3 seconds | Recover 120 shield |
 | Bed Rest | Included | 5 seconds | Recover 60 HP |
 | Bed Sleep | Included | 10 seconds | Recover 180 HP |
 

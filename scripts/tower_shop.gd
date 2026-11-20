@@ -7,6 +7,7 @@ var browser: PanelContainer
 var _main_panel: PanelContainer
 const SHOP_ID := &"central_tower"
 const ITEMS: Array[StringName] = [&"sword_shield",&"spear",&"katana",&"twin_blades",&"health_glyph",&"shield_glyph_light",&"shield_glyph_medium",&"shield_glyph_heavy",&"respawn_glyph",&"home_respawn_glyph",&"eternal_scribe_robes"]
+const CATEGORIES := ["weapons","items","armour","residential_furniture","commercial_furniture","functional_equipment","decorations","electron_meals","drinks_desserts"]
 # Authoritative offer prices. Currency settlement can be added here later;
 # nonzero prices are displayed but unavailable until that system exists.
 @export var prices: Dictionary = {"sword_shield":0,"spear":0,"katana":0,"twin_blades":0,"health_glyph":0,"shield_glyph_light":0,"shield_glyph_medium":0,"shield_glyph_heavy":0,"respawn_glyph":0,"home_respawn_glyph":0,"eternal_scribe_robes":0}
@@ -36,8 +37,10 @@ func anchor() -> Vector3:
 	return _metro.to_global(_metro.TOWER+Vector3.UP*_metro.DAIS_HEIGHT)
 
 func offer(id: StringName) -> Dictionary:
-	if id not in ITEMS and Database.get_item(id).is_empty(): return {}
-	var price: Variant = prices.get(String(id),0 if not Database.get_item(id).is_empty() else null)
+	var definition: Resource=Catalog.get_definition(id)
+	var civic: bool=definition!=null and (definition.custom_properties.get("civilization_catalog",false) or definition.custom_properties.get("civilian_food",false))
+	if id not in ITEMS and Database.get_item(id).is_empty() and not civic: return {}
+	var price: Variant = prices.get(String(id),0 if civic or not Database.get_item(id).is_empty() else null)
 	if not price is int or price<0: return {}
 	return {"item_type_id":id,"price":price}
 
@@ -104,6 +107,8 @@ func _build() -> void:
 	_add_button(box,"WEAPONS  /  Named weapons and combat styles",func(): open_browser("weapons"))
 	_add_button(box,"ITEMS  /  Health Glyphs, Shield Glyphs and keepsakes",func(): open_browser("items"))
 	_add_button(box,"ARMOUR  /  Clothing, plate, gloves and greaves",func(): open_browser("armour"))
+	for group: String in Catalog.CIVIC_GROUPS:
+		_add_button(box,String(Catalog.CIVIC_GROUPS[group]).to_upper(),open_browser.bind(group))
 	_status = _label("",16)
 	_status.custom_minimum_size.y = 52
 	_status.modulate = Color(1,0.66,0.28)
@@ -124,7 +129,7 @@ func open_browser(category: String = "weapons") -> void:
 func close_browser() -> void:
 	browser.hide()
 	_main_panel.show()
-	_buttons[["weapons","items","armour"].find(browser.category)].grab_focus()
+	_buttons[maxi(0,CATEGORIES.find(browser.category))].grab_focus()
 
 func _add_button(box: VBoxContainer, text: String, action: Callable) -> void:
 	var button := Button.new()

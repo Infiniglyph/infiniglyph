@@ -27,11 +27,16 @@ price and expiry; changed stock, missing coins and expired quotes fail without a
 partial exchange. Offers are temporary and are cleared on closing or loading.
 
 The Adventurers Guild contains separate **Security**, **Commerce** and
-**Exploration Guild** boards. Anyone can browse public contracts; joining the
-relevant guild is required before accepting one. Each faction has its own
-treasury, initially funded by transfers from residents' existing coins. Rewards
+**Exploration** boards. Anyone can browse public contracts; joining the issuing
+guild is required before accepting its member work. Each of four factions now
+contains three independently led guilds, with separate finite treasuries funded
+by transfers from residents' existing coins. Rewards
 are reserved in escrow before a job can be advertised. There are no fabricated
 coins when a board, instance or checkpoint is reopened.
+
+[Guilds, buildings and careers](GUILDS_BUILDINGS_AND_CAREERS.md) describes the
+twelve institutions, separate faction headquarters, governance, native employment
+and functional architectural shells.
 
 Security patrols and exploration surveys complete at the stated world waypoint.
 Delivery contracts transfer the requested owned item to its recipient. Purchase

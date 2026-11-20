@@ -1,0 +1,17 @@
+{
+  "version":1,
+  "guilds":[
+    {"id":"adventurers_guild","name":"Adventurers Guild","faction":"exploration","classification":"generalist","specialty":"adventuring","governance":"merit"},
+    {"id":"cartographers","name":"The Cartographers","faction":"exploration","classification":"specialist","specialty":"mapping","governance":"election"},
+    {"id":"relic_seekers","name":"Relic Seekers","faction":"exploration","classification":"specialist","specialty":"recovery","governance":"appointed"},
+    {"id":"lit_mob","name":"Lit Mob","faction":"underworld","classification":"generalist","specialty":"criminal_networks","governance":"challenge"},
+    {"id":"veil","name":"The Veil","faction":"underworld","classification":"specialist","specialty":"intelligence","governance":"appointed"},
+    {"id":"black_ledger","name":"Black Ledger","faction":"underworld","classification":"specialist","specialty":"illicit_commerce","governance":"merit"},
+    {"id":"dark_box","name":"Dark Box","faction":"security","classification":"generalist","specialty":"public_safety","governance":"election"},
+    {"id":"iron_wardens","name":"Iron Wardens","faction":"security","classification":"specialist","specialty":"protection","governance":"appointed"},
+    {"id":"inquest","name":"The Inquest","faction":"security","classification":"specialist","specialty":"investigation","governance":"merit"},
+    {"id":"trade_united","name":"Trade United","faction":"commerce","classification":"generalist","specialty":"trade","governance":"election"},
+    {"id":"artificers","name":"The Artificers","faction":"commerce","classification":"specialist","specialty":"manufacturing","governance":"merit"},
+    {"id":"wayfarer_logistics","name":"Wayfarer Logistics","faction":"commerce","classification":"specialist","specialty":"delivery","governance":"appointed"}
+  ]
+}

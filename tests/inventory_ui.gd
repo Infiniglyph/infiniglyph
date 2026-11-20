@@ -93,7 +93,7 @@ func run() -> void:
 	ui.open_menu()
 	await frames()
 	check(ui.is_open and ui.layer==20 and ui.process_mode==Node.PROCESS_MODE_ALWAYS,"Inventory opens above the HUD with independent UI processing")
-	check(signals_seen.open==1 and ui.category_buttons.size()==6,"Opening emits once and exposes all six real categories")
+	check(signals_seen.open==1 and ui.category_buttons.size()==7,"Opening emits once and exposes six original categories plus furniture")
 	check(ui.item_rows.size()==4 and ui.visible_ids.size()==4,"Starter weapons appear as four individual items")
 	var katana := find_type(&"katana")
 	ui.select_item(katana)

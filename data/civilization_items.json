@@ -1,0 +1,2299 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "id": "basic_bed",
+      "name": "Basic Bed",
+      "description": "A reusable neon basic bed for an occupied space. Supports rest.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "residential_furniture",
+        "placeable": true,
+        "placement_category": "residential",
+        "furniture_kind": "bed",
+        "placement_surface": "floor",
+        "surface": "floor",
+        "size": [
+          1.15,
+          0.8,
+          2.1
+        ],
+        "footprint": [
+          1.15,
+          2.1
+        ],
+        "interaction": "rest",
+        "price": 60,
+        "glyph_coin_value": 60,
+        "base_value": 60,
+        "rarity": "Common",
+        "tint": "68e8ff",
+        "seat_height": 0.52
+      }
+    },
+    {
+      "id": "deluxe_bed",
+      "name": "Deluxe Bed",
+      "description": "A reusable neon deluxe bed for an occupied space. Supports rest.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "residential_furniture",
+        "placeable": true,
+        "placement_category": "residential",
+        "furniture_kind": "deluxe_bed",
+        "placement_surface": "floor",
+        "surface": "floor",
+        "size": [
+          1.9,
+          1.15,
+          2.25
+        ],
+        "footprint": [
+          1.9,
+          2.25
+        ],
+        "interaction": "rest",
+        "price": 140,
+        "glyph_coin_value": 140,
+        "base_value": 140,
+        "rarity": "Rare",
+        "tint": "68e8ff",
+        "seat_height": 0.747
+      }
+    },
+    {
+      "id": "single_chair",
+      "name": "Single Chair",
+      "description": "A reusable neon single chair for an occupied space. Supports seat.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "residential_furniture",
+        "placeable": true,
+        "placement_category": "residential",
+        "furniture_kind": "chair",
+        "placement_surface": "floor",
+        "surface": "floor",
+        "size": [
+          0.65,
+          1.1,
+          0.65
+        ],
+        "footprint": [
+          0.65,
+          0.65
+        ],
+        "interaction": "seat",
+        "price": 20,
+        "glyph_coin_value": 20,
+        "base_value": 20,
+        "rarity": "Common",
+        "tint": "68e8ff",
+        "seat_height": 0.44
+      }
+    },
+    {
+      "id": "grand_chair",
+      "name": "Grand Chair",
+      "description": "A reusable neon grand chair for an occupied space. Supports seat.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "residential_furniture",
+        "placeable": true,
+        "placement_category": "residential",
+        "furniture_kind": "grand_chair",
+        "placement_surface": "floor",
+        "surface": "floor",
+        "size": [
+          0.95,
+          1.65,
+          0.9
+        ],
+        "footprint": [
+          0.95,
+          0.9
+        ],
+        "interaction": "seat",
+        "price": 95,
+        "glyph_coin_value": 95,
+        "base_value": 95,
+        "rarity": "Uncommon",
+        "tint": "68e8ff",
+        "seat_height": 0.66
+      }
+    },
+    {
+      "id": "dining_table",
+      "name": "Dining Table",
+      "description": "A reusable neon dining table for an occupied space. Supports surface.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "residential_furniture",
+        "placeable": true,
+        "placement_category": "residential",
+        "furniture_kind": "table",
+        "placement_surface": "floor",
+        "surface": "floor",
+        "size": [
+          2,
+          0.9,
+          1.2
+        ],
+        "footprint": [
+          2,
+          1.2
+        ],
+        "interaction": "surface",
+        "price": 55,
+        "glyph_coin_value": 55,
+        "base_value": 55,
+        "rarity": "Common",
+        "tint": "68e8ff"
+      }
+    },
+    {
+      "id": "small_table",
+      "name": "Small Table",
+      "description": "A reusable neon small table for an occupied space. Supports surface.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "residential_furniture",
+        "placeable": true,
+        "placement_category": "residential",
+        "furniture_kind": "small_table",
+        "placement_surface": "floor",
+        "surface": "floor",
+        "size": [
+          0.8,
+          0.65,
+          0.8
+        ],
+        "footprint": [
+          0.8,
+          0.8
+        ],
+        "interaction": "surface",
+        "price": 25,
+        "glyph_coin_value": 25,
+        "base_value": 25,
+        "rarity": "Common",
+        "tint": "68e8ff"
+      }
+    },
+    {
+      "id": "sofa",
+      "name": "Sofa",
+      "description": "A reusable neon sofa for an occupied space. Supports seat.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "residential_furniture",
+        "placeable": true,
+        "placement_category": "residential",
+        "furniture_kind": "sofa",
+        "placement_surface": "floor",
+        "surface": "floor",
+        "size": [
+          2.1,
+          1.05,
+          0.9
+        ],
+        "footprint": [
+          2.1,
+          0.9
+        ],
+        "interaction": "seat",
+        "price": 95,
+        "glyph_coin_value": 95,
+        "base_value": 95,
+        "rarity": "Uncommon",
+        "tint": "68e8ff",
+        "seat_height": 0.42
+      }
+    },
+    {
+      "id": "bookshelf",
+      "name": "Bookshelf",
+      "description": "A reusable neon bookshelf for an occupied space. Supports storage.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "residential_furniture",
+        "placeable": true,
+        "placement_category": "residential",
+        "furniture_kind": "bookshelf",
+        "placement_surface": "floor",
+        "surface": "floor",
+        "size": [
+          1.3,
+          2,
+          0.4
+        ],
+        "footprint": [
+          1.3,
+          0.4
+        ],
+        "interaction": "storage",
+        "price": 65,
+        "glyph_coin_value": 65,
+        "base_value": 65,
+        "rarity": "Common",
+        "tint": "68e8ff"
+      }
+    },
+    {
+      "id": "wardrobe",
+      "name": "Wardrobe",
+      "description": "A reusable neon wardrobe for an occupied space. Supports storage.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "residential_furniture",
+        "placeable": true,
+        "placement_category": "residential",
+        "furniture_kind": "wardrobe",
+        "placement_surface": "floor",
+        "surface": "floor",
+        "size": [
+          1.5,
+          2.1,
+          0.65
+        ],
+        "footprint": [
+          1.5,
+          0.65
+        ],
+        "interaction": "storage",
+        "price": 85,
+        "glyph_coin_value": 85,
+        "base_value": 85,
+        "rarity": "Uncommon",
+        "tint": "68e8ff"
+      }
+    },
+    {
+      "id": "storage_chest",
+      "name": "Storage Chest",
+      "description": "A reusable neon storage chest for an occupied space. Supports storage.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "residential_furniture",
+        "placeable": true,
+        "placement_category": "residential",
+        "furniture_kind": "chest",
+        "placement_surface": "floor",
+        "surface": "floor",
+        "size": [
+          1.05,
+          0.65,
+          0.65
+        ],
+        "footprint": [
+          1.05,
+          0.65
+        ],
+        "interaction": "storage",
+        "price": 45,
+        "glyph_coin_value": 45,
+        "base_value": 45,
+        "rarity": "Common",
+        "tint": "68e8ff"
+      }
+    },
+    {
+      "id": "desk",
+      "name": "Desk",
+      "description": "A reusable neon desk for an occupied space. Supports study.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "residential_furniture",
+        "placeable": true,
+        "placement_category": "residential",
+        "furniture_kind": "desk",
+        "placement_surface": "floor",
+        "surface": "floor",
+        "size": [
+          1.45,
+          0.92,
+          0.75
+        ],
+        "footprint": [
+          1.45,
+          0.75
+        ],
+        "interaction": "study",
+        "price": 65,
+        "glyph_coin_value": 65,
+        "base_value": 65,
+        "rarity": "Common",
+        "tint": "68e8ff"
+      }
+    },
+    {
+      "id": "wall_shelf",
+      "name": "Wall Shelf",
+      "description": "A reusable neon wall shelf for an occupied space. Supports surface.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "residential_furniture",
+        "placeable": true,
+        "placement_category": "residential",
+        "furniture_kind": "wall_shelf",
+        "placement_surface": "wall",
+        "surface": "wall",
+        "size": [
+          1.5,
+          0.55,
+          0.3
+        ],
+        "footprint": [
+          1.5,
+          0.3
+        ],
+        "interaction": "surface",
+        "price": 25,
+        "glyph_coin_value": 25,
+        "base_value": 25,
+        "rarity": "Common",
+        "tint": "68e8ff"
+      }
+    },
+    {
+      "id": "merchant_counter",
+      "name": "Merchant Counter",
+      "description": "A reusable neon merchant counter for an occupied space. Supports trade.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "commercial_furniture",
+        "placeable": true,
+        "placement_category": "commercial",
+        "furniture_kind": "counter",
+        "placement_surface": "floor",
+        "surface": "floor",
+        "size": [
+          2.3,
+          1.1,
+          0.8
+        ],
+        "footprint": [
+          2.3,
+          0.8
+        ],
+        "interaction": "trade",
+        "price": 90,
+        "glyph_coin_value": 90,
+        "base_value": 90,
+        "rarity": "Uncommon",
+        "tint": "ffcf72"
+      }
+    },
+    {
+      "id": "display_shelf",
+      "name": "Display Shelf",
+      "description": "A reusable neon display shelf for an occupied space. Supports display.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "commercial_furniture",
+        "placeable": true,
+        "placement_category": "commercial",
+        "furniture_kind": "display_shelf",
+        "placement_surface": "floor",
+        "surface": "floor",
+        "size": [
+          1.6,
+          1.8,
+          0.6
+        ],
+        "footprint": [
+          1.6,
+          0.6
+        ],
+        "interaction": "display",
+        "price": 75,
+        "glyph_coin_value": 75,
+        "base_value": 75,
+        "rarity": "Uncommon",
+        "tint": "ffcf72"
+      }
+    },
+    {
+      "id": "item_pedestal",
+      "name": "Item Pedestal",
+      "description": "A reusable neon item pedestal for an occupied space. Supports display.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "commercial_furniture",
+        "placeable": true,
+        "placement_category": "commercial",
+        "furniture_kind": "pedestal",
+        "placement_surface": "floor",
+        "surface": "floor",
+        "size": [
+          0.6,
+          1.05,
+          0.6
+        ],
+        "footprint": [
+          0.6,
+          0.6
+        ],
+        "interaction": "display",
+        "price": 40,
+        "glyph_coin_value": 40,
+        "base_value": 40,
+        "rarity": "Common",
+        "tint": "ffcf72"
+      }
+    },
+    {
+      "id": "market_stall",
+      "name": "Market Stall",
+      "description": "A reusable neon market stall for an occupied space. Supports trade.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "commercial_furniture",
+        "placeable": true,
+        "placement_category": "commercial",
+        "furniture_kind": "stall",
+        "placement_surface": "floor",
+        "surface": "floor",
+        "size": [
+          2.6,
+          2.5,
+          1.7
+        ],
+        "footprint": [
+          2.6,
+          1.7
+        ],
+        "interaction": "trade",
+        "price": 160,
+        "glyph_coin_value": 160,
+        "base_value": 160,
+        "rarity": "Rare",
+        "tint": "ffcf72"
+      }
+    },
+    {
+      "id": "tavern_table",
+      "name": "Tavern Table",
+      "description": "A reusable neon tavern table for an occupied space. Supports surface.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "commercial_furniture",
+        "placeable": true,
+        "placement_category": "commercial",
+        "furniture_kind": "round_table",
+        "placement_surface": "floor",
+        "surface": "floor",
+        "size": [
+          1.15,
+          0.9,
+          1.15
+        ],
+        "footprint": [
+          1.15,
+          1.15
+        ],
+        "interaction": "surface",
+        "price": 45,
+        "glyph_coin_value": 45,
+        "base_value": 45,
+        "rarity": "Common",
+        "tint": "ffcf72"
+      }
+    },
+    {
+      "id": "tavern_stool",
+      "name": "Tavern Stool",
+      "description": "A reusable neon tavern stool for an occupied space. Supports seat.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "commercial_furniture",
+        "placeable": true,
+        "placement_category": "commercial",
+        "furniture_kind": "stool",
+        "placement_surface": "floor",
+        "surface": "floor",
+        "size": [
+          0.5,
+          0.72,
+          0.5
+        ],
+        "footprint": [
+          0.5,
+          0.5
+        ],
+        "interaction": "seat",
+        "price": 18,
+        "glyph_coin_value": 18,
+        "base_value": 18,
+        "rarity": "Common",
+        "tint": "ffcf72",
+        "seat_height": 0.648
+      }
+    },
+    {
+      "id": "workshop_bench",
+      "name": "Workshop Bench",
+      "description": "A reusable neon workshop bench for an occupied space. Supports craft.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "commercial_furniture",
+        "placeable": true,
+        "placement_category": "commercial",
+        "furniture_kind": "workbench",
+        "placement_surface": "floor",
+        "surface": "floor",
+        "size": [
+          2,
+          1.05,
+          0.95
+        ],
+        "footprint": [
+          2,
+          0.95
+        ],
+        "interaction": "craft",
+        "price": 90,
+        "glyph_coin_value": 90,
+        "base_value": 90,
+        "rarity": "Uncommon",
+        "tint": "ffcf72"
+      }
+    },
+    {
+      "id": "storage_rack",
+      "name": "Storage Rack",
+      "description": "A reusable neon storage rack for an occupied space. Supports storage.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "commercial_furniture",
+        "placeable": true,
+        "placement_category": "commercial",
+        "furniture_kind": "rack",
+        "placement_surface": "floor",
+        "surface": "floor",
+        "size": [
+          1.8,
+          2,
+          0.8
+        ],
+        "footprint": [
+          1.8,
+          0.8
+        ],
+        "interaction": "storage",
+        "price": 65,
+        "glyph_coin_value": 65,
+        "base_value": 65,
+        "rarity": "Common",
+        "tint": "ffcf72"
+      }
+    },
+    {
+      "id": "delivery_crate",
+      "name": "Delivery Crate",
+      "description": "A reusable neon delivery crate for an occupied space. Supports storage.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "commercial_furniture",
+        "placeable": true,
+        "placement_category": "commercial",
+        "furniture_kind": "crate",
+        "placement_surface": "floor",
+        "surface": "floor",
+        "size": [
+          0.8,
+          0.8,
+          0.8
+        ],
+        "footprint": [
+          0.8,
+          0.8
+        ],
+        "interaction": "storage",
+        "price": 25,
+        "glyph_coin_value": 25,
+        "base_value": 25,
+        "rarity": "Common",
+        "tint": "ffcf72"
+      }
+    },
+    {
+      "id": "guild_meeting_table",
+      "name": "Guild Meeting Table",
+      "description": "A reusable neon guild meeting table for an occupied space. Supports meeting.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "commercial_furniture",
+        "placeable": true,
+        "placement_category": "commercial",
+        "furniture_kind": "meeting_table",
+        "placement_surface": "floor",
+        "surface": "floor",
+        "size": [
+          3.8,
+          0.95,
+          1.45
+        ],
+        "footprint": [
+          3.8,
+          1.45
+        ],
+        "interaction": "meeting",
+        "price": 150,
+        "glyph_coin_value": 150,
+        "base_value": 150,
+        "rarity": "Rare",
+        "tint": "ffcf72"
+      }
+    },
+    {
+      "id": "contract_board",
+      "name": "Contract Board",
+      "description": "A reusable neon contract board for an occupied space. Supports contracts.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "commercial_furniture",
+        "placeable": true,
+        "placement_category": "commercial",
+        "furniture_kind": "contract_board",
+        "placement_surface": "wall",
+        "surface": "wall",
+        "size": [
+          1.65,
+          1.1,
+          0.16
+        ],
+        "footprint": [
+          1.65,
+          0.16
+        ],
+        "interaction": "contracts",
+        "price": 60,
+        "glyph_coin_value": 60,
+        "base_value": 60,
+        "rarity": "Common",
+        "tint": "ffcf72"
+      }
+    },
+    {
+      "id": "reception_desk",
+      "name": "Reception Desk",
+      "description": "A reusable neon reception desk for an occupied space. Supports reception.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "commercial_furniture",
+        "placeable": true,
+        "placement_category": "commercial",
+        "furniture_kind": "reception",
+        "placement_surface": "floor",
+        "surface": "floor",
+        "size": [
+          2.6,
+          1.15,
+          1.3
+        ],
+        "footprint": [
+          2.6,
+          1.3
+        ],
+        "interaction": "reception",
+        "price": 110,
+        "glyph_coin_value": 110,
+        "base_value": 110,
+        "rarity": "Uncommon",
+        "tint": "ffcf72"
+      }
+    },
+    {
+      "id": "cooking_station",
+      "name": "Cooking Station",
+      "description": "A reusable neon cooking station for an occupied space. Supports cooking.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "functional_equipment",
+        "placeable": true,
+        "placement_category": "equipment",
+        "furniture_kind": "cooking",
+        "placement_surface": "floor",
+        "surface": "floor",
+        "size": [
+          1.5,
+          1.5,
+          0.9
+        ],
+        "footprint": [
+          1.5,
+          0.9
+        ],
+        "interaction": "cooking",
+        "price": 110,
+        "glyph_coin_value": 110,
+        "base_value": 110,
+        "rarity": "Uncommon",
+        "tint": "89aaff"
+      }
+    },
+    {
+      "id": "food_storage_unit",
+      "name": "Food Storage Unit",
+      "description": "A reusable neon food storage unit for an occupied space. Supports storage.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "functional_equipment",
+        "placeable": true,
+        "placement_category": "equipment",
+        "furniture_kind": "food_storage",
+        "placement_surface": "floor",
+        "surface": "floor",
+        "size": [
+          1.15,
+          1.8,
+          0.75
+        ],
+        "footprint": [
+          1.15,
+          0.75
+        ],
+        "interaction": "storage",
+        "price": 85,
+        "glyph_coin_value": 85,
+        "base_value": 85,
+        "rarity": "Uncommon",
+        "tint": "89aaff"
+      }
+    },
+    {
+      "id": "crafting_station",
+      "name": "Crafting Station",
+      "description": "A reusable neon crafting station for an occupied space. Supports craft.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "functional_equipment",
+        "placeable": true,
+        "placement_category": "equipment",
+        "furniture_kind": "crafting",
+        "placement_surface": "floor",
+        "surface": "floor",
+        "size": [
+          1.8,
+          1.4,
+          1.1
+        ],
+        "footprint": [
+          1.8,
+          1.1
+        ],
+        "interaction": "craft",
+        "price": 120,
+        "glyph_coin_value": 120,
+        "base_value": 120,
+        "rarity": "Uncommon",
+        "tint": "89aaff"
+      }
+    },
+    {
+      "id": "repair_bench",
+      "name": "Repair Bench",
+      "description": "A reusable neon repair bench for an occupied space. Supports repair.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "functional_equipment",
+        "placeable": true,
+        "placement_category": "equipment",
+        "furniture_kind": "repair",
+        "placement_surface": "floor",
+        "surface": "floor",
+        "size": [
+          1.7,
+          1.1,
+          0.8
+        ],
+        "footprint": [
+          1.7,
+          0.8
+        ],
+        "interaction": "repair",
+        "price": 90,
+        "glyph_coin_value": 90,
+        "base_value": 90,
+        "rarity": "Uncommon",
+        "tint": "89aaff"
+      }
+    },
+    {
+      "id": "computer_terminal",
+      "name": "Computer Terminal",
+      "description": "A reusable neon computer terminal for an occupied space. Supports computer.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "functional_equipment",
+        "placeable": true,
+        "placement_category": "equipment",
+        "furniture_kind": "terminal",
+        "placement_surface": "floor",
+        "surface": "floor",
+        "size": [
+          1.05,
+          1.55,
+          0.7
+        ],
+        "footprint": [
+          1.05,
+          0.7
+        ],
+        "interaction": "computer",
+        "price": 100,
+        "glyph_coin_value": 100,
+        "base_value": 100,
+        "rarity": "Uncommon",
+        "tint": "89aaff"
+      }
+    },
+    {
+      "id": "archive_terminal",
+      "name": "Archive Terminal",
+      "description": "A reusable neon archive terminal for an occupied space. Supports archive.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "functional_equipment",
+        "placeable": true,
+        "placement_category": "equipment",
+        "furniture_kind": "archive",
+        "placement_surface": "floor",
+        "surface": "floor",
+        "size": [
+          1.25,
+          1.9,
+          0.7
+        ],
+        "footprint": [
+          1.25,
+          0.7
+        ],
+        "interaction": "archive",
+        "price": 125,
+        "glyph_coin_value": 125,
+        "base_value": 125,
+        "rarity": "Uncommon",
+        "tint": "89aaff"
+      }
+    },
+    {
+      "id": "security_console",
+      "name": "Security Console",
+      "description": "A reusable neon security console for an occupied space. Supports security.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "functional_equipment",
+        "placeable": true,
+        "placement_category": "equipment",
+        "furniture_kind": "security",
+        "placement_surface": "floor",
+        "surface": "floor",
+        "size": [
+          1.7,
+          1.5,
+          0.85
+        ],
+        "footprint": [
+          1.7,
+          0.85
+        ],
+        "interaction": "security",
+        "price": 140,
+        "glyph_coin_value": 140,
+        "base_value": 140,
+        "rarity": "Rare",
+        "tint": "89aaff"
+      }
+    },
+    {
+      "id": "locking_door_module",
+      "name": "Locking Door Module",
+      "description": "A reusable neon locking door module for an occupied space. Supports access.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "functional_equipment",
+        "placeable": true,
+        "placement_category": "equipment",
+        "furniture_kind": "door_module",
+        "placement_surface": "floor",
+        "surface": "floor",
+        "size": [
+          1.2,
+          2.3,
+          0.18
+        ],
+        "footprint": [
+          1.2,
+          0.18
+        ],
+        "interaction": "access",
+        "price": 80,
+        "glyph_coin_value": 80,
+        "base_value": 80,
+        "rarity": "Uncommon",
+        "tint": "89aaff"
+      }
+    },
+    {
+      "id": "lighting_controller",
+      "name": "Lighting Controller",
+      "description": "A reusable neon lighting controller for an occupied space. Supports lighting.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "functional_equipment",
+        "placeable": true,
+        "placement_category": "equipment",
+        "furniture_kind": "lighting_control",
+        "placement_surface": "wall",
+        "surface": "wall",
+        "size": [
+          0.65,
+          0.8,
+          0.12
+        ],
+        "footprint": [
+          0.65,
+          0.12
+        ],
+        "interaction": "lighting",
+        "price": 55,
+        "glyph_coin_value": 55,
+        "base_value": 55,
+        "rarity": "Common",
+        "tint": "89aaff"
+      }
+    },
+    {
+      "id": "storage_terminal",
+      "name": "Storage Terminal",
+      "description": "A reusable neon storage terminal for an occupied space. Supports storage.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "functional_equipment",
+        "placeable": true,
+        "placement_category": "equipment",
+        "furniture_kind": "storage_terminal",
+        "placement_surface": "floor",
+        "surface": "floor",
+        "size": [
+          1.15,
+          1.6,
+          0.75
+        ],
+        "footprint": [
+          1.15,
+          0.75
+        ],
+        "interaction": "storage",
+        "price": 100,
+        "glyph_coin_value": 100,
+        "base_value": 100,
+        "rarity": "Uncommon",
+        "tint": "89aaff"
+      }
+    },
+    {
+      "id": "guild_registry_terminal",
+      "name": "Guild Registry Terminal",
+      "description": "A reusable neon guild registry terminal for an occupied space. Supports guild registry.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "functional_equipment",
+        "placeable": true,
+        "placement_category": "equipment",
+        "furniture_kind": "guild_terminal",
+        "placement_surface": "floor",
+        "surface": "floor",
+        "size": [
+          1.25,
+          1.7,
+          0.8
+        ],
+        "footprint": [
+          1.25,
+          0.8
+        ],
+        "interaction": "guild",
+        "price": 130,
+        "glyph_coin_value": 130,
+        "base_value": 130,
+        "rarity": "Uncommon",
+        "tint": "89aaff"
+      }
+    },
+    {
+      "id": "trade_terminal",
+      "name": "Trade Terminal",
+      "description": "A reusable neon trade terminal for an occupied space. Supports trade.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "functional_equipment",
+        "placeable": true,
+        "placement_category": "equipment",
+        "furniture_kind": "trade_terminal",
+        "placement_surface": "floor",
+        "surface": "floor",
+        "size": [
+          1.2,
+          1.6,
+          0.8
+        ],
+        "footprint": [
+          1.2,
+          0.8
+        ],
+        "interaction": "trade",
+        "price": 110,
+        "glyph_coin_value": 110,
+        "base_value": 110,
+        "rarity": "Uncommon",
+        "tint": "89aaff"
+      }
+    },
+    {
+      "id": "neon_wall_clock",
+      "name": "Neon Wall Clock",
+      "description": "A reusable neon neon wall clock for an occupied space. Supports inspect.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "decorations",
+        "placeable": true,
+        "placement_category": "decoration",
+        "furniture_kind": "clock",
+        "placement_surface": "wall",
+        "surface": "wall",
+        "size": [
+          0.65,
+          0.65,
+          0.1
+        ],
+        "footprint": [
+          0.65,
+          0.1
+        ],
+        "interaction": "inspect",
+        "price": 25,
+        "glyph_coin_value": 25,
+        "base_value": 25,
+        "rarity": "Common",
+        "tint": "c28aff"
+      }
+    },
+    {
+      "id": "geometric_sculpture",
+      "name": "Geometric Sculpture",
+      "description": "A reusable neon geometric sculpture for an occupied space. Supports inspect.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "decorations",
+        "placeable": true,
+        "placement_category": "decoration",
+        "furniture_kind": "sculpture",
+        "placement_surface": "floor",
+        "surface": "floor",
+        "size": [
+          0.9,
+          1.6,
+          0.9
+        ],
+        "footprint": [
+          0.9,
+          0.9
+        ],
+        "interaction": "inspect",
+        "price": 65,
+        "glyph_coin_value": 65,
+        "base_value": 65,
+        "rarity": "Common",
+        "tint": "c28aff"
+      }
+    },
+    {
+      "id": "floating_crystal",
+      "name": "Floating Crystal",
+      "description": "A reusable neon floating crystal for an occupied space. Supports inspect.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "decorations",
+        "placeable": true,
+        "placement_category": "decoration",
+        "furniture_kind": "crystal",
+        "placement_surface": "floor",
+        "surface": "floor",
+        "size": [
+          0.65,
+          1.25,
+          0.65
+        ],
+        "footprint": [
+          0.65,
+          0.65
+        ],
+        "interaction": "inspect",
+        "price": 70,
+        "glyph_coin_value": 70,
+        "base_value": 70,
+        "rarity": "Common",
+        "tint": "c28aff"
+      }
+    },
+    {
+      "id": "holographic_plant",
+      "name": "Holographic Plant",
+      "description": "A reusable neon holographic plant for an occupied space. Supports inspect.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "decorations",
+        "placeable": true,
+        "placement_category": "decoration",
+        "furniture_kind": "plant",
+        "placement_surface": "floor",
+        "surface": "floor",
+        "size": [
+          0.65,
+          1.1,
+          0.65
+        ],
+        "footprint": [
+          0.65,
+          0.65
+        ],
+        "interaction": "inspect",
+        "price": 35,
+        "glyph_coin_value": 35,
+        "base_value": 35,
+        "rarity": "Common",
+        "tint": "c28aff"
+      }
+    },
+    {
+      "id": "wireframe_bonsai",
+      "name": "Wireframe Bonsai",
+      "description": "A reusable neon wireframe bonsai for an occupied space. Supports inspect.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "decorations",
+        "placeable": true,
+        "placement_category": "decoration",
+        "furniture_kind": "bonsai",
+        "placement_surface": "surface",
+        "surface": "surface",
+        "size": [
+          0.75,
+          0.7,
+          0.6
+        ],
+        "footprint": [
+          0.75,
+          0.6
+        ],
+        "interaction": "inspect",
+        "price": 55,
+        "glyph_coin_value": 55,
+        "base_value": 55,
+        "rarity": "Common",
+        "tint": "c28aff"
+      }
+    },
+    {
+      "id": "digital_painting",
+      "name": "Digital Painting",
+      "description": "A reusable neon digital painting for an occupied space. Supports inspect.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "decorations",
+        "placeable": true,
+        "placement_category": "decoration",
+        "furniture_kind": "painting",
+        "placement_surface": "wall",
+        "surface": "wall",
+        "size": [
+          1.35,
+          0.95,
+          0.08
+        ],
+        "footprint": [
+          1.35,
+          0.08
+        ],
+        "interaction": "inspect",
+        "price": 45,
+        "glyph_coin_value": 45,
+        "base_value": 45,
+        "rarity": "Common",
+        "tint": "c28aff"
+      }
+    },
+    {
+      "id": "mathematical_wall_art",
+      "name": "Mathematical Wall Art",
+      "description": "A reusable neon mathematical wall art for an occupied space. Supports inspect.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "decorations",
+        "placeable": true,
+        "placement_category": "decoration",
+        "furniture_kind": "math_art",
+        "placement_surface": "wall",
+        "surface": "wall",
+        "size": [
+          1.4,
+          1.1,
+          0.08
+        ],
+        "footprint": [
+          1.4,
+          0.08
+        ],
+        "interaction": "inspect",
+        "price": 60,
+        "glyph_coin_value": 60,
+        "base_value": 60,
+        "rarity": "Common",
+        "tint": "c28aff"
+      }
+    },
+    {
+      "id": "glowing_orb",
+      "name": "Glowing Orb",
+      "description": "A reusable neon glowing orb for an occupied space. Supports inspect.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "decorations",
+        "placeable": true,
+        "placement_category": "decoration",
+        "furniture_kind": "orb",
+        "placement_surface": "surface",
+        "surface": "surface",
+        "size": [
+          0.5,
+          0.65,
+          0.5
+        ],
+        "footprint": [
+          0.5,
+          0.5
+        ],
+        "interaction": "inspect",
+        "price": 35,
+        "glyph_coin_value": 35,
+        "base_value": 35,
+        "rarity": "Common",
+        "tint": "c28aff"
+      }
+    },
+    {
+      "id": "decorative_pillar",
+      "name": "Decorative Pillar",
+      "description": "A reusable neon decorative pillar for an occupied space. Supports inspect.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "decorations",
+        "placeable": true,
+        "placement_category": "decoration",
+        "furniture_kind": "pillar",
+        "placement_surface": "floor",
+        "surface": "floor",
+        "size": [
+          0.65,
+          2.3,
+          0.65
+        ],
+        "footprint": [
+          0.65,
+          0.65
+        ],
+        "interaction": "inspect",
+        "price": 60,
+        "glyph_coin_value": 60,
+        "base_value": 60,
+        "rarity": "Common",
+        "tint": "c28aff"
+      }
+    },
+    {
+      "id": "neon_floor_lamp",
+      "name": "Neon Floor Lamp",
+      "description": "A reusable neon neon floor lamp for an occupied space. Supports lighting.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "decorations",
+        "placeable": true,
+        "placement_category": "decoration",
+        "furniture_kind": "lamp",
+        "placement_surface": "floor",
+        "surface": "floor",
+        "size": [
+          0.55,
+          1.8,
+          0.55
+        ],
+        "footprint": [
+          0.55,
+          0.55
+        ],
+        "interaction": "lighting",
+        "price": 45,
+        "glyph_coin_value": 45,
+        "base_value": 45,
+        "rarity": "Common",
+        "tint": "c28aff"
+      }
+    },
+    {
+      "id": "hanging_light_fixture",
+      "name": "Hanging Light Fixture",
+      "description": "A reusable neon hanging light fixture for an occupied space. Supports lighting.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "decorations",
+        "placeable": true,
+        "placement_category": "decoration",
+        "furniture_kind": "hanging_light",
+        "placement_surface": "ceiling",
+        "surface": "ceiling",
+        "size": [
+          1.2,
+          0.65,
+          1.2
+        ],
+        "footprint": [
+          1.2,
+          1.2
+        ],
+        "interaction": "lighting",
+        "price": 55,
+        "glyph_coin_value": 55,
+        "base_value": 55,
+        "rarity": "Common",
+        "tint": "c28aff"
+      }
+    },
+    {
+      "id": "wall_banner",
+      "name": "Wall Banner",
+      "description": "A reusable neon wall banner for an occupied space. Supports inspect.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "decorations",
+        "placeable": true,
+        "placement_category": "decoration",
+        "furniture_kind": "banner",
+        "placement_surface": "wall",
+        "surface": "wall",
+        "size": [
+          0.7,
+          1.5,
+          0.08
+        ],
+        "footprint": [
+          0.7,
+          0.08
+        ],
+        "interaction": "inspect",
+        "price": 35,
+        "glyph_coin_value": 35,
+        "base_value": 35,
+        "rarity": "Common",
+        "tint": "c28aff"
+      }
+    },
+    {
+      "id": "guild_emblem",
+      "name": "Guild Emblem",
+      "description": "A reusable neon guild emblem for an occupied space. Supports inspect.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "decorations",
+        "placeable": true,
+        "placement_category": "decoration",
+        "furniture_kind": "emblem",
+        "placement_surface": "wall",
+        "surface": "wall",
+        "size": [
+          0.85,
+          0.85,
+          0.12
+        ],
+        "footprint": [
+          0.85,
+          0.12
+        ],
+        "interaction": "inspect",
+        "price": 65,
+        "glyph_coin_value": 65,
+        "base_value": 65,
+        "rarity": "Common",
+        "tint": "c28aff"
+      }
+    },
+    {
+      "id": "digital_aquarium",
+      "name": "Digital Aquarium",
+      "description": "A reusable neon digital aquarium for an occupied space. Supports inspect.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "decorations",
+        "placeable": true,
+        "placement_category": "decoration",
+        "furniture_kind": "aquarium",
+        "placement_surface": "floor",
+        "surface": "floor",
+        "size": [
+          1.5,
+          1.25,
+          0.6
+        ],
+        "footprint": [
+          1.5,
+          0.6
+        ],
+        "interaction": "inspect",
+        "price": 95,
+        "glyph_coin_value": 95,
+        "base_value": 95,
+        "rarity": "Uncommon",
+        "tint": "c28aff"
+      }
+    },
+    {
+      "id": "infinity_sculpture",
+      "name": "Infinity Sculpture",
+      "description": "A reusable neon infinity sculpture for an occupied space. Supports inspect.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "decorations",
+        "placeable": true,
+        "placement_category": "decoration",
+        "furniture_kind": "infinity",
+        "placement_surface": "floor",
+        "surface": "floor",
+        "size": [
+          1.4,
+          1.1,
+          0.55
+        ],
+        "footprint": [
+          1.4,
+          0.55
+        ],
+        "interaction": "inspect",
+        "price": 80,
+        "glyph_coin_value": 80,
+        "base_value": 80,
+        "rarity": "Uncommon",
+        "tint": "c28aff"
+      }
+    },
+    {
+      "id": "metatrons_cube_ornament",
+      "name": "Metatron's Cube Ornament",
+      "description": "A reusable neon metatron's cube ornament for an occupied space. Supports inspect.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "decorations",
+        "placeable": true,
+        "placement_category": "decoration",
+        "furniture_kind": "metatron",
+        "placement_surface": "surface",
+        "surface": "surface",
+        "size": [
+          0.55,
+          0.65,
+          0.55
+        ],
+        "footprint": [
+          0.55,
+          0.55
+        ],
+        "interaction": "inspect",
+        "price": 75,
+        "glyph_coin_value": 75,
+        "base_value": 75,
+        "rarity": "Uncommon",
+        "tint": "c28aff"
+      }
+    },
+    {
+      "id": "decorative_rug",
+      "name": "Decorative Rug",
+      "description": "A reusable neon decorative rug for an occupied space. Supports inspect.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "decorations",
+        "placeable": true,
+        "placement_category": "decoration",
+        "furniture_kind": "rug",
+        "placement_surface": "floor",
+        "surface": "floor",
+        "size": [
+          2,
+          0.025,
+          1.4
+        ],
+        "footprint": [
+          2,
+          1.4
+        ],
+        "interaction": "inspect",
+        "price": 25,
+        "glyph_coin_value": 25,
+        "base_value": 25,
+        "rarity": "Common",
+        "tint": "c28aff"
+      }
+    },
+    {
+      "id": "holographic_fountain",
+      "name": "Holographic Fountain",
+      "description": "A reusable neon holographic fountain for an occupied space. Supports inspect.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "decorations",
+        "placeable": true,
+        "placement_category": "decoration",
+        "furniture_kind": "fountain",
+        "placement_surface": "floor",
+        "surface": "floor",
+        "size": [
+          1.5,
+          1.6,
+          1.5
+        ],
+        "footprint": [
+          1.5,
+          1.5
+        ],
+        "interaction": "inspect",
+        "price": 125,
+        "glyph_coin_value": 125,
+        "base_value": 125,
+        "rarity": "Uncommon",
+        "tint": "c28aff"
+      }
+    },
+    {
+      "id": "table_lantern",
+      "name": "Table Lantern",
+      "description": "A reusable neon table lantern for an occupied space. Supports lighting.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "decorations",
+        "placeable": true,
+        "placement_category": "decoration",
+        "furniture_kind": "lantern",
+        "placement_surface": "surface",
+        "surface": "surface",
+        "size": [
+          0.3,
+          0.55,
+          0.3
+        ],
+        "footprint": [
+          0.3,
+          0.3
+        ],
+        "interaction": "lighting",
+        "price": 25,
+        "glyph_coin_value": 25,
+        "base_value": 25,
+        "rarity": "Common",
+        "tint": "c28aff"
+      }
+    },
+    {
+      "id": "data_crystal_display",
+      "name": "Data Crystal Display",
+      "description": "A reusable neon data crystal display for an occupied space. Supports display.",
+      "category": "furniture",
+      "stack": 10,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "decorations",
+        "placeable": true,
+        "placement_category": "decoration",
+        "furniture_kind": "crystal_display",
+        "placement_surface": "surface",
+        "surface": "surface",
+        "size": [
+          0.75,
+          0.9,
+          0.55
+        ],
+        "footprint": [
+          0.75,
+          0.55
+        ],
+        "interaction": "display",
+        "price": 55,
+        "glyph_coin_value": 55,
+        "base_value": 55,
+        "rarity": "Common",
+        "tint": "c28aff"
+      }
+    },
+    {
+      "id": "byte_bites",
+      "name": "Byte Bites",
+      "description": "Small, inexpensive energy snacks. Restores HP when eaten.",
+      "category": "consumables",
+      "stack": 20,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "electron_meals",
+        "civilian_food": true,
+        "cuisine_kind": "food",
+        "complexity": 1,
+        "rarity": "Common",
+        "base_restoration": 25,
+        "consumption_duration": 2.0,
+        "price": 3,
+        "glyph_coin_value": 3,
+        "base_value": 3,
+        "tint": "75ffc3",
+        "healing": 25,
+        "food_shape": "byte_bites"
+      }
+    },
+    {
+      "id": "pixel_toast",
+      "name": "Pixel Toast",
+      "description": "Simple glowing breakfast slices. Restores HP when eaten.",
+      "category": "consumables",
+      "stack": 20,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "electron_meals",
+        "civilian_food": true,
+        "cuisine_kind": "food",
+        "complexity": 1,
+        "rarity": "Common",
+        "base_restoration": 35,
+        "consumption_duration": 2.0,
+        "price": 4,
+        "glyph_coin_value": 4,
+        "base_value": 4,
+        "tint": "75ffc3",
+        "healing": 35,
+        "food_shape": "pixel_toast"
+      }
+    },
+    {
+      "id": "binary_bowl",
+      "name": "Binary Bowl",
+      "description": "A basic, filling meal. Restores HP when eaten.",
+      "category": "consumables",
+      "stack": 20,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "electron_meals",
+        "civilian_food": true,
+        "cuisine_kind": "food",
+        "complexity": 2,
+        "rarity": "Common",
+        "base_restoration": 45,
+        "consumption_duration": 2.0,
+        "price": 6,
+        "glyph_coin_value": 6,
+        "base_value": 6,
+        "tint": "75ffc3",
+        "healing": 45,
+        "food_shape": "binary_bowl"
+      }
+    },
+    {
+      "id": "circuit_noodles",
+      "name": "Circuit Noodles",
+      "description": "A neon noodle dish. Restores HP when eaten.",
+      "category": "consumables",
+      "stack": 20,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "electron_meals",
+        "civilian_food": true,
+        "cuisine_kind": "food",
+        "complexity": 2,
+        "rarity": "Common",
+        "base_restoration": 50,
+        "consumption_duration": 2.0,
+        "price": 7,
+        "glyph_coin_value": 7,
+        "base_value": 7,
+        "tint": "75ffc3",
+        "healing": 50,
+        "food_shape": "circuit_noodles"
+      }
+    },
+    {
+      "id": "data_dumplings",
+      "name": "Data Dumplings",
+      "description": "Small bundled food portions. Restores HP when eaten.",
+      "category": "consumables",
+      "stack": 20,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "electron_meals",
+        "civilian_food": true,
+        "cuisine_kind": "food",
+        "complexity": 2,
+        "rarity": "Common",
+        "base_restoration": 45,
+        "consumption_duration": 2.0,
+        "price": 6,
+        "glyph_coin_value": 6,
+        "base_value": 6,
+        "tint": "75ffc3",
+        "healing": 45,
+        "food_shape": "data_dumplings"
+      }
+    },
+    {
+      "id": "electron_rice",
+      "name": "Electron Rice",
+      "description": "A staple grain-like meal. Restores HP when eaten.",
+      "category": "consumables",
+      "stack": 20,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "electron_meals",
+        "civilian_food": true,
+        "cuisine_kind": "food",
+        "complexity": 1,
+        "rarity": "Common",
+        "base_restoration": 40,
+        "consumption_duration": 2.0,
+        "price": 5,
+        "glyph_coin_value": 5,
+        "base_value": 5,
+        "tint": "75ffc3",
+        "healing": 40,
+        "food_shape": "electron_rice"
+      }
+    },
+    {
+      "id": "bit_burger",
+      "name": "Bit Burger",
+      "description": "A standard handheld meal. Restores HP when eaten.",
+      "category": "consumables",
+      "stack": 20,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "electron_meals",
+        "civilian_food": true,
+        "cuisine_kind": "food",
+        "complexity": 2,
+        "rarity": "Common",
+        "base_restoration": 55,
+        "consumption_duration": 2.0,
+        "price": 8,
+        "glyph_coin_value": 8,
+        "base_value": 8,
+        "tint": "75ffc3",
+        "healing": 55,
+        "food_shape": "bit_burger"
+      }
+    },
+    {
+      "id": "cache_fries",
+      "name": "Cache Fries",
+      "description": "A familiar side dish. Restores HP when eaten.",
+      "category": "consumables",
+      "stack": 20,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "electron_meals",
+        "civilian_food": true,
+        "cuisine_kind": "food",
+        "complexity": 1,
+        "rarity": "Common",
+        "base_restoration": 30,
+        "consumption_duration": 2.0,
+        "price": 4,
+        "glyph_coin_value": 4,
+        "base_value": 4,
+        "tint": "75ffc3",
+        "healing": 30,
+        "food_shape": "cache_fries"
+      }
+    },
+    {
+      "id": "quantum_ramen",
+      "name": "Quantum Ramen",
+      "description": "A rich, luminous noodle soup. Restores HP when eaten.",
+      "category": "consumables",
+      "stack": 20,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "electron_meals",
+        "civilian_food": true,
+        "cuisine_kind": "food",
+        "complexity": 3,
+        "rarity": "Uncommon",
+        "base_restoration": 70,
+        "consumption_duration": 2.0,
+        "price": 11,
+        "glyph_coin_value": 11,
+        "base_value": 11,
+        "tint": "75ffc3",
+        "healing": 70,
+        "food_shape": "quantum_ramen"
+      }
+    },
+    {
+      "id": "plasma_pizza",
+      "name": "Plasma Pizza",
+      "description": "A large shareable meal. Restores HP when eaten.",
+      "category": "consumables",
+      "stack": 20,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "electron_meals",
+        "civilian_food": true,
+        "cuisine_kind": "food",
+        "complexity": 4,
+        "rarity": "Uncommon",
+        "base_restoration": 85,
+        "consumption_duration": 2.0,
+        "price": 14,
+        "glyph_coin_value": 14,
+        "base_value": 14,
+        "tint": "75ffc3",
+        "healing": 85,
+        "food_shape": "plasma_pizza"
+      }
+    },
+    {
+      "id": "voltage_stew",
+      "name": "Voltage Stew",
+      "description": "A hearty hot meal. Restores HP when eaten.",
+      "category": "consumables",
+      "stack": 20,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "electron_meals",
+        "civilian_food": true,
+        "cuisine_kind": "food",
+        "complexity": 3,
+        "rarity": "Uncommon",
+        "base_restoration": 80,
+        "consumption_duration": 2.0,
+        "price": 12,
+        "glyph_coin_value": 12,
+        "base_value": 12,
+        "tint": "75ffc3",
+        "healing": 80,
+        "food_shape": "voltage_stew"
+      }
+    },
+    {
+      "id": "photon_skewers",
+      "name": "Photon Skewers",
+      "description": "Grilled glowing portions. Restores HP when eaten.",
+      "category": "consumables",
+      "stack": 20,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "electron_meals",
+        "civilian_food": true,
+        "cuisine_kind": "food",
+        "complexity": 4,
+        "rarity": "Uncommon",
+        "base_restoration": 75,
+        "consumption_duration": 2.0,
+        "price": 12,
+        "glyph_coin_value": 12,
+        "base_value": 12,
+        "tint": "75ffc3",
+        "healing": 75,
+        "food_shape": "photon_skewers"
+      }
+    },
+    {
+      "id": "fractal_curry",
+      "name": "Fractal Curry",
+      "description": "A patterned, richly seasoned meal. Restores HP when eaten.",
+      "category": "consumables",
+      "stack": 20,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "electron_meals",
+        "civilian_food": true,
+        "cuisine_kind": "food",
+        "complexity": 5,
+        "rarity": "Rare",
+        "base_restoration": 100,
+        "consumption_duration": 3.0,
+        "price": 18,
+        "glyph_coin_value": 18,
+        "base_value": 18,
+        "tint": "75ffc3",
+        "healing": 100,
+        "food_shape": "fractal_curry"
+      }
+    },
+    {
+      "id": "neon_sushi",
+      "name": "Neon Sushi",
+      "description": "Precision-shaped food portions. Restores HP when eaten.",
+      "category": "consumables",
+      "stack": 20,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "electron_meals",
+        "civilian_food": true,
+        "cuisine_kind": "food",
+        "complexity": 5,
+        "rarity": "Rare",
+        "base_restoration": 95,
+        "consumption_duration": 3.0,
+        "price": 17,
+        "glyph_coin_value": 17,
+        "base_value": 17,
+        "tint": "75ffc3",
+        "healing": 95,
+        "food_shape": "neon_sushi"
+      }
+    },
+    {
+      "id": "algorithmic_pasta",
+      "name": "Algorithmic Pasta",
+      "description": "An intricate pasta dish. Restores HP when eaten.",
+      "category": "consumables",
+      "stack": 20,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "electron_meals",
+        "civilian_food": true,
+        "cuisine_kind": "food",
+        "complexity": 6,
+        "rarity": "Rare",
+        "base_restoration": 110,
+        "consumption_duration": 3.0,
+        "price": 20,
+        "glyph_coin_value": 20,
+        "base_value": 20,
+        "tint": "75ffc3",
+        "healing": 110,
+        "food_shape": "algorithmic_pasta"
+      }
+    },
+    {
+      "id": "electron_feast",
+      "name": "Electron Feast",
+      "description": "A large communal meal. Restores HP when eaten.",
+      "category": "consumables",
+      "stack": 20,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "electron_meals",
+        "civilian_food": true,
+        "cuisine_kind": "food",
+        "complexity": 8,
+        "rarity": "Epic",
+        "base_restoration": 160,
+        "consumption_duration": 3.0,
+        "price": 32,
+        "glyph_coin_value": 32,
+        "base_value": 32,
+        "tint": "75ffc3",
+        "healing": 160,
+        "food_shape": "electron_feast"
+      }
+    },
+    {
+      "id": "refresh_packet",
+      "name": "Refresh Packet",
+      "description": "A basic drink. Restores shield energy when consumed.",
+      "category": "consumables",
+      "stack": 20,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "drinks_desserts",
+        "civilian_food": true,
+        "cuisine_kind": "drink",
+        "complexity": 1,
+        "rarity": "Common",
+        "base_restoration": 45,
+        "consumption_duration": 3.0,
+        "price": 4,
+        "glyph_coin_value": 4,
+        "base_value": 4,
+        "tint": "69bcff",
+        "shield_restore": 45,
+        "food_shape": "refresh_packet"
+      }
+    },
+    {
+      "id": "ion_tea",
+      "name": "Ion Tea",
+      "description": "A warm beverage. Restores shield energy when consumed.",
+      "category": "consumables",
+      "stack": 20,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "drinks_desserts",
+        "civilian_food": true,
+        "cuisine_kind": "drink",
+        "complexity": 2,
+        "rarity": "Common",
+        "base_restoration": 75,
+        "consumption_duration": 3.0,
+        "price": 7,
+        "glyph_coin_value": 7,
+        "base_value": 7,
+        "tint": "69bcff",
+        "shield_restore": 75,
+        "food_shape": "ion_tea"
+      }
+    },
+    {
+      "id": "charged_coffee",
+      "name": "Charged Coffee",
+      "description": "A stimulating beverage. Restores shield energy when consumed.",
+      "category": "consumables",
+      "stack": 20,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "drinks_desserts",
+        "civilian_food": true,
+        "cuisine_kind": "drink",
+        "complexity": 3,
+        "rarity": "Uncommon",
+        "base_restoration": 95,
+        "consumption_duration": 3.0,
+        "price": 9,
+        "glyph_coin_value": 9,
+        "base_value": 9,
+        "tint": "69bcff",
+        "shield_restore": 95,
+        "food_shape": "charged_coffee"
+      }
+    },
+    {
+      "id": "liquid_light",
+      "name": "Liquid Light",
+      "description": "A glowing specialty drink. Restores shield energy when consumed.",
+      "category": "consumables",
+      "stack": 20,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "drinks_desserts",
+        "civilian_food": true,
+        "cuisine_kind": "drink",
+        "complexity": 5,
+        "rarity": "Rare",
+        "base_restoration": 180,
+        "consumption_duration": 3.0,
+        "price": 20,
+        "glyph_coin_value": 20,
+        "base_value": 20,
+        "tint": "69bcff",
+        "shield_restore": 180,
+        "food_shape": "liquid_light"
+      }
+    },
+    {
+      "id": "data_smoothie",
+      "name": "Data Smoothie",
+      "description": "A blended refreshment. Restores shield energy when consumed.",
+      "category": "consumables",
+      "stack": 20,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "drinks_desserts",
+        "civilian_food": true,
+        "cuisine_kind": "drink",
+        "complexity": 4,
+        "rarity": "Uncommon",
+        "base_restoration": 125,
+        "consumption_duration": 3.0,
+        "price": 14,
+        "glyph_coin_value": 14,
+        "base_value": 14,
+        "tint": "69bcff",
+        "shield_restore": 125,
+        "food_shape": "data_smoothie"
+      }
+    },
+    {
+      "id": "pixel_pudding",
+      "name": "Pixel Pudding",
+      "description": "A simple dessert. Restores HP when eaten.",
+      "category": "consumables",
+      "stack": 20,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "drinks_desserts",
+        "civilian_food": true,
+        "cuisine_kind": "dessert",
+        "complexity": 2,
+        "rarity": "Common",
+        "base_restoration": 45,
+        "consumption_duration": 2.0,
+        "price": 5,
+        "glyph_coin_value": 5,
+        "base_value": 5,
+        "tint": "ffd585",
+        "healing": 45,
+        "food_shape": "pixel_pudding"
+      }
+    },
+    {
+      "id": "glitch_gelato",
+      "name": "Glitch Gelato",
+      "description": "A frozen dessert. Restores HP when eaten.",
+      "category": "consumables",
+      "stack": 20,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "drinks_desserts",
+        "civilian_food": true,
+        "cuisine_kind": "dessert",
+        "complexity": 4,
+        "rarity": "Uncommon",
+        "base_restoration": 70,
+        "consumption_duration": 2.0,
+        "price": 10,
+        "glyph_coin_value": 10,
+        "base_value": 10,
+        "tint": "ffd585",
+        "healing": 70,
+        "food_shape": "glitch_gelato"
+      }
+    },
+    {
+      "id": "quantum_cake",
+      "name": "Quantum Cake",
+      "description": "A celebration dessert. Restores HP when eaten.",
+      "category": "consumables",
+      "stack": 20,
+      "properties": {
+        "civilization_catalog": true,
+        "catalog_group": "drinks_desserts",
+        "civilian_food": true,
+        "cuisine_kind": "dessert",
+        "complexity": 6,
+        "rarity": "Rare",
+        "base_restoration": 100,
+        "consumption_duration": 3.0,
+        "price": 18,
+        "glyph_coin_value": 18,
+        "base_value": 18,
+        "tint": "ffd585",
+        "healing": 100,
+        "food_shape": "quantum_cake"
+      }
+    }
+  ]
+}

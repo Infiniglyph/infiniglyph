@@ -8,6 +8,7 @@ const KyrenHome = preload("res://scripts/kyren_homestead.gd")
 const Pyramid = preload("res://scripts/pyramid_exterior.gd")
 const Establishments = preload("res://scripts/civilian_establishments.gd")
 const WondersExterior = preload("res://scripts/glyphic_wonders_exterior.gd")
+const BuildingShell = preload("res://scripts/building_shell.gd")
 const HALF_EXTENT := 1152
 const CHUNK_SIZE := 256
 const TERRAIN_STEP := 16
@@ -22,6 +23,8 @@ var chunks: Dictionary = {}
 var gates: Array[Node3D] = []
 var lights: Array[SpotLight3D] = []
 var buildings: Array[Dictionary] = []
+## Keep the original metadata/census ordering independent of physical nodes.
+var shell_records: Array[Dictionary] = []
 var destinations: Array[Dictionary] = []
 var counts := {"city":0,"homes":0,"farms":0,"trees":0,"rocks":0}
 var build_ms := 0
@@ -161,11 +164,31 @@ func _record_replaced_wonders_plot(at: Vector3,seed: int,radius: float) -> void:
 	# The temporary batch never enters the scene/physics/rendering trees.
 	var scratch:=Chunk.new()
 	var lights_before:=lights.size()
+	var records_before:=shell_records.size()
 	if radius<CITY_EDGE: build_city(scratch,at,seed)
 	elif radius<SUBURB_EDGE: build_suburb(scratch,at,seed)
 	else: build_country(scratch,at,seed)
 	lights.resize(lights_before)
+	for i in range(records_before,shell_records.size()):
+		shell_records[i].shell=null
+		shell_records[i].manual_review=true
+		shell_records[i].review_reason="This legacy scenery lot is occupied by Glyphic Wonders."
 	scratch.free()
+
+func building_records() -> Array[Dictionary]:
+	var result: Array[Dictionary]=shell_records.duplicate()
+	if is_inside_tree():
+		for provider: Node in get_tree().get_nodes_in_group("building_record_providers"):
+			if provider.has_method("building_records"): result.append_array(provider.building_records())
+	return result
+
+func _building_shell(chunk: Node3D,at: Vector3,size: Vector3,region: String,reported_size: Vector3=Vector3.ZERO,porch: float=0.0) -> void:
+	var shell:=BuildingShell.new()
+	shell.position=at-chunk.position
+	chunk.add_child(shell)
+	shell.configure(BuildingShell.stable_id(at),size,MINT if region=="farm" else CYAN,porch)
+	shell.bake_exterior(chunk,at)
+	shell_records.append(shell.descriptor(at,region,reported_size))
 
 func build_terrain(chunk: Node3D) -> void:
 	var collision := PackedVector3Array()
@@ -245,7 +268,7 @@ func build_city(chunk: Node3D, at: Vector3, seed: int) -> void:
 	if seed%4 == 0: lamp(chunk,at+Vector3(-24,0,-24),false)
 
 func urban_building(chunk: Node3D, at: Vector3, size: Vector3) -> void:
-	chunk.box(at+Vector3.UP*size.y*0.5,size,"UrbanBuilding",CYAN)
+	_building_shell(chunk,at,size,"city")
 	chunk.box(at+Vector3.UP*(size.y+1),Vector3(size.x*0.72,2,size.z*0.72),"UrbanCrown",CYAN)
 	buildings.append({"point":at,"size":size,"region":"city"})
 	counts.city += 1
@@ -256,7 +279,8 @@ func urban_building(chunk: Node3D, at: Vector3, size: Vector3) -> void:
 			chunk.line(at+Vector3(-x,y,side*z),at+Vector3(x,y,side*z),CYAN*0.72)
 			chunk.line(at+Vector3(side*x,y,-z),at+Vector3(side*x,y,z),CYAN*0.72)
 	for side in [-1,1]:
-		chunk.line(at+Vector3(0,0,side*z),at+Vector3(0,size.y,side*z),CYAN*0.6)
+		var seam_bottom:=BuildingShell.DOOR_HEIGHT if side==1 else 0.0
+		chunk.line(at+Vector3(0,seam_bottom,side*z),at+Vector3(0,size.y,side*z),CYAN*0.6)
 
 func build_suburb(chunk: Node3D, at: Vector3, seed: int) -> void:
 	if seed%7 == 0:
@@ -283,11 +307,11 @@ func house(chunk: Node3D, at: Vector3, seed: int, rural: bool) -> void:
 	at.y = floor_y+0.10
 	if rural:
 		chunk.box(Vector3(at.x,(at.y+lowest-0.4)*0.5,at.z),Vector3(width+2,at.y-lowest+0.4,depth+2),"FarmFoundation",MINT)
-	chunk.box(at+Vector3.UP*height*0.5,Vector3(width,height,depth),"FarmBuilding" if rural else "Home",MINT if rural else CYAN)
+	_building_shell(chunk,at,Vector3(width,height,depth),"farm" if rural else "home",Vector3(width,height+2.8,depth),.2)
 	var roof := PackedVector3Array([Vector3(-width*0.55,0,-depth*0.55),Vector3(width*0.55,0,-depth*0.55),Vector3(0,2.8,-depth*0.55),Vector3(-width*0.55,0,depth*0.55),Vector3(width*0.55,0,depth*0.55),Vector3(0,2.8,depth*0.55)])
 	chunk.convex(roof,[[0,2,1],[3,4,5],[0,1,4,3],[0,3,5,2],[1,2,5,4]],at+Vector3.UP*height,"GabledRoof",MINT if rural else CYAN)
 	chunk.box(at+Vector3(0,0.1,depth*0.5+1.1),Vector3(4,0.2,2.2),"Porch",CYAN)
-	# Flush windows and doors are facade inlays, not pretend open interiors.
+	# Existing window inlays remain beside the genuinely open central doorway.
 	for x in [-3.5,3.5]:
 		var a := at+Vector3(x-0.9,1.7,depth*0.5+0.015)
 		var b := a+Vector3(1.8,1.5,0)

@@ -5,9 +5,9 @@ const Library = preload("res://scripts/weapon_library.gd")
 const Database = preload("res://scripts/equipment_database.gd")
 const ItemType = preload("res://scripts/inventory_item_type.gd")
 const Filters = preload("res://scripts/equipment_filters.gd")
-const CATEGORIES := [&"weapons",&"cosmetics",&"consumables",&"materials",&"key_items",&"misc"]
-const CATEGORY_NAMES := ["WEAPONS","ARMOR / COSMETICS","CONSUMABLES","MATERIALS","KEY ITEMS","MISCELLANEOUS"]
-const CATEGORY_GLYPHS := ["/|","<>" ,"+","#","*","::"]
+const CATEGORIES := [&"weapons",&"cosmetics",&"consumables",&"materials",&"key_items",&"misc",&"furniture"]
+const CATEGORY_NAMES := ["WEAPONS","ARMOR / COSMETICS","CONSUMABLES","MATERIALS","KEY ITEMS","MISCELLANEOUS","FURNITURE / EQUIPMENT"]
+const CATEGORY_GLYPHS := ["/|","<>" ,"+","#","*","::","[]"]
 const DIRECTIONS := [&"up",&"left",&"right",&"down"]
 const EQUIPMENT_SLOTS := [&"up",&"left",&"right",&"down",&"body",&"head",&"hands",&"legs",&"ring1",&"ring2"]
 const PAGE_SIZE := 8
@@ -190,7 +190,7 @@ func _build() -> void:
 	content.add_child(_category_column)
 	_category_column.add_child(_label("CATEGORIES",13,MUTED))
 	for index in range(CATEGORIES.size()):
-		var button := _button(CATEGORY_GLYPHS[index]+"   "+CATEGORY_NAMES[index],select_category.bind(index),49)
+		var button := _button(CATEGORY_GLYPHS[index]+"   "+CATEGORY_NAMES[index],select_category.bind(index),41)
 		button.add_theme_font_size_override("font_size",14)
 		_category_column.add_child(button)
 		category_buttons.append(button)
@@ -646,6 +646,7 @@ func activate_selection() -> void:
 	if definition==null: return
 	_begin_modal(&"actions",definition.display_name)
 	if definition.custom_properties.has("civilian_food"): _modal_choice("EAT / DRINK",_use_food)
+	if definition.custom_properties.get("placeable",false): _modal_choice("PLACE IN OWNED BUILDING",_use_placeable)
 	if definition.custom_properties.has("respawn_kind"): _modal_choice("PLACE RESPAWN GLYPH HERE",_use_respawn)
 	if definition.custom_properties.has("shield_capacity"): _modal_choice("USE SHIELD GLYPH",_use_shield)
 	if definition.category==&"weapons" and definition.is_equippable: _modal_choice("EQUIP TO DIRECTION",_choose_slot)
@@ -714,6 +715,11 @@ func _use_respawn() -> void:
 	_close_modal()
 	refresh()
 	set_status("Respawn glyph placed. Choose it when you die; it remains reusable." if success else "Stand on clear, solid ground to place this glyph.",not success)
+
+func _use_placeable() -> void:
+	var world: Node=actor.get_parent() if is_instance_valid(actor) else null
+	var buildings: Node=world.get("building_civilization") if is_instance_valid(world) else null
+	if not is_instance_valid(buildings) or not buildings.begin_placement(selected_iid): set_status("Occupy a suitable building and stand inside it first.",true)
 
 func _use_food() -> void:
 	var services: Node=actor.get_parent().get("civilian_services")

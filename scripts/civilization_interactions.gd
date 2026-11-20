@@ -19,6 +19,8 @@ var _source_state:=""
 var _busy:=false
 var _post_day:=-1
 var _pending_cases: Array[String]=[]
+var _career_proofs: Dictionary={}
+var _career_events: Array[Dictionary]=[]
 
 func _society(): return world.civilization
 func _economy(): return world.civilian_services.economy
@@ -31,7 +33,10 @@ func _day() -> int: return floori(_now()/float(_registry().config.day_seconds))
 func _ready() -> void:
 	name="CivilizationInteractions"
 	trade.world=world
-	world.quest_system.setup({"identity":identity,"authorize":authorize_quest,"finance":finance_quest,"outcome":quest_outcome})
+	world.quest_system.setup({"identity":identity,"authorize":authorize_quest,"finance":finance_quest,"outcome":quest_outcome,"organization_finance":organization_finance,"organization_authorize":organization_authorize,"organization_outcome":organization_outcome})
+	world.careers.setup({"identity":identity,"authorize":career_authorize,"quest":career_quest,"perform":career_perform,"premises":career_premises,"workplace":career_workplace,"context":career_context,"organizations":career_organizations})
+	world.careers.changed.connect(world.inventory_session._dirty)
+	_society().identities_replaced.connect(world.careers.on_replacements)
 	world.law.identity_provider=identity
 	world.communication.identity_provider=identity
 	world.communication.context_provider=conversation_nodes
@@ -61,12 +66,17 @@ func restored_state(has_civic_state: bool) -> void:
 	trade.clear()
 	_post_day=_day() if has_civic_state else -1
 	_pending_cases.clear()
+	_career_events.clear(); _career_proofs.clear()
 	for entry: Dictionary in world.law.open_cases(): _pending_cases.append(String(entry.id))
 	if not has_civic_state: bootstrap()
+	elif _quests().organizations.guilds.is_empty(): bootstrap_organizations()
 
 func identity(id: String) -> Dictionary:
 	if id=="player": return {"id":id,"name":"Traveler","kind":"player","active":true}
 	if id=="avat_ar": return {"id":id,"name":"Avat Ar","kind":"unique","active":true,"merchant":true}
+	if id.begins_with("guild/"):
+		var guild: Dictionary=_quests().organizations.guild(id.trim_prefix("guild/"))
+		if not guild.is_empty(): return {"id":id,"name":String(guild.name),"kind":"institution","active":guild.status=="active"}
 	if id.begins_with("board/") or id.begins_with("faction/"):
 		var key:=id.get_slice("/",1)
 		if _quests().model.factions.has(key) and (not id.begins_with("board/") or key!="underworld"):
@@ -103,12 +113,202 @@ func bootstrap() -> bool:
 	if not founder.is_empty():
 		_quests().introduce(founder,founder)
 		_quests().join(founder,"underworld")
+	bootstrap_organizations()
 	_bootstrap_access=false
 	initialized=true
 	_post_day=-1
 	_busy=false
 	post_opportunities()
 	return true
+
+func bootstrap_organizations() -> bool:
+	if not _quests().organizations.guilds.is_empty(): return true
+	_bootstrap_access=true
+	var ok: bool=_quests().bootstrap_organizations(_registry().active_ids(),_now())
+	if ok:
+		for guild: Dictionary in _quests().organizations.guilds_for_faction("underworld"):
+			for id: String in guild.members: _quests().introduce(id,_contact())
+		_quests().organizations.set_headquarters("adventurers_guild","establishment/adventurers_guild")
+	_bootstrap_access=false
+	return ok
+
+func organization_finance(request: Dictionary) -> bool: return _economy().organization_operation(request)
+
+func career_organizations() -> Dictionary:
+	return {"guilds":_quests().organizations.guilds,"factions":_quests().organizations.factions}
+
+func career_authorize(operation: String,payload: Dictionary) -> bool:
+	match operation:
+		"hire":
+			var row: Dictionary=_quests().model.instances.get(String(payload.get("quest_id","")),{})
+			return not row.is_empty() and row.issuer==payload.get("employer") and row.participant==payload.get("employee") and row.status in ["active","ready"] and _economy().contracts.get(row.id,{}).get("status")=="reserved"
+		"business":
+			var building: Dictionary=world.building_civilization.model.records.get(String(payload.get("workplace","")),{})
+			return not building.is_empty() and building.owner==payload.get("owner") and not building.manual_review
+		"service_event": return _career_proofs.get(String(payload.get("event_id","")),{})==payload and _career_proofs.has(String(payload.get("event_id","")))
+		"register_career":
+			var candidate: Dictionary=world.careers.model.candidates.get(String(payload.get("id","")),{})
+			return int(candidate.get("count",0))>=5 and payload.get("capabilities",[]).size()>0
+	return false
+
+func career_premises(id: String,workplace: String,kinds: Array) -> bool:
+	return world.career_actions.premises(id,workplace,kinds)
+
+func career_context(id: String) -> Dictionary:
+	var person:=identity(id)
+	var inventory: Node=_economy().npc_store(id)
+	var resources: Dictionary={}
+	var equipment: Array=[]
+	for item: Resource in inventory.items.values():
+		var type:=String(item.item_type_id)
+		resources[type]=int(resources.get(type,0))+int(item.quantity)
+		var definition: Resource=Catalog.get_definition(item.item_type_id)
+		if definition.is_equippable: equipment.append(type); equipment.append(String(definition.category))
+	var workplaces: Array=[]
+	if is_instance_valid(world.get("building_civilization")):
+		for row: Dictionary in world.building_civilization.model.records.values():
+			if row.owner==id or id in row.tenants: workplaces.append(String(row.usage))
+	return {"guilds":_quests().organizations.memberships_of(id),"equipment":equipment,"skills":[],"workplaces":workplaces,"occupation":String(person.get("occupation","")),"resources":resources,"level":int(person.get("level",1))}
+
+func career_workplace(id: String,career: String) -> String:
+	if not is_instance_valid(world.get("building_civilization")) or not world.careers.definitions.has(career): return ""
+	var kinds: Array=world.careers.definitions[career].workplaces
+	for row: Dictionary in world.building_civilization.model.records.values():
+		if row.owner!=id: continue
+		var sector:=String(world.careers.definitions[career].sector)
+		var desired: String={"commerce":"shop","crafting":"workshop","hospitality":"tavern","knowledge":"office"}.get(sector,"")
+		if not desired.is_empty() and row.usage=="residence":
+			world.building_civilization.model.set_use(String(row.id),id,desired,_now())
+		if career_premises(id,String(row.id),kinds):
+			if desired in ["shop","workshop","tavern","office"]:
+				world.careers.register_business(id,String(identity(id).name)+" "+desired.capitalize(),String(row.id),desired)
+			return String(row.id)
+	for key: String in _quests().organizations.memberships_of(id):
+		var place:=String(_quests().organizations.guilds[key].headquarters)
+		if career_premises(id,place,kinds): return place
+	return ""
+
+func career_quest(operation: String,payload: Dictionary) -> Dictionary:
+	if operation=="inspect":
+		var row: Dictionary=_quests().model.instances.get(String(payload.get("quest_id","")),{})
+		return {"row":row.duplicate(true),"funded":not row.is_empty() and _economy().contracts.get(row.get("id",""),{}).get("status")=="reserved"}
+	if operation!="opportunities" or not initialized or _busy: return {}
+	var id:=String(payload.get("actor_id",""))
+	if identity(id).get("kind")!="code_form" or not identity(id).get("active",false): return {}
+	var assignments: Array=_quests().for_participant(id,false)
+	var offers: Array=[]
+	for row: Dictionary in assignments:
+		var offer:=_career_offer(row,id)
+		if not offer.is_empty(): offers.append(offer)
+	if not offers.is_empty(): return {"rows":offers.slice(0,4)}
+	# Consider a small bounded set of real funded obligations, not a new wage
+	# for possessing an occupation. Acceptance uses the shared membership rules.
+	var considered:=0
+	for row: Dictionary in _quests().available(id):
+		considered+=1
+		if considered>4: break
+		var offer:=_career_offer(row,id)
+		if offer.is_empty(): continue
+		if _quests().accept(String(row.id),id,_now()): offers.append(offer); break
+	return {"rows":offers}
+
+func _career_offer(row: Dictionary,id: String) -> Dictionary:
+	var career:=""
+	if row.kind=="discovery": career="adventurer"
+	elif row.kind=="delivery":
+		if _economy().npc_store(id).count_type(StringName(row.objective.item_type))<int(row.objective.count)-int(row.objective.progress): return {}
+		career="courier"
+	elif row.kind=="service":
+		match String(row.objective.service):
+			"patrol","investigate": career="security_officer"
+			"craft": career="artificer"
+			"prepare_meal": career="chef"
+			"recruit": career="guild_clerk"
+	if career.is_empty(): return {}
+	var workplace:=String(row.objective.target_id) if career in ["artificer","chef"] else career_workplace(id,career)
+	if career in ["artificer","chef"] and not career_premises(id,workplace,world.careers.definitions[career].workplaces): return {}
+	var business:=""
+	for enterprise: Dictionary in world.careers.model.businesses.values():
+		if enterprise.status!="active" or enterprise.owner!=row.issuer: continue
+		if row.kind=="service" and row.objective.target_id!=enterprise.workplace: continue
+		if row.kind=="delivery" and row.objective.recipient_id!=enterprise.owner: continue
+		if not career_premises(id,String(enterprise.workplace),world.careers.definitions[career].workplaces): continue
+		business=String(enterprise.id); workplace=String(enterprise.workplace); break
+	return {"career_id":career,"employer":String(row.issuer),"workplace":workplace,"quest_id":String(row.id),"business":business}
+
+func career_perform(id: String,capability: String,employment: Dictionary) -> Dictionary:
+	if _post_business_need(id,capability,employment): return {"performed":true,"action":"posted_supply_request"}
+	return world.career_actions.perform(id,capability,employment)
+
+func _post_business_need(id: String,capability: String,employment: Dictionary) -> bool:
+	if _busy or capability not in ["production","food_preparation"]: return false
+	var workplace:=String(employment.get("workplace",""))
+	var buildings: Node=world.get("building_civilization")
+	if not is_instance_valid(buildings) or not buildings.model.records.has(workplace) or buildings.model.records[workplace].owner!=id: return false
+	var recipe: Dictionary=world.career_actions.RECIPES[capability]
+	if world.career_actions._station(id,workplace,String(recipe.station)).is_empty(): return false
+	var source: Node=_economy().npc_store(id)
+	for type: String in recipe.inputs:
+		var needed: int=int(recipe.inputs[type])-source.count_type(StringName(type))
+		if needed<=0: continue
+		_busy=true
+		var posted:=String(_quests().request_work(id,"personal_delivery","resident:"+id,{"need_id":"supplies/"+workplace+"/"+type+"/"+str(_day()),"item_type":type,"count":needed,"recipient_id":id,"reward":3},_now()))
+		_busy=false
+		return not posted.is_empty()
+	return false
+
+func _queue_career_event(event: Dictionary) -> void:
+	if _career_events.size()<128 and identity(String(event.get("actor_id",""))).get("kind")=="code_form": _career_events.append(event.duplicate(true))
+
+func _flush_career_events() -> void:
+	if world.careers.transaction_active(): return
+	for i in range(mini(16,_career_events.size())):
+		var event: Dictionary=_career_events.pop_front()
+		_career_proofs[event.event_id]=event
+		world.careers.observe_service(event)
+		if event.service=="furnishing_installation" and not world.careers.definitions.has(event.service) and int(world.careers.model.candidates.get(event.service,{}).get("count",0))>=5:
+			var definition: Dictionary=world.careers.definitions.artificer.duplicate(true)
+			definition.id="furnishing_installation"; definition.name="Interior Furnisher"
+			definition.description="Acquires, makes and installs useful furnishings in occupied architectural shells."
+			if world.careers.model.register_definition(definition): world.careers.changed.emit()
+		_career_proofs.erase(event.event_id)
+
+func organization_authorize(operation: String,payload: Dictionary) -> bool:
+	if _bootstrap_access: return true
+	var orgs: RefCounted=_quests().organizations
+	match operation:
+		"support":
+			return _friend(String(payload.supporter),String(payload.founder))>=.2 and identity(String(payload.supporter)).get("kind")=="code_form"
+		"leadership":
+			var guild: Dictionary=orgs.guild(String(payload.guild_id))
+			if guild.is_empty() or payload.actor not in guild.members or payload.candidate not in guild.members: return false
+			if payload.method=="election": return guild.nominations.values().count(payload.candidate)>guild.members.size()/2
+			if payload.method=="merit": return identity(payload.candidate).get("level",1)>identity(guild.leader).get("level",1)
+			return payload.method=="challenge" and _friend(String(guild.leader),String(payload.candidate))>.2
+		"faction_leadership":
+			var faction: Dictionary=orgs.factions.get(String(payload.faction),{})
+			return not faction.is_empty() and payload.actor==faction.leader and identity(String(payload.candidate)).get("kind")=="code_form"
+		"merge": return payload.actor==payload.source_leader and _friend(String(payload.source_leader),String(payload.destination_leader))>=.4
+		"dissolve":
+			var guild: Dictionary=orgs.guild(String(payload.guild_id))
+			return payload.actor==guild.get("leader") and (guild.members.size()<3 or _economy().balance(String(guild.treasury))==0 and float(guild.reputation)<-.3)
+	return false
+func organization_outcome(event: Dictionary) -> void:
+	var actor:=String(event.get("actor",""))
+	if _registry().records.get(actor,{}).get("active",false): _registry().remember(actor,"organization",String(event.organization_id),String(event.type).replace("_"," ")+" in "+String(event.organization_id)+".",.65)
+	if event.type=="merged" and is_instance_valid(world.get("building_civilization")):
+		var service: Node=world.building_civilization
+		for building: Dictionary in service.model.records.values():
+			if building.owner!="guild/"+String(event.organization_id): continue
+			building.owner="guild/"+String(event.target)
+			building.occupants=[building.owner]
+			service.model._history(building,"institution_merged",building.owner,_now())
+		service.model.revision+=1
+		service._refresh_guild_signs()
+	if is_instance_valid(world.get("careers")) and (String(event.type).contains("leadership") or String(event.type).contains("succession") or String(event.type) in ["merged","dissolved"]):
+		for id: String in world.careers.model.workers.keys():
+			if _registry().records.get(id,{}).get("active",false): world.careers.model.synchronize_positions(id)
+	world.inventory_session._dirty()
 
 func _node(intent: String,label: String,parameters: Dictionary={},enabled: bool=true,subject: String="") -> Dictionary:
 	return {"intent":intent,"label":label,"parameters":parameters,"enabled":enabled,"subject_id":subject}
@@ -139,6 +339,7 @@ func conversation_invalid() -> bool:
 	if world.player.health<=0 or world.player.transition_locked or world.inventory_session._loading: return true
 	if world.start_menu.is_open or world.inventory_session.ui.is_open or world.inventory_session.shop.is_open: return true
 	if not _point.is_empty():
+		if _point.get("kind")=="building_terminal": return not world.building_civilization._near(String(_point.building))
 		return not (world.glyphic_wonders._near(_point) if _speaker=="avat_ar" else world.civilian_services.near(_point))
 	var source: Node=_source.get_ref() if _source!=null else null
 	return not is_instance_valid(source) or source.get_world_3d()!=world.player.get_world_3d() or source.global_position.distance_to(world.player.global_position)>5 or not identity(_speaker).get("active",false) or _society().autonomy._unavailable(_speaker,source)
@@ -169,19 +370,19 @@ func conversation_nodes(speaker: String,listener: String,branch: String,context:
 		options.append(_node("return","Back"))
 		return options
 	if branch=="identity":
-		return [_node("request_trade","Trade owned goods"),_node("ask_work","Work and favors"),_node("ask_rumor","Known news"),_node("ask_guild","Affiliations"),_node("return","Back"),_node("farewell","Leave")]
+		return [_node("request_trade","Trade owned goods"),_node("ask_work","Work and favors"),_node("request_info","Career and employment",{"topic":"career"}),_node("ask_guild","Affiliations"),_node("return","Back"),_node("farewell","Leave")]
 	if branch=="quests":
-		var rows: Array=_quests().available("player",faction)
+		var rows: Array=_quests().available("player",faction,false,String(context.get("guild_id","")))
 		var options: Array=[]
 		var page:=int(context.get("page",0))
 		for row: Dictionary in rows.slice(page*4,page*4+4):
 			if faction.is_empty() and row.issuer!=npc: continue
 			var title:=String(row.title)
 			if title.length()>74: title=title.left(73)+"…"
-			var eligible: bool=row.faction.is_empty() or _quests().is_member("player",row.faction)
+			var eligible: bool=_quests().organizations.is_member("player",String(row.guild_id)) if not String(row.get("guild_id","")).is_empty() else row.faction.is_empty() or _quests().is_member("player",row.faction)
 			if row.objective.service=="investigate" and world.law.cases.get(String(row.objective.target_id),{}).get("offender")=="player": eligible=false
 			options.append(_node("accept_quest",title+" · "+str(row.reward)+" coins",{"quest_id":row.id},eligible,row.id))
-		if rows.size()>(page+1)*4: options.append(_node("ask_work","More work",{"page":page+1,"faction":faction}))
+		if rows.size()>(page+1)*4: options.append(_node("ask_work","More work",{"page":page+1,"faction":faction,"guild_id":String(context.get("guild_id",""))}))
 		options.append(_node("return","Back"))
 		return options
 	if branch=="progress":
@@ -193,13 +394,23 @@ func conversation_nodes(speaker: String,listener: String,branch: String,context:
 	if branch=="guilds":
 		var options: Array=[]
 		for key: String in ["security","commerce","exploration"]:
-			options.append(_node("accept_guild",("Member: " if _quests().is_member("player",key) else "Join ")+String(_quests().model.factions[key].name),{"faction":key}))
-		if _quests().model.introductions.has("player"): options.append(_node("accept_guild","Private affiliation",{"faction":"underworld"}))
+			options.append(_node("ask_guild",String(_quests().model.factions[key].name)+" guilds",{"faction":key}))
+		if _quests().model.introductions.has("player"): options.append(_node("ask_guild","Private affiliations",{"faction":"underworld"}))
 		options.append(_node("return","Back")); return options
+	if branch=="guild_roster":
+		var options: Array=[]
+		for guild: Dictionary in _quests().organizations.guilds_for_faction(faction):
+			options.append(_node("ask_guild",String(guild.name)+" · "+String(guild.classification),{"guild_id":guild.id,"faction":faction}))
+		options.append(_node("return","Back")); return options
+	if branch=="guild_detail":
+		var guild: Dictionary=_quests().organizations.guild(String(context.get("guild_id","")))
+		if guild.is_empty(): return [_node("return","Back")]
+		var member: bool=_quests().organizations.is_member("player",guild.id)
+		return [_node("confirm","Leave guild" if member else "Join guild",{"operation":"leave_guild" if member else "join_guild","guild_id":guild.id}),_node("ask_work","Browse member contracts",{"faction":guild.faction,"guild_id":guild.id}),_node("request_info","Leadership and history",{"guild_id":guild.id,"faction":guild.faction}),_node("invite_guild","Nominate a Code Form leader",{"guild_id":guild.id},member and guild.governance=="election"),_node("ask_guild","Other guilds",{"faction":guild.faction}),_node("farewell","Leave")]
 	if npc=="avat_ar":
 		return [_node("browse_goods","Browse permanent glyphs"),_node("request_info","About Glyphic Wonders"),_node("ask_identity","The First Merchant"),_node("ask_rumor","What's new?"),_node("farewell","Leave")]
 	if not faction.is_empty():
-		return [_node("ask_work","Browse funded contracts",{"faction":faction}),_node("accept_guild",("Already a member" if _quests().is_member("player",faction) else "Join ")+String(_quests().model.factions[faction].name),{"faction":faction}),_node("report_quest","My work"),_node("ask_guild","About this guild",{"faction":faction}),_node("farewell","Leave")]
+		return [_node("ask_work","Browse funded contracts",{"faction":faction}),_node("ask_guild","Guild membership and governance",{"faction":faction}),_node("report_quest","My work"),_node("ask_guild","About this faction",{"faction":faction,"topic":"about"}),_node("farewell","Leave")]
 	var options: Array=[_node("request_trade","Discuss trading"),_node("ask_work","Work and favors"),_node("report_quest","My work"),_node("ask_guild","Guild affiliations"),_node("ask_rumor","Known news"),_node("farewell","Leave")]
 	if _point.get("kind") in ["reception","bartender"]: options[0]=_node("browse_goods","Rooms and crystal sales" if _point.kind=="reception" else "Meals and drinks")
 	if npc==_contact() and _friend(npc,"player")>=.1:
@@ -248,18 +459,38 @@ func handle_message(message: Dictionary) -> Dictionary:
 			if npc=="avat_ar": return _reply("introduce",{"name":"Avat Ar","role":"The First Merchant","detail":"I supplied food and water after the first Great Blessings. Trade gave those blessings a purpose."})
 			return _reply("introduce",{"name":identity(npc).name,"role":record.get("occupation","resident"),"goal":record.get("current_goal","rest")},{"branch":"identity"})
 		"request_info","ask_guild":
+			if p.get("topic")=="career" and actor=="player" and identity(npc).get("kind")=="code_form":
+				world.career_menu.call_deferred("open",npc)
+				return _reply("inform",{"detail":"Here is my current work, employment history and plans."},{"close":true})
 			if npc=="avat_ar": return _reply("inform",{"detail":"The displays rotate; Health and Shield Glyphs remain at my counter. Purchases remove coins from circulation."})
+			var guild: Dictionary=_quests().organizations.guild(String(p.get("guild_id","")))
+			if not guild.is_empty():
+				if guild.faction=="underworld" and not _quests().model.introductions.has(actor): return _reply("refuse",{"reason":"Private introductions are required."})
+				var leader:=String(identity(String(guild.leader)).get("name","Vacant"))
+				var detail:=String(guild.specialty)+". Leader: "+leader+". Governance: "+String(guild.governance)+". Members: "+str(guild.members.size())+"."
+				if intent=="request_info":
+					for entry: Dictionary in guild.history.slice(maxi(0,guild.history.size()-3)): detail+=" "+String(entry.type).replace("_"," ")+"."
+				return _reply("inform",{"name":guild.name,"detail":detail,"treasury":_economy().balance(String(guild.treasury))},{"branch":"guild_detail","context":{"guild_id":guild.id,"faction":guild.faction}})
 			var faction:=String(p.get("faction",npc.get_slice("/",1) if npc.begins_with("board/") else ""))
 			if _quests().model.factions.has(faction) and (faction!="underworld" or _quests().model.introductions.has(actor)):
 				var detail:=String(_quests().model.factions[faction].purpose)
 				if faction=="security": detail+=" Your wanted level: "+str(world.law.wanted_level(actor))+". Evidence is investigated separately from trade and economic XP."
-				return _reply("inform",{"name":_quests().model.factions[faction].name,"detail":detail,"treasury":_economy().balance("faction:"+faction)})
+				var leader:=String(identity(String(_quests().organizations.factions.get(faction,{}).get("leader",""))).get("name","Vacant"))
+				return _reply("inform",{"name":_quests().model.factions[faction].name,"detail":detail+" Faction leader: "+leader+". Each guild has independent membership and leadership.","treasury":_economy().balance("faction:"+faction)},{"branch":"guild_roster","context":{"faction":faction,"guild_id":""}})
 			return _reply("inform",{"detail":"Public contracts are visible to everyone. Membership is required to accept them."},{"branch":"guilds"})
 		"accept_guild":
-			var key:=String(p.get("faction",""))
-			if not _quests().join(actor,key): return _reply("refuse",{"reason":"A trusted private introduction is required."})
-			if actor!="player": _registry().remember(actor,"guild",key,"Joined "+String(_quests().model.factions[key].name)+".",.7)
-			return _reply("agree",{"faction":key,"detail":"Membership recorded. Funded work is available on the board."})
+			var key:=String(p.get("guild_id",_quests().organizations.GENERALISTS.get(String(p.get("faction","")),"")))
+			if not _quests().join_guild(actor,key): return _reply("refuse",{"reason":"An active guild and any private introduction are required."})
+			return _reply("agree",{"guild":key,"detail":"Guild membership recorded. Only this guild's member contracts are unlocked."})
+		"confirm":
+			var key:=String(p.get("guild_id",""))
+			var ok: bool=_quests().leave_guild(actor,key) if p.get("operation")=="leave_guild" else _quests().join_guild(actor,key)
+			return _reply("agree" if ok else "refuse",{"detail":"Membership updated." if ok else "That membership change is unavailable."})
+		"invite_guild":
+			var guild: Dictionary=_quests().organizations.guild(String(p.get("guild_id","")))
+			for candidate: String in guild.get("members",[]):
+				if identity(candidate).get("kind")=="code_form" and _quests().organizations.nominate(actor,String(guild.id),candidate): return _reply("agree",{"detail":"Nomination recorded for "+String(identity(candidate).name)+". The guild's election will review it."})
+			return _reply("refuse",{"reason":"Only eligible members may nominate a native leader."})
 		"request_help":
 			if actor=="player" and npc==_contact() and p.get("topic")=="introduction" and _quests().introduce(actor,npc):
 				return _reply("agree",{"detail":"A trusted contact has privately introduced you. You may join and discuss private work here."},{"branch":"guilds"})
@@ -272,7 +503,7 @@ func handle_message(message: Dictionary) -> Dictionary:
 					if faction.is_empty() and row.issuer!=listener: continue
 					if _quests().accept(row.id,actor,_now()): return _reply("offer_work",{"quest_id":row.id,"reward":row.reward,"detail":row.title})
 				return _reply("refuse",{"reason":"No suitable funded work is available."})
-			return _reply("offer_work",{"detail":"Rewards are held in escrow. Deliveries consume the requested item; arrivals must be reached in person."},{"branch":"quests","context":{"faction":faction,"page":int(p.get("page",0))}})
+			return _reply("offer_work",{"detail":"Rewards are held in escrow. Deliveries consume the requested item; arrivals must be reached in person."},{"branch":"quests","context":{"faction":faction,"guild_id":String(p.get("guild_id","")),"page":int(p.get("page",0))}})
 		"accept_quest","accept_work":
 			var id:=String(p.get("quest_id",""))
 			var proposed: Dictionary=_quests().model.instances.get(id,{})
@@ -334,7 +565,7 @@ func authorize_quest(operation: String,payload: Dictionary) -> bool:
 		"publish","delegate":
 			if not _busy: return false
 			var issuer:=String(payload.get("issuer",""))
-			return payload.get("source")==("faction:"+issuer.trim_prefix("faction/") if issuer.begins_with("faction/") else "resident:"+issuer)
+			return payload.get("source")==("faction:"+issuer.trim_prefix("faction/") if issuer.begins_with("faction/") else "guild:"+issuer.trim_prefix("guild/") if issuer.begins_with("guild/") else "resident:"+issuer)
 		"fail": return payload.get("reason") in ["retired","evidence_resolved"]
 	return false
 
@@ -357,6 +588,7 @@ func _event(event: Dictionary) -> Array:
 	_proofs[event.event_id]=event.duplicate(true)
 	var result: Array=_quests().consume_event(event)
 	_proofs.erase(event.event_id)
+	if not result.is_empty(): _queue_career_event({"event_id":String(event.event_id),"actor_id":String(event.actor_id),"service":String(event.get("service",event.event_type)) if not String(event.get("service","")).is_empty() else String(event.event_type)})
 	return result
 
 func delivery_authorized(payload: Dictionary) -> bool: return not _delivery_access.is_empty() and payload==_delivery_access
@@ -378,6 +610,8 @@ func complete_delivery(row: Dictionary,actor: String) -> bool:
 	return false
 
 func transaction_committed(receipt: Dictionary) -> void:
+	for participant: String in [String(receipt.get("asset_sender_id","")),String(receipt.get("asset_receiver_id",""))]:
+		if identity(participant).get("kind")=="code_form": _queue_career_event({"event_id":String(receipt.transaction_id)+"/"+participant,"actor_id":participant,"service":String(receipt.get("context","trade"))})
 	if receipt.get("context")=="item_transfer":
 		var actor:=String(receipt.asset_sender_id)
 		if actor==_economy().owner_id: actor="player"
@@ -435,16 +669,18 @@ func post_opportunities() -> void:
 	_busy=true
 	var targets: Array=world.population.points.keys()
 	if not targets.is_empty():
-		for key: String in ["security","commerce","exploration"]:
-			var terms:={"need_id":key+"/day/"+str(_day()),"target_id":"place/"+String(targets[posmod((key+str(_day())).hash(),targets.size())])}
-			var template:=key+"_service" if key!="exploration" else "exploration_discovery"
-			if key=="commerce":
-				template="commerce_delivery"; terms={"need_id":key+"/day/"+str(_day()),"item_type":"electron_meal","recipient_id":"guild"}
-			elif key=="security": terms.service="patrol"
-			_quests().create_contract(template,"faction/"+key,"faction:"+key,terms,_now())
-	var contact:=_contact()
-	if not contact.is_empty() and _economy().npc_store(contact).count_type(&"electron_draught")==0:
-		_quests().create_contract("underworld_delivery","faction/underworld","faction:underworld",{"need_id":"private/day/"+str(_day()),"item_type":"electron_draught","recipient_id":contact},_now())
+		for guild: Dictionary in _quests().organizations.guilds.values():
+			if guild.status!="active": continue
+			var key:=String(guild.id)
+			var faction:=String(guild.faction)
+			var terms:={"guild_id":key,"need_id":key+"/day/"+str(_day()),"target_id":"place/"+String(targets[posmod((key+str(_day())).hash(),targets.size())])}
+			var template:="exploration_discovery" if faction=="exploration" else "security_service"
+			if faction=="commerce":
+				template="commerce_delivery"; terms={"guild_id":key,"need_id":key+"/day/"+str(_day()),"item_type":"electron_meal","recipient_id":"guild"}
+			elif faction=="underworld":
+				template="underworld_delivery"; terms={"guild_id":key,"need_id":key+"/day/"+str(_day()),"item_type":"electron_draught","recipient_id":_contact(),"reward":12}
+			elif faction=="security": terms.service="patrol"
+			_quests().create_contract(template,"guild/"+key,"guild:"+key,terms,_now())
 	_busy=false
 
 func request_favor(issuer: String,participant: String) -> String:
@@ -463,6 +699,13 @@ func npc_step(record: Dictionary,state: Dictionary,physical: bool) -> bool:
 	var goal:=String(record.current_goal)
 	var affiliations: Array=_quests().model.memberships.get(id,[])
 	var joined:=false
+	if is_instance_valid(world.get("building_civilization")) and world.building_civilization.npc_step(record): return true
+	if is_instance_valid(world.get("careers")):
+		var career_result: Dictionary=world.careers.npc_step(id,_now())
+		if not career_result.is_empty():
+			if career_result.has("event_id"): _queue_career_event({"event_id":String(career_result.event_id),"actor_id":id,"service":String(career_result.get("action","service"))})
+			return true
+	_organizational_decision(record,state)
 	# A private introduction still requires a relationship for model citizens.
 	if _friend(_contact(),id)>=.1 and not _quests().model.introductions.has(id): _quests().introduce(id,_contact())
 	if _quests().model.introductions.has(id) and float(record.motivations.get("wealth",.5))>.65: _quests().join(id,"underworld")
@@ -523,6 +766,7 @@ func _process(delta: float) -> void:
 	_clock-=delta
 	if _clock>0 or not initialized or world.inventory_session._loading or _society().transaction_active(): return
 	_clock=.75
+	_flush_career_events()
 	_quests().advance_to(_now())
 	_publish_cases()
 	if world.dungeon_travel.active_location==world.dungeon_travel.OUTSIDE and world.player.health>0:
@@ -567,6 +811,64 @@ func _nearest_destination(target: Vector3) -> String:
 		var d: float=world.population.to_global(world.population.points[key]).distance_squared_to(target)
 		if d<distance: distance=d; closest="place/"+String(key)
 	return closest
+
+func open_remote_terminal(kind: String,building: String) -> bool:
+	var service: Node=world.get("building_civilization")
+	if not is_instance_valid(service) or not service._near(building): return false
+	var installed:=false
+	for row: Dictionary in service.model.records[building].placements.values():
+		if Catalog.get_definition(StringName(row.item.item_type_id)).custom_properties.get("interaction")==kind: installed=true; break
+	if not installed: return false
+	_point={"kind":"building_terminal","building":building}; _source=null; _speaker="board/commerce"
+	return world.communication.begin(_speaker,"player",{"branch":"guilds"})
+
+func open_guild_premises(building: String) -> bool:
+	var service: Node=world.get("building_civilization")
+	if not is_instance_valid(service) or not service._near(building): return false
+	var owner:=String(service.model.records[building].owner)
+	if owner.begins_with("faction/"):
+		var key:=owner.trim_prefix("faction/")
+		if not _quests().organizations.factions.has(key) or key=="underworld" and not _quests().model.introductions.has("player"): return false
+		_point={"kind":"building_terminal","building":building}; _source=null; _speaker=owner
+		return world.communication.begin(owner,"player",{"branch":"guild_roster","faction":key})
+	if not owner.begins_with("guild/"): return false
+	var guild: Dictionary=_quests().organizations.guild(owner.trim_prefix("guild/"))
+	if guild.is_empty() or guild.status!="active" or guild.faction=="underworld" and not _quests().model.introductions.has("player"): return false
+	_point={"kind":"building_terminal","building":building}; _source=null; _speaker=owner
+	return world.communication.begin(owner,"player",{"branch":"guild_detail","guild_id":guild.id,"faction":guild.faction})
+
+func _organizational_decision(record: Dictionary,state: Dictionary) -> void:
+	if int(state.turn)%4!=0: return
+	for memory: Dictionary in record.memories:
+		if memory.type=="governance" and memory.target=="review" and _now()-float(memory.timestamp)<86400: return
+	_registry().remember(String(record.id),"governance","review","Considered institutional opportunities.",.2)
+	var orgs: RefCounted=_quests().organizations
+	var memberships: Array=orgs.memberships_of(String(record.id))
+	if memberships.is_empty(): return
+	var guild: Dictionary=orgs.guild(String(memberships[posmod(String(record.id).hash(),memberships.size())]))
+	if float(record.motivations.loyalty)>.65 and _economy().balance("resident:"+String(record.id))>=30 and _economy().balance(String(guild.treasury))<12:
+		_economy().transfer("resident:"+String(record.id),String(guild.treasury),3,"Voluntary member contribution")
+	if guild.governance=="election" and not guild.members.is_empty():
+		var best:=String(guild.leader)
+		var score:=-INF
+		for offset in range(mini(4,guild.members.size())):
+			var candidate:=String(guild.members[posmod(String(record.id).hash()+offset,guild.members.size())])
+			var person:=identity(candidate)
+			if person.get("kind")!="code_form" or not person.get("active",false): continue
+			var value:=float(person.get("level",1))+_friend(String(record.id),candidate)*5+float(person.get("motivations",{}).get("loyalty",.5))
+			if value>score: score=value; best=candidate
+		orgs.nominate(String(record.id),String(guild.id),best)
+	if float(record.motivations.novelty)>.7 and float(record.motivations.loyalty)<.35 and _friend(String(record.id),String(guild.leader))<-.1 and _economy().balance("resident:"+String(record.id))>=30:
+		var specialty:=String(record.occupation).left(80)
+		for friend: String in record.relationships:
+			if float(record.relationships[friend])>=.2 and orgs.is_member(friend,String(guild.id)): orgs.support(String(record.id),friend,String(guild.faction),specialty)
+		if orgs.supports.has(record.id) and orgs.supports[record.id].supporters.size()>=3:
+			orgs.found(String(record.id),String(record.name)+" "+specialty+" Circle",String(guild.faction),specialty,30,String(guild.id))
+	if guild.leader==record.id and guild.members.size()<=2:
+		for target: Dictionary in orgs.guilds_for_faction(String(guild.faction)):
+			if target.id!=guild.id and _friend(String(guild.leader),String(target.leader))>=.4:
+				orgs.merge(String(guild.id),String(target.id),String(record.id)); break
+	_quests().advance_to(_now())
 
 func socialize(a: String,b: String,physical: bool) -> bool:
 	if not initialized or a==b or not identity(a).get("active",false) or not identity(b).get("active",false): return false
@@ -624,7 +926,7 @@ func _publish_cases() -> void:
 		var entry: Dictionary=world.law.cases.get(id,{})
 		if entry.is_empty() or entry.status=="resolved": continue
 		_busy=true
-		var posted:=String(_quests().create_contract("security_service","faction/security","faction:security",{"need_id":"investigate/"+id,"target_id":id,"service":"investigate","reward":8},_now()))
+		var posted:=String(_quests().create_contract("security_service","guild/inquest","guild:inquest",{"guild_id":"inquest","need_id":"investigate/"+id,"target_id":id,"service":"investigate","reward":8},_now()))
 		_busy=false
 		if posted.is_empty() and _quests().model.last_error=="The issuer cannot fund this contract.": _pending_cases.append(id)
 

@@ -4,6 +4,8 @@ const Inventory = preload("res://scripts/inventory.gd")
 const Instance = preload("res://scripts/item_instance.gd")
 const Catalog = preload("res://scripts/item_catalog.gd")
 const WonderStock = preload("res://scripts/glyphic_wonders_stock.gd")
+const Cuisine = preload("res://scripts/electron_cuisine.gd")
+const FoodShields = preload("res://scripts/shield_glyphs.gd")
 const ROOM_COUNT := 3
 const COIN_CAP := 1000000000
 const JOURNAL_LIMIT := 128
@@ -11,6 +13,7 @@ const MAX_RESIDENTS := 16384
 const MAX_ACTIVE := 2048
 const MAX_SERVICE_TOKENS := 65536
 const MAX_FACTIONS := 64
+const MAX_GUILDS := 128
 const MAX_CONTRACTS := 2048
 const ESCROW_ACCOUNT := "contracts:escrow"
 const WAGE_SERVICES := {"guild_work":"business:guild","tavern_work":"business:tavern"}
@@ -18,6 +21,7 @@ const CRYSTALS := {"monster_glyph_common":12,"monster_glyph_uncommon":30,"monste
 const FOOD := [&"electron_meal",&"electron_draught"]
 signal changed
 signal food_consumed(inventory: Node, effects: Dictionary)
+signal npc_food_consumed(id: String, effects: Dictionary)
 signal commerce_committed(receipt: Dictionary)
 signal transaction_committed(receipt: Dictionary)
 signal wonder_purchase_committed(token: String,buyer: String)
@@ -31,12 +35,19 @@ signal wonder_purchase_committed(token: String,buyer: String)
 @export var draught_duration := 3.0
 @export var meal_healing := 60.0
 @export var draught_healing := 120.0
+@export_range(1,1000,1) var food_hp_cap := 350.0
+@export_range(250,1000,1) var drink_shield_cap := 1000.0
+@export_range(.1,4,.1) var food_quality_min := .5
+@export_range(.1,4,.1) var food_quality_max := 2.0
+@export_range(0,1,.01) var food_complexity_factor := .06
+@export_range(0,1,.01) var food_rarity_factor := .12
 var player_inventory: Node
 var validator: Callable
 var external_transaction_guard: Callable
 var npc_validator: Callable
 var world_clock: Callable
 var factions: Array[String] = []
+var guilds: Array[String] = []
 var contracts: Dictionary = {}
 var _last_receipt: Dictionary = {}
 var merchant_ids := {"guild":"guild_receptionist","tavern":"tavern_bartender"}
@@ -180,6 +191,55 @@ func _receipt(context: String,amount: int,participants: Array,counterpart: Strin
 	if amount>0 and not eligible.is_empty(): commerce_committed.emit(entry.duplicate(true))
 
 static func faction_account(key: String) -> String: return "faction:"+key
+static func organization_account(key: String) -> String: return "guild:"+key
+
+func organization_operation(request: Dictionary) -> bool:
+	# Host-only atomic financing. Escrow retains its original source account.
+	if not host_enabled or _busy or _externally_busy() or owner_id.is_empty(): return false
+	var additions: Array[String]=[]
+	var payments: Array[Dictionary]=[]
+	match String(request.get("operation","")):
+		"bootstrap":
+			if not request.get("guilds") is Array or request.guilds.size()!=12 or not guilds.is_empty(): return false
+			var groups: Dictionary={}
+			for row: Variant in request.guilds:
+				if not row is Dictionary or not _faction_key(row.get("id")) or row.get("faction") not in factions or row.id in additions: return false
+				additions.append(row.id)
+				if not groups.has(row.faction): groups[row.faction]=[]
+				groups[row.faction].append(row.id)
+			if groups.size()!=4: return false
+			for faction: String in groups:
+				if groups[faction].size()!=3: return false
+				var available:=balance(faction_account(faction))
+				for n in range(3):
+					var amount:=available/3+(1 if n<available%3 else 0)
+					if amount>0: payments.append({"from":faction_account(faction),"to":organization_account(groups[faction][n]),"amount":amount})
+		"found":
+			var key: Variant=request.get("guild_id")
+			var source: Variant=request.get("source")
+			if not _faction_key(key) or key in guilds or not source is String or not source.begins_with("resident:") or source.trim_prefix("resident:") not in active_ids or not Instance.whole_number(request.get("amount"),30,100000): return false
+			additions.append(key); payments.append({"from":source,"to":organization_account(key),"amount":int(request.amount)})
+		"move":
+			var source: String=request.get("source","")
+			var destination: String=request.get("destination","")
+			if not source.begins_with("guild:") or source.trim_prefix("guild:") not in guilds or source==destination or not balances.has(destination) or not (destination.begins_with("guild:") or destination.begins_with("faction:")): return false
+			if balance(source)>0: payments.append({"from":source,"to":destination,"amount":balance(source)})
+		_: return false
+	if guilds.size()+additions.size()>MAX_GUILDS or sequence>COIN_CAP-payments.size(): return false
+	if additions.is_empty() and payments.is_empty(): return true
+	var projected: Dictionary=balances.duplicate()
+	for key: String in additions: projected[organization_account(key)]=0
+	for payment: Dictionary in payments:
+		if not projected.has(payment.from) or not projected.has(payment.to) or int(projected[payment.from])<int(payment.amount) or int(projected[payment.to])>COIN_CAP-int(payment.amount): return false
+		projected[payment.from]-=int(payment.amount); projected[payment.to]+=int(payment.amount)
+	_busy=true
+	for key: String in additions:
+		guilds.append(key); balances[organization_account(key)]=0; audit_base.balances[organization_account(key)]=0
+	guilds.sort()
+	for payment: Dictionary in payments:
+		_append_event({"kind":"transfer","from":payment.from,"to":payment.to,"amount":int(payment.amount),"reason":"Organizational capital allocation"})
+	changed.emit(); _busy=false
+	return true
 
 func register_faction(key: String) -> bool:
 	if not host_enabled or _busy or _externally_busy() or owner_id.is_empty() or not _faction_key(key) or factions.has(key) or factions.size()>=MAX_FACTIONS: return false
@@ -333,10 +393,13 @@ func npc_consume_food(id: String,type: StringName) -> bool:
 	if store==null: return false
 	for item: Resource in store.items.values():
 		if item.item_type_id!=type: continue
+		var effects:=food_offer(type,item)
+		if effects.is_empty(): return false
 		_busy = true
 		var consumed: Resource = store.take_item(item.instance_id,1)
 		if consumed!=null:
 			consumed.quantity = 0
+			npc_food_consumed.emit(id,effects)
 			changed.emit()
 		_busy = false
 		return consumed!=null
@@ -487,13 +550,34 @@ func sell_crystal(iid: String,qty: int,inventory: Node) -> bool:
 	if not _can_pay(guild_account,player_account,amount): return false
 	return _move_item(inventory,guild_stock,iid,qty,{"kind":"transfer","from":guild_account,"to":player_account,"amount":amount,"reason":"Monster crystal purchase"},{"context":"crystal_sale","amount":amount,"participants":[merchant_ids.get("guild","")],"counterpart":guild_account})
 
-func food_offer(type: StringName) -> Dictionary:
-	if type not in FOOD: return {}
-	var offer := {"type_id":String(type),"price":meal_price if type==&"electron_meal" else draught_price,"duration":meal_duration if type==&"electron_meal" else draught_duration,"healing":meal_healing if type==&"electron_meal" else draught_healing}
-	if not Instance.whole_number(offer.price,1,100000): return {}
-	if not is_finite(float(offer.duration)) or offer.duration<.1 or offer.duration>60: return {}
-	if not is_finite(float(offer.healing)) or offer.healing<=0 or offer.healing>1000: return {}
+func food_offer(type: StringName,item: Resource = null) -> Dictionary:
+	var definition: Resource=Catalog.get_definition(type)
+	if definition==null or not definition.custom_properties.get("civilian_food",false): return {}
+	var properties: Dictionary=definition.custom_properties.duplicate(true)
+	var price: Variant=properties.get("price",0)
+	if type in FOOD:
+		price=meal_price if type==&"electron_meal" else draught_price
+		properties.base_restoration=meal_healing if type==&"electron_meal" else draught_healing
+		properties.consumption_duration=meal_duration if type==&"electron_meal" else draught_duration
+	if not Instance.whole_number(price,1,100000): return {}
+	var settings: Dictionary={"hp_cap":food_hp_cap,"shield_cap":drink_shield_cap,"quality_min":food_quality_min,"quality_max":food_quality_max,"complexity_factor":food_complexity_factor,"rarity_factor":food_rarity_factor}
+	var offer:=Cuisine.effects(properties,item.custom_properties if item!=null else {},settings)
+	if offer.is_empty(): return {}
+	offer.merge({"type_id":String(type),"price":int(price)})
 	return offer
+
+func can_consume_food(iid: String,inventory: Node) -> bool:
+	if not is_instance_valid(inventory): return false
+	var item: Resource=inventory.get_item(iid)
+	if item==null or item.owner_id!=inventory.owner_id: return false
+	var offer:=food_offer(item.item_type_id,item)
+	if offer.is_empty(): return false
+	var actor: Node=inventory.actor
+	var combat: Node=actor.get("weapon_combat") if is_instance_valid(actor) else null
+	if not is_instance_valid(combat) or combat.health<=0: return false
+	if float(offer.shield_restore)>0:
+		return FoodShields.valid(inventory.shield_state) and float(inventory.shield_state.get("points",0))<maxf(FoodShields.capacity(inventory.shield_state),float(offer.shield_capacity))
+	return combat.health<combat.max_health
 
 func buy_food(type: StringName,inventory: Node) -> bool:
 	if not _valid_inventory(inventory) or not _allowed(&"buy_food",{"inventory":inventory,"type_id":type}): return false
@@ -564,11 +648,8 @@ func consume_food(iid: String,inventory: Node) -> bool:
 	if not _valid_inventory(inventory) or not _allowed(&"consume_food",{"inventory":inventory,"instance_id":iid}): return false
 	var item: Resource = inventory.get_item(iid)
 	if item==null or item.owner_id!=owner_id: return false
-	var offer := food_offer(item.item_type_id)
-	if offer.is_empty(): return false
-	var actor: Node = inventory.actor
-	var combat: Node = actor.get("weapon_combat") if is_instance_valid(actor) else null
-	if not is_instance_valid(combat) or combat.health<=0 or combat.health>=combat.max_health: return false
+	var offer := food_offer(item.item_type_id,item)
+	if not can_consume_food(iid,inventory): return false
 	_busy = true
 	var consumed: Resource = inventory.take_item(iid,1)
 	if consumed!=null:
@@ -584,7 +665,7 @@ func serialize() -> Dictionary:
 	for room: int in room_stores: stores[str(room)] = room_stores[room].serialize()
 	var npc: Dictionary = {}
 	for id: String in npc_stores: npc[id] = npc_stores[id].serialize()
-	return {"version":3,"factions":factions.duplicate(),"contracts":contracts.duplicate(true),"owner_id":owner_id,"natural_ids":natural_ids.duplicate(),"active_ids":active_ids.duplicate(),"balances":balances.duplicate(),"issued_total":issued_total,"destroyed_total":destroyed_total,"last_cycle":last_cycle,"sequence":sequence,"audit_base":audit_base.duplicate(true),"journal":journal.duplicate(true),"rental":rental.duplicate(true),"room_stores":stores,"guild_stock":guild_stock.serialize(),"npc_stores":npc,"service_tokens":service_tokens.duplicate()}
+	return {"version":4,"guilds":guilds.duplicate(),"factions":factions.duplicate(),"contracts":contracts.duplicate(true),"owner_id":owner_id,"natural_ids":natural_ids.duplicate(),"active_ids":active_ids.duplicate(),"balances":balances.duplicate(),"issued_total":issued_total,"destroyed_total":destroyed_total,"last_cycle":last_cycle,"sequence":sequence,"audit_base":audit_base.duplicate(true),"journal":journal.duplicate(true),"rental":rental.duplicate(true),"room_stores":stores,"guild_stock":guild_stock.serialize(),"npc_stores":npc,"service_tokens":service_tokens.duplicate()}
 
 func restore(data: Variant) -> bool:
 	if not host_enabled or _busy or _externally_busy(): return false
@@ -625,6 +706,7 @@ func restore(data: Variant) -> bool:
 	rental = decoded.rental
 	service_tokens = decoded.service_tokens
 	factions.assign(decoded.factions)
+	guilds.assign(decoded.guilds)
 	contracts = decoded.contracts
 	room_stores = replacements
 	for room: int in room_stores:
@@ -919,17 +1001,18 @@ static func _validate_v2(input: Variant,player: Dictionary = {},world_drops: Arr
 static func _faction_key(key: Variant) -> bool:
 	return Instance.valid_text(key,false,64) and not ":" in key and not "|" in key
 
-static func validate(input: Variant,player: Dictionary = {},world_drops: Array = []) -> Dictionary:
+static func _validate_v3(input: Variant,player: Dictionary = {},world_drops: Array = [],guild_accounts: Array = []) -> Dictionary:
 	if not input is Dictionary: return {}
 	if Instance.whole_number(input.get("version"),1,2):
 		var migrated:=_validate_v2(input,player,world_drops)
 		if migrated.is_empty(): return {}
 		migrated.version=3; migrated.factions=[]; migrated.contracts={}
 		migrated.balances[ESCROW_ACCOUNT]=0; migrated.audit_base.balances[ESCROW_ACCOUNT]=0
-		return validate(migrated,player,world_drops)
+		return _validate_v3(migrated,player,world_drops,guild_accounts)
 	if input.get("version")!=3 or input.size()!=18 or not input.get("factions") is Array or input.factions.size()>MAX_FACTIONS or not input.get("contracts") is Dictionary or input.contracts.size()>MAX_CONTRACTS: return {}
 	var faction_ids: Array[String]=[]
 	var extra: Array[String]=[ESCROW_ACCOUNT]
+	for account: String in guild_accounts: extra.append(account)
 	for key: Variant in input.factions:
 		if not _faction_key(key) or faction_ids.has(key): return {}
 		faction_ids.append(key); extra.append(faction_account(key))
@@ -954,4 +1037,25 @@ static func validate(input: Variant,player: Dictionary = {},world_drops: Array =
 		reservations[key]={"source":String(row.source),"amount":int(row.amount),"status":String(row.status),"payee":String(row.payee),"service":String(row.service),"legality":String(row.legality),"sequence":int(row.sequence)}
 	if reserved!=int(result.balances[ESCROW_ACCOUNT]): return {}
 	result.version=3; result.factions=faction_ids; result.contracts=reservations
+	return result
+
+static func validate(input: Variant,player: Dictionary = {},world_drops: Array = []) -> Dictionary:
+	if not input is Dictionary: return {}
+	if Instance.whole_number(input.get("version"),1,3):
+		var legacy:=_validate_v3(input,player,world_drops)
+		if legacy.is_empty(): return {}
+		legacy.version=4; legacy.guilds=[]
+		return legacy
+	if input.get("version")!=4 or input.size()!=19 or not input.get("guilds") is Array or input.guilds.size()>MAX_GUILDS: return {}
+	var keys: Array[String]=[]
+	var accounts: Array[String]=[]
+	for key: Variant in input.guilds:
+		if not _faction_key(key) or key in keys: return {}
+		keys.append(key); accounts.append(organization_account(key))
+	keys.sort()
+	var core: Dictionary=input.duplicate(true)
+	core.version=3; core.erase("guilds")
+	var result:=_validate_v3(core,player,world_drops,accounts)
+	if result.is_empty(): return {}
+	result.version=4; result.guilds=keys
 	return result

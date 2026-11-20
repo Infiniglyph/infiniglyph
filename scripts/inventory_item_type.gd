@@ -12,6 +12,8 @@ const WEAPONS := {
 static func label(definition: Resource) -> String:
 	if definition==null: return "Empty"
 	var properties: Dictionary = definition.custom_properties
+	if properties.get("placeable",false): return String(properties.get("placement_category","furniture")).capitalize()+" / Placeable " +String(properties.get("furniture_kind","furniture")).replace("_"," ").capitalize()
+	if properties.get("civilian_food",false): return "Drink / Shield Recovery" if properties.get("cuisine_kind")=="drink" else "Dessert / HP Recovery" if properties.get("cuisine_kind")=="dessert" else "Meal / HP Recovery"
 	var entry: Dictionary = Database.get_item(definition.item_type_id)
 	var family := String(properties.get("family",entry.get("family",definition.item_type_id)))
 	if definition.category==&"weapons":

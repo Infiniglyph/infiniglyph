@@ -4,6 +4,7 @@ const Building = preload("res://scripts/building.gd")
 const StreetLight = preload("res://scripts/street_light.gd")
 const Metropolis = preload("res://scripts/metropolis.gd")
 const Batcher = preload("res://scripts/static_visual_batcher.gd")
+const BuildingShell = preload("res://scripts/building_shell.gd")
 var visual_batching_enabled := true
 var visual_batches: Node3D
 var facades: Array[Dictionary] = []
@@ -11,6 +12,7 @@ const HALF_EXTENT := 112
 
 func _ready() -> void:
 	name = "CentralDistrict"
+	add_to_group("building_record_providers")
 	Neon.prepare()
 	var paving := Neon.dark.duplicate()
 	paving.roughness = 0.24
@@ -95,3 +97,16 @@ func add_street_light(at: Vector3, yaw: float) -> void:
 	fixture.position = at
 	fixture.rotation.y = yaw
 	add_child(fixture)
+
+func building_records() -> Array[Dictionary]:
+	# The established hub contains leased recessed lobbies and tightly composed
+	# skyway/rooftop routes. Register them without removing their transit screens,
+	# occupancy leases or movement-test architecture behind the new shell system.
+	var result: Array[Dictionary]=[]
+	for facade: Dictionary in facades:
+		result.append({"id":BuildingShell.stable_id(facade.base,"hub"),"point":facade.base,"size":facade.size,"region":"central","shell":null,"layout":{},"manual_review":true,"review_reason":"Existing leased hub lobbies and shared rooftop routes require a bespoke interior conversion."})
+	var skyline: Node=get_node_or_null("Metropolis")
+	if is_instance_valid(skyline):
+		for facade: Dictionary in skyline.facades:
+			result.append({"id":BuildingShell.stable_id(facade.base,"skyline"),"point":facade.base,"size":facade.size,"region":"central","shell":null,"layout":{},"manual_review":true,"review_reason":"The central skyline shares spatial batches with existing skyways; preserve its collision until custom integration."})
+	return result

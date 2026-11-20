@@ -18,6 +18,8 @@ func start(snapshot: Dictionary) -> Error:
 	if pending(): return ERR_BUSY
 	var core := snapshot.duplicate()
 	core.erase("civilization_state")
+	core.erase("building_state")
+	core.erase("career_state")
 	for key: String in Store.CIVIC_FIELDS: core.erase(key)
 	# Inventory/catalog restoration creates temporary Nodes. It must stay here;
 	# the background worker only handles civilian value models and JSON bytes.
@@ -28,6 +30,16 @@ func start(snapshot: Dictionary) -> Error:
 		var civic:=Store.canonical_civic_state(snapshot)
 		if civic.is_empty(): return ERR_INVALID_DATA
 		captured.merge(civic)
+	if snapshot.has("building_state"):
+		var model: Script=load("res://scripts/building_registry.gd")
+		var buildings: Dictionary=model.validate(snapshot.building_state)
+		if buildings.is_empty(): return ERR_INVALID_DATA
+		captured.building_state=buildings
+	if snapshot.has("career_state"):
+		var model: Script=load("res://scripts/career_registry.gd")
+		var careers: Dictionary=model.validate(snapshot.career_state)
+		if careers.is_empty(): return ERR_INVALID_DATA
+		captured.career_state=careers
 	var society_bytes:=PackedByteArray()
 	var has_society:=snapshot.has("civilization_state")
 	if snapshot.has("civilization_state"):
@@ -112,6 +124,8 @@ static func _encode(captured: Dictionary,society_bytes: PackedByteArray,has_soci
 		if captured.has("glyphic_wonders_state") and not Store.wonders_clock_matches(captured.glyphic_wonders_state,model): return _failure(ERR_INVALID_DATA)
 		captured.civilization_state=society
 	if Store.has_civic_state(captured) and not Store.civic_links_match(captured): return _failure(ERR_INVALID_DATA)
+	if not Store.building_links_match(captured): return _failure(ERR_INVALID_DATA)
+	if not Store.career_links_match(captured): return _failure(ERR_INVALID_DATA)
 	var bytes: PackedByteArray=JSON.stringify(captured,"",true,true).to_utf8_buffer()
 	if bytes.size()>Store.MAX_SAVE_BYTES: return _failure(ERR_OUT_OF_MEMORY)
 	return {"error":OK,"bytes":bytes}

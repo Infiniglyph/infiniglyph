@@ -14,6 +14,7 @@ const TempleRegalia = preload("res://scripts/pyramid_regalia.gd")
 const RoyalRegalia = preload("res://scripts/ahkmet_regalia.gd")
 
 static func model(entry: Dictionary) -> Node3D:
+	if entry.geometry.get("renderer")=="civic_item": return preload("res://scripts/furniture_geometry.gd").for_id(StringName(entry.id))
 	if entry.id in ["respawn_glyph","home_respawn_glyph"]:
 		var root:=Node3D.new()
 		var home: bool=entry.id=="home_respawn_glyph"

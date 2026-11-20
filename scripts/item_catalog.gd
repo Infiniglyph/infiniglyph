@@ -4,6 +4,7 @@ const Definition = preload("res://scripts/item_definition.gd")
 const Instance = preload("res://scripts/item_instance.gd")
 const Weapons = preload("res://scripts/weapon_library.gd")
 const Equipment = preload("res://scripts/equipment_database.gd")
+const CIVIC_GROUPS := {"residential_furniture":"Residential Furniture","commercial_furniture":"Commercial Furniture","functional_equipment":"Functional Equipment","decorations":"Decorations","electron_meals":"Electron Meals","drinks_desserts":"Drinks and Desserts"}
 static var definitions: Dictionary = {}
 
 static func _add(id: StringName, title: String, description: String, category: StringName, stack: int = 1, equippable: bool = false, droppable: bool = true, tradeable: bool = true, properties: Dictionary = {}) -> void:
@@ -48,8 +49,8 @@ static func _prepare() -> void:
 		var id: StringName=&"respawn_glyph" if kind=="respawn" else &"home_respawn_glyph"
 		_add(id,"Respawn Glyph" if kind=="respawn" else "Home Respawn Glyph","Place from Inventory on clear ground to bind a reusable reconstruction point. Choose between your Respawn Glyph, Home Respawn Glyph, and default spawn on death. One active point of each kind; placing another replaces the previous point of that kind.",&"consumables",20,false,true,true,{"respawn_kind":kind})
 	_add(&"signal_tonic","Signal Tonic","An amber pulse sealed in glass, awaiting a purpose.",&"consumables",20)
-	_add(&"electron_meal","Electron Meal","A warm lattice of nourishing charge, prepared at the tavern. Eat over two seconds to recover 60 HP.",&"consumables",20,false,true,true,{"civilian_food":true,"price":8,"consumption_duration":2.0,"healing":60})
-	_add(&"electron_draught","Electron Draught","A bright, gently fizzing measure of refined electrons. Drink over three seconds to recover 120 HP.",&"consumables",20,false,true,true,{"civilian_food":true,"price":12,"consumption_duration":3.0,"healing":120})
+	_add(&"electron_meal","Electron Meal","A warm lattice of nourishing charge, prepared at the tavern. Eat over two seconds to recover 60 HP.",&"consumables",20,false,true,true,{"civilian_food":true,"catalog_group":"electron_meals","cuisine_kind":"food","complexity":1,"rarity":"Common","base_restoration":60,"price":8,"consumption_duration":2.0,"healing":60})
+	_add(&"electron_draught","Electron Draught","A bright, gently fizzing measure of refined electrons. Drink over three seconds to restore 120 shield points.",&"consumables",20,false,true,true,{"civilian_food":true,"catalog_group":"drinks_desserts","cuisine_kind":"drink","complexity":1,"rarity":"Common","base_restoration":120,"price":12,"consumption_duration":3.0,"shield_restore":120})
 	_add(&"civic_key","Civic Access Glyph","A civic credential keyed to its current bearer.",&"key_items",1,false,false,false)
 	_add(&"cyan_mantle","Cyan Mantle Pattern","An encoded weave of cyan light.",&"cosmetics",1)
 	_add(&"eternal_scribe_robes","Eternal Scribe Robes","Dark open-front robes from The Infinite Library, edged in silver with a scholar's hood and living mathematical inscriptions. Cosmetic clothing; equip in Body.",&"cosmetics",1,true,true,true,{"cosmetic_slot":"body","robe_id":"eternal_scribe"})
@@ -60,6 +61,34 @@ static func _prepare() -> void:
 		else: properties.cosmetic_slot = entry.slot
 		if entry.has("legacy_slot"): properties.legacy_cosmetic_slot = entry.legacy_slot
 		_add(StringName(entry.id),entry.name,entry.description,StringName(entry.category),1,true,true,true,properties)
+
+	_load_civilization_catalog()
+
+static func _load_civilization_catalog() -> void:
+	var data: Variant=JSON.parse_string(FileAccess.get_file_as_string("res://data/civilization_items.json"))
+	if not data is Dictionary or data.get("version")!=1 or not data.get("items") is Array:
+		push_error("Civilization item catalog is invalid.")
+		return
+	for row: Variant in data.items:
+		if not row is Dictionary or not Instance.valid_text(row.get("id")) or definitions.has(StringName(row.id)) or not Instance.valid_text(row.get("name")) or not row.get("properties") is Dictionary or not Instance.json_value(row.properties) or not CIVIC_GROUPS.has(row.properties.get("catalog_group")) or not Instance.whole_number(row.get("stack"),1,99):
+			push_error("Civilization item catalog contains an invalid or duplicate entry.")
+			continue
+		_add(StringName(row.id),String(row.name),String(row.get("description","")),StringName(row.get("category","misc")),int(row.stack),false,true,true,row.properties)
+
+static func civilization_ids(group: String = "") -> Array[StringName]:
+	_prepare()
+	var result: Array[StringName]=[]
+	for definition: Resource in definitions.values():
+		if not definition.custom_properties.get("civilization_catalog",false): continue
+		if group.is_empty() or definition.custom_properties.get("catalog_group")==group: result.append(definition.item_type_id)
+	return result
+
+static func food_ids() -> Array[StringName]:
+	_prepare()
+	var result: Array[StringName]=[]
+	for definition: Resource in definitions.values():
+		if definition.custom_properties.get("civilian_food",false): result.append(definition.item_type_id)
+	return result
 
 static func get_definition(id: StringName) -> Resource:
 	_prepare()

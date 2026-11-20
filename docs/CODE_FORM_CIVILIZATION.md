@@ -98,12 +98,12 @@ Buying an actual meal, selling an owned crystal, paying rent or completing paid
 work is eligible. Rewards scale with the square root of the coin amount, capped
 at an amount of 10,000, and diminish by context/counterparty within a game day.
 Founder transfers, blessings, generic transfers and consuming an already purchased
-meal generate no circulation XP. Daily service high-water marks prevent replaying
+meal generate no circulation XP. Shared contract proofs prevent replaying
 the same paid work. A human purchase can reward the civilian merchant; it does
 not create a player progression record.
 
 NPC inventories hold actual ordinary item instances. A tavern meal transfers
-existing coins to the tavern; crystal sales and wages require real guild/tavern
+existing coins to the tavern; crystal sales and funded work require real institutional
 funds. Finite treasuries can run out, which influences future civilian goals.
 Glyphic Wonders currently offers an NPC cyan-mantle pattern purchase for five
 coins: the item is delivered and the payment is destroyed. This does not change

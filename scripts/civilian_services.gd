@@ -161,9 +161,7 @@ func _home() -> void:
 		"adventurer": body+="\n"+String(current.greeting)
 		"bartender":
 			body+="\nElectron cuisine, prepared here. Tavern treasury: %d coins." % economy.balance(economy.tavern_account)
-			for id: StringName in [&"electron_meal",&"electron_draught"]:
-				var offer: Dictionary=economy.food_offer(id)
-				options.append(_choice(Catalog.get_definition(id).display_name+"  |  "+str(offer.price)+" coins",_buy.bind(id)))
+			options.append(_choice("Browse Electron meals, drinks and desserts",_food_catalog))
 			options.append(_choice("Eat / drink from inventory",_food_list))
 		"storage":
 			body+="\nPrivate room storage. Equipment and stacks transfer between their actual owners.\nStored gear remains here after the room deconstructs or the rental expires."
@@ -213,8 +211,17 @@ func _sell(iid: String) -> void:
 
 func _buy(id: StringName) -> void:
 	var ok: bool=economy.buy_food(id,world.player.inventory)
-	_home()
+	_food_catalog()
 	menu.set_status("Added to your inventory. Eat here or use it later." if ok else "Purchase unavailable. Check your wallet and inventory space.",not ok)
+
+func _food_catalog() -> void:
+	var options: Array=[]
+	for id: StringName in Catalog.food_ids():
+		var offer: Dictionary=economy.food_offer(id)
+		if offer.is_empty(): continue
+		var effect:="%.0f shield" % offer.shield_restore if offer.shield_restore>0 else "%.0f HP" % offer.hp_restore
+		options.append(_choice(Catalog.get_definition(id).display_name+"  |  "+str(offer.price)+" coins  |  "+effect,_buy.bind(id)))
+	menu.show_page("ELECTRON CUISINE",_wallet()+"\nMeals and desserts restore HP. Drinks replenish shields. Quality, rarity and recipe complexity improve recovery.",options,_home)
 
 func _food_list() -> void:
 	var options: Array=[]
@@ -254,15 +261,20 @@ func _authorize(operation: StringName, payload: Dictionary) -> bool:
 	var actor: Node=world.player
 	if not world.loot.host_enabled or world.loot.get("_busy")==true or world.inventory_session.networked() or actor.health<=0 or actor.transition_locked: return false
 	if operation==&"consume_food":
-		return food_effect.is_empty() and not actor.dodge.active and actor.weapon_combat.active_move.is_empty() and not actor.weapon_combat.is_staggered() and actor.health<actor.weapon_combat.max_health
+		return food_effect.is_empty() and not actor.dodge.active and actor.weapon_combat.active_move.is_empty() and not actor.weapon_combat.is_staggered() and economy.can_consume_food(String(payload.get("instance_id","")),world.player.inventory)
 	if not menu.is_open or not near(current): return false
 	if operation in [&"rent",&"sell_crystal"]: return current.kind==&"reception"
 	if operation==&"buy_food": return current.kind==&"bartender"
 	if operation==&"storage": return current.kind==&"storage" and world.dungeon_travel.is_rental() and int(payload.get("room",-1))==world.dungeon_travel.room_number()
 	return false
 
-func _start_food(_inventory: Node, effects: Dictionary) -> void:
-	food_effect={"remaining":float(effects.duration),"rate":float(effects.healing)/float(effects.duration)}
+func _start_food(inventory: Node, effects: Dictionary) -> void:
+	var duration:=float(effects.duration)
+	food_effect={"remaining":duration,"hp_rate":float(effects.hp_restore)/duration,"shield_rate":float(effects.shield_restore)/duration}
+	if effects.shield_restore>0:
+		var shields=preload("res://scripts/shield_glyphs.gd")
+		if float(effects.shield_capacity)>shields.capacity(inventory.shield_state):
+			inventory.shield_state={"tier":String(effects.shield_tier),"points":float(inventory.shield_state.get("points",0))}
 
 func _rest(sleeping: bool) -> void:
 	if not menu.is_open or current.get("kind")!=&"bed" or world.player.health<=0 or world.player.transition_locked: return
@@ -284,10 +296,17 @@ func _process(delta: float) -> void:
 		else:
 			var step:=minf(delta,float(food_effect.remaining))
 			var combat: Node=world.player.weapon_combat
-			combat.health=minf(combat.max_health,combat.health+step*float(food_effect.rate))
+			combat.health=minf(combat.max_health,combat.health+step*float(food_effect.get("hp_rate",food_effect.get("rate",0))))
+			var shield_rate:=float(food_effect.get("shield_rate",0))
+			if shield_rate>0:
+				var inventory: Node=world.player.inventory
+				var capacity: float=preload("res://scripts/shield_glyphs.gd").capacity(inventory.shield_state)
+				inventory.shield_state.points=minf(capacity,float(inventory.shield_state.get("points",0))+step*shield_rate)
 			food_effect.remaining-=step
 			combat.changed.emit()
-			if food_effect.remaining<=0: food_effect.clear()
+			if food_effect.remaining<=0:
+				food_effect.clear()
+				if shield_rate>0: world.player.inventory.changed.emit()
 	_clock-=delta
 	if _clock>0: return
 	_clock=.1

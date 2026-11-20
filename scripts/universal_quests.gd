@@ -2,6 +2,7 @@ extends RefCounted
 ## Shared host-authoritative obligations. Bodies, inventories, law and XP stay
 ## with their existing authorities; only committed world events advance work.
 const Item=preload("res://scripts/item_instance.gd")
+const Organizations=preload("res://scripts/guild_organizations.gd")
 const MAX_INSTANCES:=1024
 const MAX_OPEN:=256
 const MAX_MEMBERS:=4096
@@ -18,6 +19,8 @@ var world_seconds:=0.0
 var next_id:=1
 var last_error:=""
 var revision:=0
+var organizations:=Organizations.new()
+var _organization_revision:=-1
 var _callbacks: Dictionary={}
 var _busy:=false
 var _event_bloom:=PackedByteArray()
@@ -33,7 +36,45 @@ func _init() -> void:
 	_event_bloom.resize(BLOOM_BYTES)
 	_event_bloom.fill(0)
 
-func configure(callbacks: Dictionary) -> void: _callbacks=callbacks
+func configure(callbacks: Dictionary) -> void:
+	_callbacks=callbacks
+	organizations.configure({"identity":callbacks.get("identity",Callable()),"finance":callbacks.get("organization_finance",Callable()),"authorize":callbacks.get("organization_authorize",Callable()),"outcome":callbacks.get("organization_outcome",Callable())})
+
+func bootstrap_organizations(ids: Array,now: float) -> bool:
+	if _busy or now<world_seconds: return false
+	if not organizations.guilds.is_empty(): return true
+	var ok:=organizations.bootstrap(ids,now,memberships)
+	if ok:
+		world_seconds=now
+		for row: Dictionary in organizations.guilds_for_faction("underworld"):
+			for id: String in row.members:
+				if not introductions.has(id): introductions[id]=id
+		_sync_memberships(); revision+=1
+	return ok
+
+func _sync_memberships() -> void:
+	if organizations.guilds.is_empty(): return
+	var next: Dictionary={}
+	for row: Dictionary in organizations.guilds.values():
+		if row.status!="active": continue
+		for id: String in row.members:
+			if row.faction=="underworld" and not introductions.has(id): introductions[id]=id
+			if not next.has(id): next[id]=[]
+			if not row.faction in next[id]: next[id].append(row.faction)
+	memberships=next
+	_organization_revision=organizations.revision
+
+func join_guild(id: String,key: String) -> bool:
+	if _busy or not _identity(id): return false
+	var ok:=organizations.join(id,key,introductions.has(id))
+	if ok: _sync_memberships(); revision+=1
+	return ok
+
+func leave_guild(id: String,key: String) -> bool:
+	if _busy: return false
+	var ok:=organizations.leave(id,key)
+	if ok: _sync_memberships(); revision+=1
+	return ok
 
 func _identity(id: String) -> bool:
 	if not _callbacks.get("identity",Callable()).is_valid(): return false
@@ -48,6 +89,7 @@ func _finance(operation: String,row: Dictionary) -> bool:
 	return _callbacks.finance.call({"operation":operation,"quest_id":row.id,"source":row.source,"beneficiary":row.participant,"amount":row.reward,"service":row.kind,"legality":row.legality})==true
 
 func _outcome(row: Dictionary) -> void:
+	if not String(row.get("guild_id","")).is_empty(): organizations.record_contract(row.guild_id,row.id,row.status,row.participant)
 	if _callbacks.get("outcome",Callable()).is_valid():
 		_callbacks.outcome.call({"quest_id":row.id,"status":row.status,"issuer":row.issuer,"participant":row.participant,"kind":row.kind,"legality":row.legality,"reward":row.reward})
 
@@ -56,6 +98,7 @@ func is_member(id: String,faction: String) -> bool: return faction in membership
 func join(id: String,faction: String) -> bool:
 	if _busy or not _identity(id) or not factions.has(faction): return false
 	if not factions[faction].public and not introductions.has(id): return false
+	if not organizations.guilds.is_empty(): return join_guild(id,Organizations.GENERALISTS.get(faction,""))
 	if is_member(id,faction): return true
 	if not memberships.has(id):
 		if memberships.size()>=MAX_MEMBERS: return false
@@ -71,10 +114,12 @@ func introduce(id: String,contact_id: String) -> bool:
 	revision+=1
 	return true
 
-func available(id: String,faction: String="",public_only: bool=false) -> Array[Dictionary]:
+func available(id: String,faction: String="",public_only: bool=false,guild_id: String="") -> Array[Dictionary]:
 	var result: Array[Dictionary]=[]
 	for row: Dictionary in instances.values():
 		if row.status!="available" or (not faction.is_empty() and row.faction!=faction): continue
+		if not guild_id.is_empty() and row.guild_id!=guild_id: continue
+		if not row.guild_id.is_empty() and organizations.guilds.has(row.guild_id) and organizations.guilds[row.guild_id].status!="active": continue
 		if not row.faction.is_empty() and not factions[row.faction].public:
 			if public_only or not introductions.has(id): continue
 		if not row.eligible.is_empty() and not id in row.eligible: continue
@@ -98,8 +143,13 @@ func create_contract(template_id: String,issuer: String,source: String,terms: Di
 	last_error=""
 	if _busy or not templates.has(template_id) or not _finite(now) or now<world_seconds or not _text(source): return ""
 	var definition: Dictionary=templates[template_id]
-	if not (_identity(issuer) or issuer=="faction/"+String(definition.faction)): return ""
+	var guild_id: String=terms.get("guild_id",Organizations.GENERALISTS.get(String(definition.faction),"") if not organizations.guilds.is_empty() else "")
+	if not guild_id.is_empty() and (not organizations.guilds.has(guild_id) or organizations.guilds[guild_id].status!="active" or organizations.guilds[guild_id].faction!=definition.faction): return ""
+	if issuer.begins_with("guild/"):
+		if issuer!="guild/"+guild_id or source!="guild:"+guild_id: return ""
+	elif not (_identity(issuer) or issuer=="faction/"+String(definition.faction)): return ""
 	if _identity(issuer) and not String(definition.faction).is_empty() and not is_member(issuer,definition.faction): return ""
+	if _identity(issuer) and not guild_id.is_empty() and not organizations.is_member(issuer,guild_id): return ""
 	if not _authorized("publish",{"template_id":template_id,"issuer":issuer,"source":source,"terms":terms}): return ""
 	if not _valid_terms(terms,definition.kind): return ""
 	var open:=0
@@ -117,6 +167,7 @@ func create_contract(template_id: String,issuer: String,source: String,terms: Di
 	var objective: Dictionary={"target_id":String(terms.get("target_id","")),"item_type":String(terms.get("item_type","")),"recipient_id":String(terms.get("recipient_id","")),"service":String(terms.get("service","")),"count":int(terms.get("count",1)),"progress":0}
 	var id: String="quest_"+str(next_id)
 	var row: Dictionary={"id":id,"template":template_id,"title":definition.title,"kind":definition.kind,"faction":definition.faction,"issuer":issuer,"source":source,"reward":reward,"legality":definition.legality,"eligible":terms.get("eligible",[]).duplicate(),"participant":"","status":"available","closing_as":"","created_at":now,"accepted_at":0.0,"expires_at":now+ttl,"completed_at":0.0,"objective":objective,"events":[],"need_id":need}
+	row.guild_id=guild_id
 	_busy=true
 	var funded:=_finance("reserve",row)
 	if funded:
@@ -136,6 +187,7 @@ func accept(quest_id: String,id: String,now: float) -> bool:
 	if row.status!="available" or now>=row.expires_at or row.issuer==id: return false
 	if row.kind=="delivery" and row.objective.recipient_id==id: return false
 	if not row.faction.is_empty() and not is_member(id,row.faction): return false
+	if not String(row.guild_id).is_empty() and not organizations.guilds.is_empty() and not organizations.is_member(id,row.guild_id): return false
 	if not row.eligible.is_empty() and not id in row.eligible: return false
 	var count:=0
 	for prior: Dictionary in instances.values():
@@ -173,7 +225,7 @@ func consume_event(event: Dictionary) -> Array[String]:
 	if float(event.timestamp)>world_seconds: advance_to(float(event.timestamp))
 	for id: String in _event_index.get(event.event_type,[]).duplicate():
 		var row: Dictionary=instances[id]
-		if not _issuer_live(row.issuer): _close(row,"failed"); continue
+		if not _issuer_live(row.issuer) or not _guild_live(row): _close(row,"failed"); continue
 		if event.actor_id!=row.participant or event.timestamp<row.accepted_at or event.timestamp>=row.expires_at or not _identity(row.participant): continue
 		var objective: Dictionary=row.objective
 		var matches:=true
@@ -226,16 +278,20 @@ func fail(id: String,reason: String="") -> bool:
 func advance_to(now: float) -> bool:
 	if _busy or not _finite(now) or now<world_seconds: return false
 	world_seconds=now
+	organizations.advance_to(now)
+	if _organization_revision!=organizations.revision: _sync_memberships(); revision+=1
 	for row: Dictionary in instances.values():
 		if row.status in TERMINAL: continue
-		if not _issuer_live(row.issuer) or (not String(row.participant).is_empty() and not _identity(row.participant)): _close(row,"failed")
+		if not _issuer_live(row.issuer) or not _guild_live(row) or (not String(row.participant).is_empty() and not _identity(row.participant)): _close(row,"failed")
 		elif row.status=="closing": _close(row,row.closing_as)
 		elif row.status in ["active","available"] and now>=row.expires_at: _close(row,"expired")
 		elif row.status=="ready": _finish(row)
+	organizations.sweep_closed()
 	return true
 
 func retire(id: String) -> void:
 	if _busy: return
+	organizations.retire(id)
 	memberships.erase(id); introductions.erase(id)
 	revision+=1
 	for row: Dictionary in instances.values():
@@ -250,14 +306,20 @@ func obligations() -> Dictionary:
 func transaction_active() -> bool: return _busy
 
 func _issuer_live(id: String) -> bool:
+	if id.begins_with("guild/"): return organizations.guilds.has(id.trim_prefix("guild/")) and organizations.guilds[id.trim_prefix("guild/")].status=="active"
 	return factions.has(id.trim_prefix("faction/")) if id.begins_with("faction/") else _identity(id)
+func _guild_live(row: Dictionary) -> bool:
+	var key:=String(row.get("guild_id",""))
+	return key.is_empty() or organizations.guilds.is_empty() or organizations.guilds.has(key) and organizations.guilds[key].status=="active"
 
 func serialize() -> Dictionary:
-	return {"version":1,"world_seconds":world_seconds,"next_id":next_id,"memberships":memberships.duplicate(true),"introductions":introductions.duplicate(),"instances":instances.duplicate(true),"event_bloom":_event_bloom.hex_encode()}
+	if _organization_revision!=organizations.revision: _sync_memberships()
+	return {"version":2,"world_seconds":world_seconds,"next_id":next_id,"memberships":memberships.duplicate(true),"introductions":introductions.duplicate(),"instances":instances.duplicate(true),"event_bloom":_event_bloom.hex_encode(),"organizations":organizations.serialize()}
 
 func restore(data: Variant) -> bool:
 	if _busy: return false
 	if data==null:
+		organizations.restore(null)
 		instances.clear(); memberships.clear(); introductions.clear(); _event_index.clear()
 		world_seconds=0.0; next_id=1; _event_bloom.fill(0); revision+=1
 		return true
@@ -265,6 +327,8 @@ func restore(data: Variant) -> bool:
 	if decoded.is_empty(): return false
 	world_seconds=decoded.world_seconds; next_id=decoded.next_id
 	memberships=decoded.memberships; introductions=decoded.introductions; instances=decoded.instances
+	organizations.restore(decoded.organizations)
+	_organization_revision=organizations.revision
 	_event_bloom=String(decoded.event_bloom).hex_decode()
 	revision+=1
 	_reindex()
@@ -275,8 +339,8 @@ static func _text(value: Variant,empty: bool=false) -> bool: return Item.valid_t
 
 static func _valid_terms(terms: Dictionary,kind: String) -> bool:
 	for key: Variant in terms:
-		if not key in ["target_id","item_type","recipient_id","service","count","eligible","reward","ttl","need_id"]: return false
-	for key: String in ["target_id","item_type","recipient_id","service","need_id"]:
+		if not key in ["target_id","item_type","recipient_id","service","count","eligible","reward","ttl","need_id","guild_id"]: return false
+	for key: String in ["target_id","item_type","recipient_id","service","need_id","guild_id"]:
 		if not _text(terms.get(key,""),true): return false
 	if not Item.whole_number(terms.get("count",1),1,MAX_EVENTS) or not Item.whole_number(terms.get("reward",1),1,100000): return false
 	if not _finite(terms.get("ttl",86400)) or float(terms.get("ttl",86400))<1 or float(terms.get("ttl",86400))>86400*365: return false
@@ -300,7 +364,15 @@ static func _valid_event(event: Dictionary) -> bool:
 	return true
 
 static func validate(data: Variant) -> Dictionary:
-	if not data is Dictionary or data.size()!=7 or not Item.whole_number(data.get("version"),1,1) or not _finite(data.get("world_seconds")) or not Item.whole_number(data.get("next_id"),1,9007199254740991): return {}
+	if not data is Dictionary: return {}
+	if data.get("version")==1 and data.size()==7:
+		var migrated: Dictionary=data.duplicate(true)
+		migrated.version=2; migrated.organizations=Organizations.new().serialize()
+		for row: Dictionary in migrated.get("instances",{}).values(): row.guild_id=Organizations.GENERALISTS.get(String(row.get("faction","")),"")
+		return validate(migrated)
+	if data.size()!=8 or not Item.whole_number(data.get("version"),2,2) or not _finite(data.get("world_seconds")) or not Item.whole_number(data.get("next_id"),1,9007199254740991): return {}
+	var organization_state:=Organizations.validate(data.get("organizations"))
+	if organization_state.is_empty() or float(organization_state.world_seconds)>float(data.world_seconds): return {}
 	if not data.get("memberships") is Dictionary or data.memberships.size()>MAX_MEMBERS or not data.get("introductions") is Dictionary or data.introductions.size()>MAX_MEMBERS or not data.get("instances") is Dictionary or data.instances.size()>MAX_INSTANCES: return {}
 	if not data.get("event_bloom") is String or data.event_bloom.length()!=BLOOM_BYTES*2 or data.event_bloom.hex_decode().hex_encode()!=data.event_bloom: return {}
 	var model=load("res://scripts/universal_quests.gd").new()
@@ -323,7 +395,13 @@ static func validate(data: Variant) -> Dictionary:
 	var highest:=0
 	for id: Variant in data.instances:
 		var row: Variant=data.instances[id]
-		if not _text(id) or not String(id).begins_with("quest_") or not String(id).trim_prefix("quest_").is_valid_int() or not row is Dictionary or row.size()!=20 or row.get("id")!=id or not model.templates.has(row.get("template","")): return {}
+		if not _text(id) or not String(id).begins_with("quest_") or not String(id).trim_prefix("quest_").is_valid_int() or not row is Dictionary or row.size()!=21 or row.get("id")!=id or not model.templates.has(row.get("template","")): return {}
+		if not _text(row.get("guild_id"),true): return {}
+		if not String(row.guild_id).is_empty():
+			if organization_state.guilds.is_empty():
+				if row.guild_id!=Organizations.GENERALISTS.get(String(row.faction),""): return {}
+			elif not organization_state.guilds.has(row.guild_id) or organization_state.guilds[row.guild_id].faction!=row.faction: return {}
+		if String(row.get("issuer","")).begins_with("guild/") and row.issuer!="guild/"+String(row.guild_id): return {}
 		var serial: int=int(String(id).trim_prefix("quest_"))
 		if serial<1 or String(id)!="quest_"+str(serial): return {}
 		highest=maxi(highest,serial)
@@ -359,4 +437,16 @@ static func validate(data: Variant) -> Dictionary:
 		if not row.status in TERMINAL: open+=1
 		rows[String(id)]=Item.json_copy(row)
 	if open>MAX_OPEN or highest>=int(data.next_id): return {}
-	return {"version":1,"world_seconds":float(data.world_seconds),"next_id":int(data.next_id),"memberships":memberships_copy,"introductions":data.introductions.duplicate(),"instances":rows,"event_bloom":data.event_bloom}
+	if not organization_state.guilds.is_empty():
+		var derived: Dictionary={}
+		for guild_row: Dictionary in organization_state.guilds.values():
+			if guild_row.status!="active": continue
+			for id: String in guild_row.members:
+				if not derived.has(id): derived[id]=[]
+				if not guild_row.faction in derived[id]: derived[id].append(guild_row.faction)
+		if derived.size()!=memberships_copy.size(): return {}
+		for id: String in derived:
+			if not memberships_copy.has(id): return {}
+			derived[id].sort(); memberships_copy[id].sort()
+			if derived[id]!=memberships_copy[id]: return {}
+	return {"version":2,"world_seconds":float(data.world_seconds),"next_id":int(data.next_id),"memberships":memberships_copy,"introductions":data.introductions.duplicate(),"instances":rows,"event_bloom":data.event_bloom,"organizations":organization_state}

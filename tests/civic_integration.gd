@@ -44,7 +44,12 @@ func run() -> void:
 	if not civic.initialized: world.queue_free(); await frames(); quit(1); return
 	world.population.set_physics_process(false)
 	for resident: Node in world.population.residents: resident.deactivate()
-	check(economy.factions.size()==4 and economy.balance("faction:security")>0,"Separate finite faction treasuries funded from existing wallets")
+	var security_capital: int=economy.balance("faction:security")
+	for guild: Dictionary in quests.organizations.guilds_for_faction("security"):
+		security_capital+=economy.balance(String(guild.treasury))
+		for obligation: Dictionary in economy.contracts.values():
+			if obligation.source==guild.treasury and obligation.status=="reserved": security_capital+=int(obligation.amount)
+	check(economy.factions.size()==4 and economy.guilds.size()==12 and security_capital>0,"Finite founding capital remains in affiliated guild treasuries and funded obligations")
 	var before: Dictionary=economy.serialize()
 	civic.bootstrap()
 	check(economy.sequence==before.sequence,"Repeated bootstrap does not duplicate capital or contract funding")

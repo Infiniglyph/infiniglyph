@@ -1,0 +1,2507 @@
+{
+  "version": 1,
+  "careers": [
+    {
+      "id": "adventurer",
+      "name": "Adventurer",
+      "sector": "exploration",
+      "description": "General exploration and contracts.",
+      "capabilities": [
+        "exploration"
+      ],
+      "preferred_traits": {
+        "knowledge": 1.0
+      },
+      "skills": [
+        "exploration"
+      ],
+      "equipment": [
+        "spear",
+        "light_shard"
+      ],
+      "quest_categories": [
+        "discovery"
+      ],
+      "workplaces": [
+        "expedition",
+        "archive"
+      ],
+      "guilds": [
+        "adventurers_guild",
+        "cartographers",
+        "relic_seekers"
+      ],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "dungeon_delver",
+      "name": "Dungeon Delver",
+      "sector": "exploration",
+      "description": "Dungeon exploration.",
+      "capabilities": [
+        "exploration"
+      ],
+      "preferred_traits": {
+        "mastery": 1.0,
+        "novelty": 0.6
+      },
+      "skills": [
+        "exploration"
+      ],
+      "equipment": [
+        "spear",
+        "light_shard"
+      ],
+      "quest_categories": [
+        "discovery"
+      ],
+      "workplaces": [
+        "expedition",
+        "archive"
+      ],
+      "guilds": [
+        "adventurers_guild",
+        "cartographers",
+        "relic_seekers"
+      ],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "monster_hunter",
+      "name": "Monster Hunter",
+      "sector": "exploration",
+      "description": "Combat-oriented hunting.",
+      "capabilities": [
+        "exploration"
+      ],
+      "preferred_traits": {
+        "mastery": 1.0,
+        "novelty": 0.6
+      },
+      "skills": [
+        "exploration"
+      ],
+      "equipment": [
+        "spear",
+        "light_shard"
+      ],
+      "quest_categories": [
+        "discovery"
+      ],
+      "workplaces": [
+        "expedition",
+        "archive"
+      ],
+      "guilds": [
+        "adventurers_guild",
+        "cartographers",
+        "relic_seekers"
+      ],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "cartographer",
+      "name": "Cartographer",
+      "sector": "exploration",
+      "description": "Mapping and surveying.",
+      "capabilities": [
+        "exploration"
+      ],
+      "preferred_traits": {
+        "knowledge": 1.0,
+        "novelty": 0.5
+      },
+      "skills": [
+        "exploration"
+      ],
+      "equipment": [
+        "spear",
+        "light_shard"
+      ],
+      "quest_categories": [
+        "discovery"
+      ],
+      "workplaces": [
+        "expedition",
+        "archive"
+      ],
+      "guilds": [
+        "adventurers_guild",
+        "cartographers",
+        "relic_seekers"
+      ],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "scout",
+      "name": "Scout",
+      "sector": "exploration",
+      "description": "Reconnaissance and pathfinding.",
+      "capabilities": [
+        "exploration"
+      ],
+      "preferred_traits": {
+        "novelty": 1.0,
+        "wealth": 0.6
+      },
+      "skills": [
+        "exploration"
+      ],
+      "equipment": [
+        "spear",
+        "light_shard"
+      ],
+      "quest_categories": [
+        "discovery"
+      ],
+      "workplaces": [
+        "expedition",
+        "archive"
+      ],
+      "guilds": [
+        "adventurers_guild",
+        "cartographers",
+        "relic_seekers"
+      ],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "relic_hunter",
+      "name": "Relic Hunter",
+      "sector": "exploration",
+      "description": "Artifact recovery.",
+      "capabilities": [
+        "exploration"
+      ],
+      "preferred_traits": {
+        "knowledge": 1.0
+      },
+      "skills": [
+        "exploration"
+      ],
+      "equipment": [
+        "spear",
+        "light_shard"
+      ],
+      "quest_categories": [
+        "discovery"
+      ],
+      "workplaces": [
+        "expedition",
+        "archive"
+      ],
+      "guilds": [
+        "adventurers_guild",
+        "cartographers",
+        "relic_seekers"
+      ],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "expedition_leader",
+      "name": "Expedition Leader",
+      "sector": "exploration",
+      "description": "Organizing exploration parties.",
+      "capabilities": [
+        "exploration"
+      ],
+      "preferred_traits": {
+        "knowledge": 1.0
+      },
+      "skills": [
+        "exploration"
+      ],
+      "equipment": [
+        "spear",
+        "light_shard"
+      ],
+      "quest_categories": [
+        "discovery"
+      ],
+      "workplaces": [
+        "expedition",
+        "archive"
+      ],
+      "guilds": [
+        "adventurers_guild",
+        "cartographers",
+        "relic_seekers"
+      ],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "salvager",
+      "name": "Salvager",
+      "sector": "exploration",
+      "description": "Recovering abandoned materials.",
+      "capabilities": [
+        "exploration"
+      ],
+      "preferred_traits": {
+        "knowledge": 1.0
+      },
+      "skills": [
+        "exploration"
+      ],
+      "equipment": [
+        "spear",
+        "light_shard"
+      ],
+      "quest_categories": [
+        "discovery"
+      ],
+      "workplaces": [
+        "expedition",
+        "archive"
+      ],
+      "guilds": [
+        "adventurers_guild",
+        "cartographers",
+        "relic_seekers"
+      ],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "security_officer",
+      "name": "Security Officer",
+      "sector": "security",
+      "description": "General enforcement.",
+      "capabilities": [
+        "enforcement"
+      ],
+      "preferred_traits": {
+        "security": 1.0
+      },
+      "skills": [
+        "enforcement"
+      ],
+      "equipment": [
+        "sword_shield"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "guard_post",
+        "guild"
+      ],
+      "guilds": [
+        "dark_box",
+        "iron_wardens",
+        "inquest"
+      ],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "investigator",
+      "name": "Investigator",
+      "sector": "security",
+      "description": "Evidence gathering and investigations.",
+      "capabilities": [
+        "enforcement"
+      ],
+      "preferred_traits": {
+        "security": 1.0,
+        "knowledge": 0.7
+      },
+      "skills": [
+        "enforcement"
+      ],
+      "equipment": [
+        "sword_shield"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "guard_post",
+        "guild"
+      ],
+      "guilds": [
+        "dark_box",
+        "iron_wardens",
+        "inquest"
+      ],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "bounty_hunter",
+      "name": "Bounty Hunter",
+      "sector": "security",
+      "description": "Pursuing wanted targets.",
+      "capabilities": [
+        "enforcement"
+      ],
+      "preferred_traits": {
+        "security": 1.0
+      },
+      "skills": [
+        "enforcement"
+      ],
+      "equipment": [
+        "sword_shield"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "guard_post",
+        "guild"
+      ],
+      "guilds": [
+        "dark_box",
+        "iron_wardens",
+        "inquest"
+      ],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "bodyguard",
+      "name": "Bodyguard",
+      "sector": "security",
+      "description": "Individual protection.",
+      "capabilities": [
+        "enforcement"
+      ],
+      "preferred_traits": {
+        "security": 1.0,
+        "loyalty": 0.8
+      },
+      "skills": [
+        "enforcement"
+      ],
+      "equipment": [
+        "sword_shield"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "guard_post",
+        "guild"
+      ],
+      "guilds": [
+        "dark_box",
+        "iron_wardens",
+        "inquest"
+      ],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "sentinel",
+      "name": "Sentinel",
+      "sector": "security",
+      "description": "Location security.",
+      "capabilities": [
+        "enforcement"
+      ],
+      "preferred_traits": {
+        "security": 1.0
+      },
+      "skills": [
+        "enforcement"
+      ],
+      "equipment": [
+        "sword_shield"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "guard_post",
+        "guild"
+      ],
+      "guilds": [
+        "dark_box",
+        "iron_wardens",
+        "inquest"
+      ],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "escort_guard",
+      "name": "Escort Guard",
+      "sector": "security",
+      "description": "Shipment and traveler protection.",
+      "capabilities": [
+        "enforcement"
+      ],
+      "preferred_traits": {
+        "security": 1.0,
+        "loyalty": 0.8
+      },
+      "skills": [
+        "enforcement"
+      ],
+      "equipment": [
+        "sword_shield"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "guard_post",
+        "guild"
+      ],
+      "guilds": [
+        "dark_box",
+        "iron_wardens",
+        "inquest"
+      ],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "security_analyst",
+      "name": "Security Analyst",
+      "sector": "security",
+      "description": "Threat assessment.",
+      "capabilities": [
+        "enforcement"
+      ],
+      "preferred_traits": {
+        "security": 1.0,
+        "knowledge": 0.7
+      },
+      "skills": [
+        "enforcement"
+      ],
+      "equipment": [
+        "sword_shield"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "guard_post",
+        "guild"
+      ],
+      "guilds": [
+        "dark_box",
+        "iron_wardens",
+        "inquest"
+      ],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "warden",
+      "name": "Warden",
+      "sector": "security",
+      "description": "Supervising secure locations.",
+      "capabilities": [
+        "enforcement"
+      ],
+      "preferred_traits": {
+        "security": 1.0
+      },
+      "skills": [
+        "enforcement"
+      ],
+      "equipment": [
+        "sword_shield"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "guard_post",
+        "guild"
+      ],
+      "guilds": [
+        "dark_box",
+        "iron_wardens",
+        "inquest"
+      ],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "merchant",
+      "name": "Merchant",
+      "sector": "commerce",
+      "description": "Buying and selling goods.",
+      "capabilities": [
+        "trade"
+      ],
+      "preferred_traits": {
+        "wealth": 1.0
+      },
+      "skills": [
+        "trade"
+      ],
+      "equipment": [],
+      "quest_categories": [
+        "delivery"
+      ],
+      "workplaces": [
+        "shop",
+        "warehouse"
+      ],
+      "guilds": [
+        "trade_united",
+        "wayfarer_logistics"
+      ],
+      "economic_activities": [
+        "goods"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "shopkeeper",
+      "name": "Shopkeeper",
+      "sector": "commerce",
+      "description": "Operating retail premises.",
+      "capabilities": [
+        "trade"
+      ],
+      "preferred_traits": {
+        "wealth": 1.0
+      },
+      "skills": [
+        "trade"
+      ],
+      "equipment": [],
+      "quest_categories": [
+        "delivery"
+      ],
+      "workplaces": [
+        "shop",
+        "warehouse"
+      ],
+      "guilds": [
+        "trade_united",
+        "wayfarer_logistics"
+      ],
+      "economic_activities": [
+        "goods"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "trader",
+      "name": "Trader",
+      "sector": "commerce",
+      "description": "Market transactions.",
+      "capabilities": [
+        "trade"
+      ],
+      "preferred_traits": {
+        "wealth": 1.0
+      },
+      "skills": [
+        "trade"
+      ],
+      "equipment": [],
+      "quest_categories": [
+        "delivery"
+      ],
+      "workplaces": [
+        "shop",
+        "warehouse"
+      ],
+      "guilds": [
+        "trade_united",
+        "wayfarer_logistics"
+      ],
+      "economic_activities": [
+        "goods"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "traveling_merchant",
+      "name": "Traveling Merchant",
+      "sector": "commerce",
+      "description": "Mobile trading.",
+      "capabilities": [
+        "trade"
+      ],
+      "preferred_traits": {
+        "novelty": 1.0,
+        "wealth": 0.6
+      },
+      "skills": [
+        "trade"
+      ],
+      "equipment": [],
+      "quest_categories": [
+        "delivery"
+      ],
+      "workplaces": [
+        "shop",
+        "warehouse"
+      ],
+      "guilds": [
+        "trade_united",
+        "wayfarer_logistics"
+      ],
+      "economic_activities": [
+        "goods"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "courier",
+      "name": "Courier",
+      "sector": "commerce",
+      "description": "Small deliveries.",
+      "capabilities": [
+        "delivery"
+      ],
+      "preferred_traits": {
+        "novelty": 1.0,
+        "wealth": 0.6
+      },
+      "skills": [
+        "delivery"
+      ],
+      "equipment": [],
+      "quest_categories": [
+        "delivery"
+      ],
+      "workplaces": [
+        "shop",
+        "warehouse",
+        "workshop",
+        "restaurant",
+        "tavern",
+        "office"
+      ],
+      "guilds": [
+        "trade_united",
+        "wayfarer_logistics"
+      ],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "freight_hauler",
+      "name": "Freight Hauler",
+      "sector": "commerce",
+      "description": "Bulk transportation.",
+      "capabilities": [
+        "delivery"
+      ],
+      "preferred_traits": {
+        "wealth": 1.0
+      },
+      "skills": [
+        "delivery"
+      ],
+      "equipment": [],
+      "quest_categories": [
+        "delivery"
+      ],
+      "workplaces": [
+        "shop",
+        "warehouse"
+      ],
+      "guilds": [
+        "trade_united",
+        "wayfarer_logistics"
+      ],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "warehouse_operator",
+      "name": "Warehouse Operator",
+      "sector": "commerce",
+      "description": "Inventory and storage.",
+      "capabilities": [
+        "trade"
+      ],
+      "preferred_traits": {
+        "wealth": 1.0
+      },
+      "skills": [
+        "trade"
+      ],
+      "equipment": [],
+      "quest_categories": [
+        "delivery"
+      ],
+      "workplaces": [
+        "shop",
+        "warehouse"
+      ],
+      "guilds": [
+        "trade_united",
+        "wayfarer_logistics"
+      ],
+      "economic_activities": [
+        "goods"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "broker",
+      "name": "Broker",
+      "sector": "commerce",
+      "description": "Connecting buyers and sellers.",
+      "capabilities": [
+        "trade"
+      ],
+      "preferred_traits": {
+        "wealth": 1.0
+      },
+      "skills": [
+        "trade"
+      ],
+      "equipment": [],
+      "quest_categories": [
+        "delivery"
+      ],
+      "workplaces": [
+        "shop",
+        "warehouse"
+      ],
+      "guilds": [
+        "trade_united",
+        "wayfarer_logistics"
+      ],
+      "economic_activities": [
+        "goods"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "property_agent",
+      "name": "Property Agent",
+      "sector": "commerce",
+      "description": "Property transactions.",
+      "capabilities": [
+        "trade"
+      ],
+      "preferred_traits": {
+        "wealth": 1.0
+      },
+      "skills": [
+        "trade"
+      ],
+      "equipment": [],
+      "quest_categories": [
+        "delivery"
+      ],
+      "workplaces": [
+        "shop",
+        "warehouse"
+      ],
+      "guilds": [
+        "trade_united",
+        "wayfarer_logistics"
+      ],
+      "economic_activities": [
+        "goods"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "landlord",
+      "name": "Landlord",
+      "sector": "commerce",
+      "description": "Property ownership and rental.",
+      "capabilities": [
+        "trade"
+      ],
+      "preferred_traits": {
+        "wealth": 1.0
+      },
+      "skills": [
+        "trade"
+      ],
+      "equipment": [],
+      "quest_categories": [
+        "delivery"
+      ],
+      "workplaces": [
+        "shop",
+        "warehouse"
+      ],
+      "guilds": [
+        "trade_united",
+        "wayfarer_logistics"
+      ],
+      "economic_activities": [
+        "goods"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "weaponsmith",
+      "name": "Weaponsmith",
+      "sector": "crafting",
+      "description": "Weapon production.",
+      "capabilities": [
+        "production"
+      ],
+      "preferred_traits": {
+        "mastery": 1.0
+      },
+      "skills": [
+        "production"
+      ],
+      "equipment": [
+        "crafting_station",
+        "bone_shards",
+        "light_shard"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "workshop",
+        "renovation"
+      ],
+      "guilds": [
+        "artificers"
+      ],
+      "economic_activities": [
+        "goods"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "armorer",
+      "name": "Armorer",
+      "sector": "crafting",
+      "description": "Armor production.",
+      "capabilities": [
+        "production"
+      ],
+      "preferred_traits": {
+        "mastery": 1.0
+      },
+      "skills": [
+        "production"
+      ],
+      "equipment": [
+        "crafting_station",
+        "bone_shards",
+        "light_shard"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "workshop",
+        "renovation"
+      ],
+      "guilds": [
+        "artificers"
+      ],
+      "economic_activities": [
+        "goods"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "artificer",
+      "name": "Artificer",
+      "sector": "crafting",
+      "description": "Specialized equipment production.",
+      "capabilities": [
+        "production"
+      ],
+      "preferred_traits": {
+        "mastery": 1.0
+      },
+      "skills": [
+        "production"
+      ],
+      "equipment": [
+        "crafting_station",
+        "bone_shards",
+        "light_shard"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "workshop",
+        "renovation"
+      ],
+      "guilds": [
+        "artificers"
+      ],
+      "economic_activities": [
+        "goods"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "furniture_maker",
+      "name": "Furniture Maker",
+      "sector": "crafting",
+      "description": "Furniture manufacturing.",
+      "capabilities": [
+        "production"
+      ],
+      "preferred_traits": {
+        "mastery": 1.0
+      },
+      "skills": [
+        "production"
+      ],
+      "equipment": [
+        "crafting_station",
+        "bone_shards",
+        "light_shard"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "workshop",
+        "renovation"
+      ],
+      "guilds": [
+        "artificers"
+      ],
+      "economic_activities": [
+        "goods"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "builder",
+      "name": "Builder",
+      "sector": "crafting",
+      "description": "Construction and renovation.",
+      "capabilities": [
+        "production"
+      ],
+      "preferred_traits": {
+        "mastery": 1.0
+      },
+      "skills": [
+        "production"
+      ],
+      "equipment": [
+        "crafting_station",
+        "bone_shards",
+        "light_shard"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "workshop",
+        "renovation"
+      ],
+      "guilds": [
+        "artificers"
+      ],
+      "economic_activities": [
+        "goods"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "interior_designer",
+      "name": "Interior Designer",
+      "sector": "crafting",
+      "description": "Furnishing and layout planning.",
+      "capabilities": [
+        "production"
+      ],
+      "preferred_traits": {
+        "mastery": 1.0
+      },
+      "skills": [
+        "production"
+      ],
+      "equipment": [
+        "crafting_station",
+        "bone_shards",
+        "light_shard"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "workshop",
+        "renovation"
+      ],
+      "guilds": [
+        "artificers"
+      ],
+      "economic_activities": [
+        "goods"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "repair_technician",
+      "name": "Repair Technician",
+      "sector": "crafting",
+      "description": "Equipment repair.",
+      "capabilities": [
+        "production"
+      ],
+      "preferred_traits": {
+        "mastery": 1.0
+      },
+      "skills": [
+        "production"
+      ],
+      "equipment": [
+        "crafting_station",
+        "bone_shards",
+        "light_shard"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "workshop",
+        "renovation"
+      ],
+      "guilds": [
+        "artificers"
+      ],
+      "economic_activities": [
+        "goods"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "electronics_technician",
+      "name": "Electronics Technician",
+      "sector": "crafting",
+      "description": "Terminal and device installation.",
+      "capabilities": [
+        "production"
+      ],
+      "preferred_traits": {
+        "mastery": 1.0
+      },
+      "skills": [
+        "production"
+      ],
+      "equipment": [
+        "crafting_station",
+        "bone_shards",
+        "light_shard"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "workshop",
+        "renovation"
+      ],
+      "guilds": [
+        "artificers"
+      ],
+      "economic_activities": [
+        "goods"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "sculptor",
+      "name": "Sculptor",
+      "sector": "crafting",
+      "description": "Decorative item production.",
+      "capabilities": [
+        "production"
+      ],
+      "preferred_traits": {
+        "mastery": 1.0
+      },
+      "skills": [
+        "production"
+      ],
+      "equipment": [
+        "crafting_station",
+        "bone_shards",
+        "light_shard"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "workshop",
+        "renovation"
+      ],
+      "guilds": [
+        "artificers"
+      ],
+      "economic_activities": [
+        "goods"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "recycler",
+      "name": "Recycler",
+      "sector": "crafting",
+      "description": "Material reclamation.",
+      "capabilities": [
+        "production"
+      ],
+      "preferred_traits": {
+        "mastery": 1.0
+      },
+      "skills": [
+        "production"
+      ],
+      "equipment": [
+        "crafting_station",
+        "bone_shards",
+        "light_shard"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "workshop",
+        "renovation"
+      ],
+      "guilds": [
+        "artificers"
+      ],
+      "economic_activities": [
+        "goods"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "chef",
+      "name": "Chef",
+      "sector": "hospitality",
+      "description": "Electron Meal preparation.",
+      "capabilities": [
+        "food_preparation"
+      ],
+      "preferred_traits": {
+        "social": 1.0,
+        "mastery": 0.5
+      },
+      "skills": [
+        "food_preparation"
+      ],
+      "equipment": [
+        "cooking_station",
+        "light_shard"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "tavern",
+        "restaurant",
+        "lodging"
+      ],
+      "guilds": [],
+      "economic_activities": [
+        "goods"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "street_vendor",
+      "name": "Street Vendor",
+      "sector": "hospitality",
+      "description": "Food sales.",
+      "capabilities": [
+        "trade"
+      ],
+      "preferred_traits": {
+        "social": 1.0,
+        "mastery": 0.5
+      },
+      "skills": [
+        "trade"
+      ],
+      "equipment": [],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "tavern",
+        "restaurant",
+        "lodging"
+      ],
+      "guilds": [],
+      "economic_activities": [
+        "goods"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "tavern_keeper",
+      "name": "Tavern Keeper",
+      "sector": "hospitality",
+      "description": "Tavern operation.",
+      "capabilities": [
+        "food_preparation"
+      ],
+      "preferred_traits": {
+        "social": 1.0,
+        "mastery": 0.5
+      },
+      "skills": [
+        "food_preparation"
+      ],
+      "equipment": [
+        "cooking_station",
+        "light_shard"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "tavern",
+        "restaurant",
+        "lodging"
+      ],
+      "guilds": [],
+      "economic_activities": [
+        "goods"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "bartender",
+      "name": "Bartender",
+      "sector": "hospitality",
+      "description": "Beverage service.",
+      "capabilities": [
+        "food_preparation"
+      ],
+      "preferred_traits": {
+        "social": 1.0,
+        "mastery": 0.5
+      },
+      "skills": [
+        "food_preparation"
+      ],
+      "equipment": [
+        "cooking_station",
+        "light_shard"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "tavern",
+        "restaurant",
+        "lodging"
+      ],
+      "guilds": [],
+      "economic_activities": [
+        "goods"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "server",
+      "name": "Server",
+      "sector": "hospitality",
+      "description": "Customer service.",
+      "capabilities": [
+        "food_preparation"
+      ],
+      "preferred_traits": {
+        "social": 1.0,
+        "mastery": 0.5
+      },
+      "skills": [
+        "food_preparation"
+      ],
+      "equipment": [
+        "cooking_station",
+        "light_shard"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "tavern",
+        "restaurant",
+        "lodging"
+      ],
+      "guilds": [],
+      "economic_activities": [
+        "goods"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "innkeeper",
+      "name": "Innkeeper",
+      "sector": "hospitality",
+      "description": "Lodging services.",
+      "capabilities": [
+        "food_preparation"
+      ],
+      "preferred_traits": {
+        "social": 1.0,
+        "mastery": 0.5
+      },
+      "skills": [
+        "food_preparation"
+      ],
+      "equipment": [
+        "cooking_station",
+        "light_shard"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "tavern",
+        "restaurant",
+        "lodging"
+      ],
+      "guilds": [],
+      "economic_activities": [
+        "goods"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "grocer",
+      "name": "Grocer",
+      "sector": "hospitality",
+      "description": "Ingredient retail.",
+      "capabilities": [
+        "trade"
+      ],
+      "preferred_traits": {
+        "social": 1.0,
+        "mastery": 0.5
+      },
+      "skills": [
+        "trade"
+      ],
+      "equipment": [],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "tavern",
+        "restaurant",
+        "lodging"
+      ],
+      "guilds": [],
+      "economic_activities": [
+        "goods"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "housekeeper",
+      "name": "Housekeeper",
+      "sector": "hospitality",
+      "description": "Property maintenance.",
+      "capabilities": [
+        "food_preparation"
+      ],
+      "preferred_traits": {
+        "social": 1.0,
+        "mastery": 0.5
+      },
+      "skills": [
+        "food_preparation"
+      ],
+      "equipment": [
+        "cooking_station",
+        "light_shard"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "tavern",
+        "restaurant",
+        "lodging"
+      ],
+      "guilds": [],
+      "economic_activities": [
+        "goods"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "entertainer",
+      "name": "Entertainer",
+      "sector": "hospitality",
+      "description": "Performances.",
+      "capabilities": [
+        "food_preparation"
+      ],
+      "preferred_traits": {
+        "social": 1.0,
+        "mastery": 0.5
+      },
+      "skills": [
+        "food_preparation"
+      ],
+      "equipment": [
+        "cooking_station",
+        "light_shard"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "tavern",
+        "restaurant",
+        "lodging"
+      ],
+      "guilds": [],
+      "economic_activities": [
+        "goods"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "event_organizer",
+      "name": "Event Organizer",
+      "sector": "hospitality",
+      "description": "Social gatherings.",
+      "capabilities": [
+        "food_preparation"
+      ],
+      "preferred_traits": {
+        "social": 1.0,
+        "mastery": 0.5
+      },
+      "skills": [
+        "food_preparation"
+      ],
+      "equipment": [
+        "cooking_station",
+        "light_shard"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "tavern",
+        "restaurant",
+        "lodging"
+      ],
+      "guilds": [],
+      "economic_activities": [
+        "goods"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "scholar",
+      "name": "Scholar",
+      "sector": "knowledge",
+      "description": "Academic study.",
+      "capabilities": [
+        "administration"
+      ],
+      "preferred_traits": {
+        "knowledge": 1.0
+      },
+      "skills": [
+        "administration"
+      ],
+      "equipment": [
+        "echo_fragment"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "archive",
+        "office",
+        "guild"
+      ],
+      "guilds": [],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "archivist",
+      "name": "Archivist",
+      "sector": "knowledge",
+      "description": "Knowledge preservation.",
+      "capabilities": [
+        "administration"
+      ],
+      "preferred_traits": {
+        "knowledge": 1.0
+      },
+      "skills": [
+        "administration"
+      ],
+      "equipment": [
+        "echo_fragment"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "archive",
+        "office",
+        "guild"
+      ],
+      "guilds": [],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "researcher",
+      "name": "Researcher",
+      "sector": "knowledge",
+      "description": "Investigation of world phenomena.",
+      "capabilities": [
+        "administration"
+      ],
+      "preferred_traits": {
+        "knowledge": 1.0
+      },
+      "skills": [
+        "administration"
+      ],
+      "equipment": [
+        "echo_fragment"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "archive",
+        "office",
+        "guild"
+      ],
+      "guilds": [],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "teacher",
+      "name": "Teacher",
+      "sector": "knowledge",
+      "description": "Instruction and training.",
+      "capabilities": [
+        "administration"
+      ],
+      "preferred_traits": {
+        "knowledge": 1.0
+      },
+      "skills": [
+        "administration"
+      ],
+      "equipment": [
+        "echo_fragment"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "archive",
+        "office",
+        "guild"
+      ],
+      "guilds": [],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "scribe",
+      "name": "Scribe",
+      "sector": "knowledge",
+      "description": "Recordkeeping.",
+      "capabilities": [
+        "administration"
+      ],
+      "preferred_traits": {
+        "knowledge": 1.0
+      },
+      "skills": [
+        "administration"
+      ],
+      "equipment": [
+        "echo_fragment"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "archive",
+        "office",
+        "guild"
+      ],
+      "guilds": [],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "accountant",
+      "name": "Accountant",
+      "sector": "knowledge",
+      "description": "Financial records.",
+      "capabilities": [
+        "administration"
+      ],
+      "preferred_traits": {
+        "knowledge": 1.0
+      },
+      "skills": [
+        "administration"
+      ],
+      "equipment": [
+        "echo_fragment"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "archive",
+        "office",
+        "guild"
+      ],
+      "guilds": [],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "appraiser",
+      "name": "Appraiser",
+      "sector": "knowledge",
+      "description": "Item valuation.",
+      "capabilities": [
+        "administration"
+      ],
+      "preferred_traits": {
+        "knowledge": 1.0
+      },
+      "skills": [
+        "administration"
+      ],
+      "equipment": [
+        "echo_fragment"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "archive",
+        "office",
+        "guild"
+      ],
+      "guilds": [],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "mediator",
+      "name": "Mediator",
+      "sector": "knowledge",
+      "description": "Dispute resolution.",
+      "capabilities": [
+        "administration"
+      ],
+      "preferred_traits": {
+        "knowledge": 1.0
+      },
+      "skills": [
+        "administration"
+      ],
+      "equipment": [
+        "echo_fragment"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "archive",
+        "office",
+        "guild"
+      ],
+      "guilds": [],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "historian",
+      "name": "Historian",
+      "sector": "knowledge",
+      "description": "Historical documentation.",
+      "capabilities": [
+        "administration"
+      ],
+      "preferred_traits": {
+        "knowledge": 1.0
+      },
+      "skills": [
+        "administration"
+      ],
+      "equipment": [
+        "echo_fragment"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "archive",
+        "office",
+        "guild"
+      ],
+      "guilds": [],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "information_broker",
+      "name": "Information Broker",
+      "sector": "knowledge",
+      "description": "Information trading.",
+      "capabilities": [
+        "administration"
+      ],
+      "preferred_traits": {
+        "knowledge": 1.0
+      },
+      "skills": [
+        "administration"
+      ],
+      "equipment": [
+        "echo_fragment"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "archive",
+        "office",
+        "guild"
+      ],
+      "guilds": [],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "thief",
+      "name": "Thief",
+      "sector": "underworld",
+      "description": "Property theft.",
+      "capabilities": [
+        "theft"
+      ],
+      "preferred_traits": {
+        "wealth": 1.0
+      },
+      "skills": [
+        "theft"
+      ],
+      "equipment": [
+        "katana"
+      ],
+      "quest_categories": [
+        "recovery"
+      ],
+      "workplaces": [
+        "private_contact",
+        "shop"
+      ],
+      "guilds": [
+        "lit_mob",
+        "veil",
+        "black_ledger"
+      ],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "burglar",
+      "name": "Burglar",
+      "sector": "underworld",
+      "description": "Building infiltration and theft.",
+      "capabilities": [
+        "theft"
+      ],
+      "preferred_traits": {
+        "wealth": 1.0
+      },
+      "skills": [
+        "theft"
+      ],
+      "equipment": [
+        "katana"
+      ],
+      "quest_categories": [
+        "recovery"
+      ],
+      "workplaces": [
+        "private_contact",
+        "shop"
+      ],
+      "guilds": [
+        "lit_mob",
+        "veil",
+        "black_ledger"
+      ],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "smuggler",
+      "name": "Smuggler",
+      "sector": "underworld",
+      "description": "Illicit transportation.",
+      "capabilities": [
+        "delivery"
+      ],
+      "preferred_traits": {
+        "wealth": 1.0
+      },
+      "skills": [
+        "delivery"
+      ],
+      "equipment": [],
+      "quest_categories": [
+        "recovery"
+      ],
+      "workplaces": [
+        "private_contact",
+        "shop"
+      ],
+      "guilds": [
+        "lit_mob",
+        "veil",
+        "black_ledger"
+      ],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "fence",
+      "name": "Fence",
+      "sector": "underworld",
+      "description": "Resale of stolen merchandise.",
+      "capabilities": [
+        "trade"
+      ],
+      "preferred_traits": {
+        "wealth": 1.0
+      },
+      "skills": [
+        "trade"
+      ],
+      "equipment": [],
+      "quest_categories": [
+        "recovery"
+      ],
+      "workplaces": [
+        "private_contact",
+        "shop"
+      ],
+      "guilds": [
+        "lit_mob",
+        "veil",
+        "black_ledger"
+      ],
+      "economic_activities": [
+        "goods"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "spy",
+      "name": "Spy",
+      "sector": "underworld",
+      "description": "Covert intelligence.",
+      "capabilities": [
+        "theft"
+      ],
+      "preferred_traits": {
+        "wealth": 1.0
+      },
+      "skills": [
+        "theft"
+      ],
+      "equipment": [
+        "katana"
+      ],
+      "quest_categories": [
+        "recovery"
+      ],
+      "workplaces": [
+        "private_contact",
+        "shop"
+      ],
+      "guilds": [
+        "lit_mob",
+        "veil",
+        "black_ledger"
+      ],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "infiltrator",
+      "name": "Infiltrator",
+      "sector": "underworld",
+      "description": "Unauthorized access.",
+      "capabilities": [
+        "theft"
+      ],
+      "preferred_traits": {
+        "wealth": 1.0
+      },
+      "skills": [
+        "theft"
+      ],
+      "equipment": [
+        "katana"
+      ],
+      "quest_categories": [
+        "recovery"
+      ],
+      "workplaces": [
+        "private_contact",
+        "shop"
+      ],
+      "guilds": [
+        "lit_mob",
+        "veil",
+        "black_ledger"
+      ],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "fixer",
+      "name": "Fixer",
+      "sector": "underworld",
+      "description": "Underground contract arrangements.",
+      "capabilities": [
+        "theft"
+      ],
+      "preferred_traits": {
+        "wealth": 1.0
+      },
+      "skills": [
+        "theft"
+      ],
+      "equipment": [
+        "katana"
+      ],
+      "quest_categories": [
+        "recovery"
+      ],
+      "workplaces": [
+        "private_contact",
+        "shop"
+      ],
+      "guilds": [
+        "lit_mob",
+        "veil",
+        "black_ledger"
+      ],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "underground_broker",
+      "name": "Underground Broker",
+      "sector": "underworld",
+      "description": "Illicit transactions.",
+      "capabilities": [
+        "trade"
+      ],
+      "preferred_traits": {
+        "wealth": 1.0
+      },
+      "skills": [
+        "trade"
+      ],
+      "equipment": [],
+      "quest_categories": [
+        "recovery"
+      ],
+      "workplaces": [
+        "private_contact",
+        "shop"
+      ],
+      "guilds": [
+        "lit_mob",
+        "veil",
+        "black_ledger"
+      ],
+      "economic_activities": [
+        "goods"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "criminal_enforcer",
+      "name": "Criminal Enforcer",
+      "sector": "underworld",
+      "description": "Organized criminal enforcement.",
+      "capabilities": [
+        "theft"
+      ],
+      "preferred_traits": {
+        "wealth": 1.0
+      },
+      "skills": [
+        "theft"
+      ],
+      "equipment": [
+        "katana"
+      ],
+      "quest_categories": [
+        "recovery"
+      ],
+      "workplaces": [
+        "private_contact",
+        "shop"
+      ],
+      "guilds": [
+        "lit_mob",
+        "veil",
+        "black_ledger"
+      ],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "crime_boss",
+      "name": "Crime Boss",
+      "sector": "underworld",
+      "description": "Criminal organization leadership.",
+      "capabilities": [
+        "theft"
+      ],
+      "preferred_traits": {
+        "wealth": 1.0
+      },
+      "skills": [
+        "theft"
+      ],
+      "equipment": [
+        "katana"
+      ],
+      "quest_categories": [
+        "recovery"
+      ],
+      "workplaces": [
+        "private_contact",
+        "shop"
+      ],
+      "guilds": [
+        "lit_mob",
+        "veil",
+        "black_ledger"
+      ],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "guild_clerk",
+      "name": "Guild Clerk",
+      "sector": "administration",
+      "description": "Membership and records.",
+      "capabilities": [
+        "administration"
+      ],
+      "preferred_traits": {
+        "loyalty": 1.0
+      },
+      "skills": [
+        "administration"
+      ],
+      "equipment": [
+        "echo_fragment"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "guild",
+        "office"
+      ],
+      "guilds": [],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "contract_coordinator",
+      "name": "Contract Coordinator",
+      "sector": "administration",
+      "description": "Contract management.",
+      "capabilities": [
+        "administration"
+      ],
+      "preferred_traits": {
+        "loyalty": 1.0
+      },
+      "skills": [
+        "administration"
+      ],
+      "equipment": [
+        "echo_fragment"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "guild",
+        "office"
+      ],
+      "guilds": [],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "recruiter",
+      "name": "Recruiter",
+      "sector": "administration",
+      "description": "Membership recruitment.",
+      "capabilities": [
+        "administration"
+      ],
+      "preferred_traits": {
+        "loyalty": 1.0
+      },
+      "skills": [
+        "administration"
+      ],
+      "equipment": [
+        "echo_fragment"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "guild",
+        "office"
+      ],
+      "guilds": [],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "treasurer",
+      "name": "Treasurer",
+      "sector": "administration",
+      "description": "Organizational finances.",
+      "capabilities": [
+        "administration"
+      ],
+      "preferred_traits": {
+        "loyalty": 1.0
+      },
+      "skills": [
+        "administration"
+      ],
+      "equipment": [
+        "echo_fragment"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "guild",
+        "office"
+      ],
+      "guilds": [],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "guild_officer",
+      "name": "Guild Officer",
+      "sector": "administration",
+      "description": "Guild administration.",
+      "capabilities": [
+        "administration"
+      ],
+      "preferred_traits": {
+        "loyalty": 1.0
+      },
+      "skills": [
+        "administration"
+      ],
+      "equipment": [
+        "echo_fragment"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "guild",
+        "office"
+      ],
+      "guilds": [],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "guild_leader",
+      "name": "Guild Leader",
+      "sector": "administration",
+      "description": "Guild leadership.",
+      "capabilities": [
+        "administration"
+      ],
+      "preferred_traits": {
+        "loyalty": 1.0
+      },
+      "skills": [
+        "administration"
+      ],
+      "equipment": [
+        "echo_fragment"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "guild",
+        "office"
+      ],
+      "guilds": [],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [
+        "actual_leadership"
+      ],
+      "employment_type": "office"
+    },
+    {
+      "id": "faction_representative",
+      "name": "Faction Representative",
+      "sector": "administration",
+      "description": "Faction coordination.",
+      "capabilities": [
+        "administration"
+      ],
+      "preferred_traits": {
+        "loyalty": 1.0
+      },
+      "skills": [
+        "administration"
+      ],
+      "equipment": [
+        "echo_fragment"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "guild",
+        "office"
+      ],
+      "guilds": [],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [],
+      "employment_type": "flexible"
+    },
+    {
+      "id": "faction_leader",
+      "name": "Faction Leader",
+      "sector": "administration",
+      "description": "Faction-wide leadership.",
+      "capabilities": [
+        "administration"
+      ],
+      "preferred_traits": {
+        "loyalty": 1.0
+      },
+      "skills": [
+        "administration"
+      ],
+      "equipment": [
+        "echo_fragment"
+      ],
+      "quest_categories": [
+        "service"
+      ],
+      "workplaces": [
+        "guild",
+        "office"
+      ],
+      "guilds": [],
+      "economic_activities": [
+        "service"
+      ],
+      "qualifications": [
+        "actual_leadership"
+      ],
+      "employment_type": "office"
+    }
+  ]
+}

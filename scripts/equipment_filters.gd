@@ -11,7 +11,8 @@ static func choices(category: StringName) -> Array:
 	match category:
 		&"weapons": return WEAPON_NAMES
 		&"cosmetics": return ["ALL","BODY","HEAD","HANDS","LEGS","PATTERNS"]
-		&"consumables": return ["ALL","HEALTH GLYPHS","SHIELD GLYPHS","RESPAWN GLYPHS","OTHER"]
+		&"consumables": return ["ALL","HEALTH GLYPHS","SHIELD GLYPHS","RESPAWN GLYPHS","OTHER","ELECTRON MEALS","DRINKS / DESSERTS"]
+		&"furniture": return ["ALL","RESIDENTIAL","COMMERCIAL","EQUIPMENT","DECORATIONS"]
 		&"misc": return ["ALL","RINGS","OTHER"]
 	return ["ALL"]
 
@@ -30,7 +31,9 @@ static func matches(definition: Resource, index: int) -> bool:
 			return definition.is_equippable and properties.get("cosmetic_slot","")==["","body","head","hands","legs"][index]
 		&"consumables":
 			var kind := 1 if properties.has("healing") and not properties.get("civilian_food",false) else 2 if properties.has("shield_capacity") else 3 if properties.has("respawn_kind") else 4
+			if properties.get("civilian_food",false): kind=5 if properties.get("catalog_group")=="electron_meals" else 6
 			return kind==index
+		&"furniture": return properties.get("placement_category","")==["","residential","commercial","equipment","decoration"][index]
 		&"misc":
 			var ring: bool = family(definition)=="ring" or properties.get("cosmetic_slot")=="ring"
 			return ring if index==1 else not ring

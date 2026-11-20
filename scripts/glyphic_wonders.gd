@@ -287,6 +287,11 @@ func npc_shop(record: Dictionary,physical: bool = false) -> bool:
 	var best: Dictionary={}
 	var highest: float=-INF
 	var motives: Dictionary=record.get("motivations",{})
+	var unfurnished_home:=false
+	var buildings: Node=world.get("building_civilization")
+	if is_instance_valid(buildings):
+		for home: Dictionary in buildings.model.records.values():
+			if home.get("owner","")==id and home.get("placements",{}).is_empty(): unfurnished_home=true; break
 	for offer: Dictionary in stock.offers():
 		if int(offer.price)>balance: continue
 		var type:=StringName(offer.type_id)
@@ -296,6 +301,8 @@ func npc_shop(record: Dictionary,physical: bool = false) -> bool:
 		if type==&"health_glyph": score+=float(motives.get("survival",.5))
 		elif String(type).begins_with("shield_glyph_"): score+=float(motives.get("security",.5))
 		elif definition.category==&"weapons": score+=float(motives.get("mastery",.5))
+		elif definition.custom_properties.get("placeable",false):
+			score+=float(motives.get("comfort",.5))+float(motives.get("security",.5))*.25+(1.0 if unfurnished_home else 0.0)
 		else: score+=float(motives.get("novelty",.5))
 		if score>highest: highest=score; best=offer
 	if best.is_empty(): return false
