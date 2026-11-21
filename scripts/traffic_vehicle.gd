@@ -325,8 +325,7 @@ func _pose_person(person: Node3D) -> void:
 	var lean := Basis(Vector3.RIGHT,contacts.chest_pitch)
 	var chest := hip+lean*Vector3.UP*0.51
 	if is_instance_valid(person.attire):
-		person.attire.at("body",0,hip+Vector3(0,.025,0))
-		person.attire.at("head",0,chest+Vector3(0,.13,0))
+		person.attire.torso(hip,chest,1.45 if kind=="motorcycle" else -.8)
 	var hip_width := 0.18 if person.body_profile==&"female" else 0.125
 	person.segment(0,hip,chest,0.037)
 	person.segment(1,hip+Vector3(-hip_width,0,0),hip+Vector3(hip_width,0,0))
@@ -352,7 +351,9 @@ func _pose_person(person: Node3D) -> void:
 		var elbow_pole: Vector3 = contacts.elbow_pole
 		elbow_pole.x = side*0.35
 		var elbow := MountedPose.bend_point(shoulder,hand,elbow_pole,0.30,0.29)
-		if is_instance_valid(person.attire): person.attire.at("hands",i,elbow,hand)
+		if is_instance_valid(person.attire):
+			person.attire.at("arms",i,shoulder,elbow)
+			person.attire.at("hands",i,elbow,hand)
 		person.segment(7+i*2,shoulder,elbow)
 		person.segment(8+i*2,elbow,hand)
 		person.dot_at(8+i*2,elbow)

@@ -686,9 +686,15 @@ func _physics_process(delta: float) -> void:
 		actor.combat.released_charge = float(request.get("charge",0))
 		_on_action(request.action,request.slot)
 		actor.combat.released_charge = 0
+	var wand_pose_applied := false
 	if not active_move.is_empty():
 		var previous := elapsed
 		elapsed += delta
+		# Locomotion restores the arms before this tick. A wand must sample its
+		# emitter after the release gesture/IK, rather than that temporary pose.
+		if active_move.get("weapon_family")=="wand":
+			apply_pose(delta)
+			wand_pose_applied = true
 		advance_strikes(previous)
 		var chain_ready: bool = not active_move.is_empty() and not _queued.is_empty() and elapsed>=float(active_move.get("chain_open",active_move.duration))
 		if not active_move.is_empty() and (elapsed >= float(active_move.duration) or chain_ready):
@@ -718,7 +724,7 @@ func _physics_process(delta: float) -> void:
 			emit_effect("parry",0.7,0,color,actor.combat_point(),aim_direction(),0.3)
 	else:
 		if status.begins_with("Charge "): status = "Ready"
-		apply_pose(delta)
+		if not wand_pose_applied: apply_pose(delta)
 	if actor.get("fall_damage") != null: actor.fall_damage.apply_pose(delta)
 	if tracing_active(): current_trace().sample(delta,current_trace().nib_position())
 	elif is_paintbrush() and is_instance_valid(paint_trace) and not paint_trace.light.is_empty(): paint_trace.sample(delta,paint_trace.nib_position())

@@ -1,6 +1,6 @@
 extends RefCounted
 ## Shared, low-poly Arc Wand geometry. +Y runs from the grip to its emitter.
-const TIP := Vector3(0,.58,0)
+const TIP := Vector3(0,.65,0)
 const Lines = preload("res://scripts/robe_lines.gd")
 const CACHE_LIMIT := 16
 static var _cache: Dictionary = {}

@@ -30,7 +30,10 @@ The circle adds no collision, damage or separate defensive resource.
 
 Arts use the existing press, prepare, and release input contract. Holding an art
 preserves a single launch. Dodge, guard, switching, and recovery remain
-responsive. Flicks deal 22 base damage over 4 m, Slither Shot 30 over 12 m, the
+responsive. Lasers sample the physical tip after the casting pose is solved in
+the release tick, including native officers and the two Egyptian wands. Ground
+Cast briefly connects the tip to its floor pattern during the existing windup.
+Flicks deal 22 base damage over 4 m, Slither Shot 30 over 12 m, the
 volley 18 per bolt over 14 m, Ground Cast 36, and Laser Wheel 34 over 12 m.
 Existing momentum scaling applies. Bumper flicks do not inflict hit stun.
 

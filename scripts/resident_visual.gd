@@ -130,8 +130,7 @@ func animate(delta: float, speed: float, gesturing: bool) -> void:
 			segment(12+i*2,waist_edge,pelvis+Vector3(side*hip_width,0,0),0.023)
 	dot_at(0,chest+Vector3(0,0.26,0),0.128)
 	if is_instance_valid(attire):
-		attire.at("body",0,pelvis+Vector3(0,.025,0))
-		attire.at("head",0,chest+Vector3(0,.13,0))
+		attire.torso(pelvis,chest,-.8 if sitting else 0)
 	dot_at(1,pelvis,0.05)
 	for i in range(2):
 		var side := -1.0 if i==0 else 1.0
@@ -158,7 +157,9 @@ func animate(delta: float, speed: float, gesturing: bool) -> void:
 		if gesturing and i==1:
 			elbow += Vector3(0.08,0.08,0.05)
 			hand = elbow+Vector3(0.02,0.02+sin(clock*3)*0.045,0.25)
-		if is_instance_valid(attire): attire.at("hands",i,elbow,hand)
+		if is_instance_valid(attire):
+			attire.at("arms",i,shoulder,elbow)
+			attire.at("hands",i,elbow,hand)
 		segment(7+i*2,shoulder,elbow)
 		segment(8+i*2,elbow,hand)
 		dot_at(8+i*2,elbow)

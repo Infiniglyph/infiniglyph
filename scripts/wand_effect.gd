@@ -295,6 +295,9 @@ func _draw() -> void:
 		_ink.albedo_color.a=1-smoothstep(0,DEFLECT_LIFETIME,_deflect_age)
 	elif attack=="ground":
 		var radius := 2.35
+		# The floor pattern is the destination; its brief casting beam still
+		# leaves the actual wand emitter, never the character's floor origin.
+		if age<GROUND_WINDUP: points.append_array([_origin,_ground])
 		for i in range(32):
 			var a := i*TAU/32
 			var b := (i+1)*TAU/32

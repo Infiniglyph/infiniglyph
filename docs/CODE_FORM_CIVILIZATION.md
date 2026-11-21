@@ -384,8 +384,13 @@ shared uniform of Braided Circuit Vestment, Transit Crown, Accord Grips and
 Recursion Greaves. Both issue receipts live in the version-two autonomy state;
 loading, defeat or selling a piece does not resupply it. Officers, ordinary
 pedestrians and seated native drivers show their actual owned clothing. The
-lightweight civilian view batches eight articulated mounts into two skinned
-surfaces, shares outfit meshes and uses the existing throttled pose updates.
+lightweight civilian view bakes the same fitted garment geometry as the Tower
+preview, including collars, sleeves, seams, capes and split hems. Eleven rigid
+mounts share two skinned surfaces; bounded item and outfit caches reuse the
+geometry. No per-resident garment nodes or cloth solvers are added. The existing
+distance limits and throttled pose updates remain in use, including seated
+native drivers. `resident_garments.gd` checks and captures this appearance against
+the real Tower preview.
 Combat bodies continue using the full existing equipment renderer.
 
 The player's existing wanted level appears as up to five gold triangle glyphs

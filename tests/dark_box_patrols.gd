@@ -162,6 +162,9 @@ func officer_spell(world: Node3D,patrols: Node3D) -> void:
 			if effect.actor==officer: cast=effect; break
 		if is_instance_valid(cast): break
 	check(is_instance_valid(cast) and cast.attack=="volley","The shared Code Form brain launches the officer's equipped wand volley")
+	if is_instance_valid(cast):
+		var model: Node3D=officer.weapon_combat.rig.models[officer.weapon_combat.rig.selected].right
+		check(cast._origin.distance_to(model.get_node("WandEmitter").global_position)<.003,"An officer's actual AI cast releases from its solved wand tip")
 	officer.controls.stop(); officer.set_physics_process(false)
 	var before: float=world.player.health
 	await frames(35)
