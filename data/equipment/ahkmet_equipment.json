@@ -4,29 +4,20 @@
     {
       "id": "ahkmets_scepter",
       "name": "Ahkmet's Scepter",
-      "description": "A staff of solidified golden light, carried by Ahkmet upon the head of the serpent he raised. When he opened his arms for the final union, Lorai received the same light. Why the Pharaoh was imprisoned remains unknown.",
+      "description": "A wand of solidified golden light, carried by Ahkmet upon the head of the serpent he raised. When he opened his arms for the final union, Lorai received the same light. Why the Pharaoh was imprisoned remains unknown.",
       "category": "weapons",
       "kind": "named",
-      "family": "staff",
+      "family": "wand",
       "slot": "left",
-      "combat_kind": "spear",
+      "combat_kind": "wand",
       "rarity": "Legendary",
       "value": 250,
       "acquisition": "Pyramid B8 / Tower Exchange / Equipment Archive",
       "geometry": {
-        "family": "staff",
-        "length": 2.18,
-        "width": 0.134,
-        "depth": 0.05,
-        "curve": 0,
-        "guard": 0.32,
-        "detail": 5,
-        "paired": false,
+        "family": "wand",
+        "length": 0.79,
         "tint": "ffd051",
-        "style": "plate",
-        "bulk": 0.054,
-        "serpent_focus": true,
-        "light_surface": true
+        "motif": "serpent"
       },
       "effects": [],
       "motion_set": {
@@ -56,7 +47,8 @@
         "offhand": "free",
         "stow": "back",
         "model_axis": "+Y"
-      }
+      },
+      "guard": 0.55
     },
     {
       "id": "lorais_fangblade",
@@ -157,7 +149,7 @@
     },
     {
       "id": "pharaoh_vile_nemes",
-      "name": "Pharaoh of the Vile \u2014 Nemes",
+      "name": "Pharaoh of the Vile — Nemes",
       "description": "Royal linen and a golden serpent crest from Ahkmet's ceremonial dress. The title Vile outlived every explanation for it. Cosmetic attire.",
       "category": "cosmetics",
       "kind": "cosmetic",
@@ -177,7 +169,7 @@
     },
     {
       "id": "pharaoh_vile_mantle",
-      "name": "Pharaoh of the Vile \u2014 Mantle",
+      "name": "Pharaoh of the Vile — Mantle",
       "description": "A broad gold collar over dark ceremonial folds. Lorai knew this silhouette before the player ever reached the throne. Cosmetic attire.",
       "category": "cosmetics",
       "kind": "cosmetic",
@@ -197,7 +189,7 @@
     },
     {
       "id": "pharaoh_vile_bracers",
-      "name": "Pharaoh of the Vile \u2014 Bracers",
+      "name": "Pharaoh of the Vile — Bracers",
       "description": "Gold-edged wrappings worn by the hands that raised Lorai. Their last command was an invitation, not a chain. Cosmetic attire.",
       "category": "cosmetics",
       "kind": "cosmetic",
@@ -217,7 +209,7 @@
     },
     {
       "id": "pharaoh_vile_greaves",
-      "name": "Pharaoh of the Vile \u2014 Greaves",
+      "name": "Pharaoh of the Vile — Greaves",
       "description": "Long hieroglyphic panels above closed ceremonial greaves. Ahkmet kept his footing upon a living companion rather than a throne. Cosmetic attire.",
       "category": "cosmetics",
       "kind": "cosmetic",

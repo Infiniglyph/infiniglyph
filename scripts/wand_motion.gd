@@ -3,12 +3,12 @@ extends RefCounted
 ## (historical LeftArm). These are visual samples, never gameplay action locks.
 const KEYS := ["right","left","right_rotation","left_rotation","hip","chest"]
 
-static func _frame(t: float, hand: Vector3, grip: Vector3, hip: Vector3 = Vector3.ZERO, chest: Vector3 = Vector3.ZERO, offhand: Vector3 = Vector3(.28,1.02,.20)) -> Dictionary:
+static func _frame(t: float, hand: Vector3, grip: Vector3, hip: Vector3 = Vector3.ZERO, chest: Vector3 = Vector3.ZERO, offhand: Vector3 = Vector3(.28,.98,-.03)) -> Dictionary:
 	return {"t":t,"right":[offhand.x,offhand.y,offhand.z],"left":[hand.x,hand.y,hand.z],"right_rotation":[.25,0,-.12],"left_rotation":[grip.x,grip.y,grip.z],"hip":[hip.x,hip.y,hip.z],"chest":[chest.x,chest.y,chest.z]}
 
 static func authored(profile: String, _duration: float = .5, _hits: Array = [], side: float = 1) -> Array:
-	var ready := _frame(0,Vector3(-.30,1.12,.21),Vector3(.78,-.12,.14))
-	var close := _frame(1,Vector3(-.30,1.12,.21),Vector3(.78,-.12,.14))
+	var ready := _frame(0,Vector3(-.27,1.44,.205),Vector3(PI/4,0,0))
+	var close := _frame(1,Vector3(-.27,1.44,.205),Vector3(PI/4,0,0))
 	match profile:
 		"wand_flick":
 			return [ready,_frame(.22,Vector3(-.40,1.34,.16),Vector3(.35,-.35,-.48*side),Vector3(.02,-.12*side,0),Vector3(.02,-.22*side,0)),_frame(.43,Vector3(-.17,1.31,.43),Vector3(1.42,.18,.36*side),Vector3(.04,.16*side,0),Vector3(.08,.14*side,.04*side)),_frame(.73,Vector3(-.38,1.22,.36),Vector3(1.74,.23,.62*side),Vector3(.04,.20*side,0),Vector3(.08,.18*side,0)),close]

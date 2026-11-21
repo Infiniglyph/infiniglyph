@@ -1,5 +1,28 @@
 extends RefCounted
 ## Original Egyptian-inspired calligraphy, baked into the wall's line batch.
+static var _stroke_cache: Dictionary={}
+static var _mesh_cache: Dictionary={}
+
+static func strokes(kind: int) -> PackedVector3Array:
+	var key:=posmod(kind,6)
+	if not _stroke_cache.has(key):
+		var points:=PackedVector3Array()
+		for path: Array in paths(key):
+			for i in range(1,path.size()):
+				for point: Vector2 in [path[i-1],path[i]]: points.append(Vector3(point.x,point.y,0))
+		_stroke_cache[key]=points
+	return _stroke_cache[key]
+
+static func mesh(kind: int) -> Mesh:
+	var key:=posmod(kind,6)
+	if not _mesh_cache.has(key):
+		var result:=ArrayMesh.new()
+		var arrays: Array=[]; arrays.resize(Mesh.ARRAY_MAX)
+		arrays[Mesh.ARRAY_VERTEX]=strokes(key)
+		result.add_surface_from_arrays(Mesh.PRIMITIVE_LINES,arrays)
+		_mesh_cache[key]=result
+	return _mesh_cache[key]
+
 static func paths(kind: int) -> Array:
 	match kind%6:
 		0: # Ankh: loop, crossbar and stem.

@@ -8,6 +8,23 @@ static func brush_basis(yaw: float = 0, roll: float = 0) -> Basis:
 	# The figure faces +Z. Tilt the bristles forward from the vertical grip.
 	return Basis(Vector3.UP,yaw)*Basis(Vector3.RIGHT,FORWARD_TILT)*Basis(Vector3.FORWARD,roll)
 
+static func guard_basis(yaw: float) -> Basis:
+	return Basis(Vector3.UP,yaw)*Basis(Vector3.RIGHT,PI/2)
+
+static func guard_frame(actor: Node3D,facing: Vector3) -> Transform3D:
+	var basis:=Basis(Vector3.UP,atan2(facing.x,facing.z))
+	return Transform3D(basis,actor.combat_point()+basis*Vector3(-.20,.38,.68))
+
+static func guard_pen(time: float) -> Vector3:
+	# Three concentric strokes, with a smooth inward/outward transition at
+	# each completed revolution. The actual arm and nib draw this same path.
+	var cycle:=fposmod(time*.7,3)
+	var phase:=fmod(cycle,1)
+	var radii: Array[float]=[.29,.21,.13]
+	var index:=floori(cycle)
+	var radius:=lerpf(radii[index],radii[(index+1)%3],smoothstep(.8,1,phase))
+	return Vector3(cos(phase*TAU)*radius,sin(phase*TAU)*radius,0)
+
 static func move(item: Dictionary, action: StringName, tuning: Resource = null) -> Dictionary:
 	if tuning==null: tuning = Settings.new()
 	var basic := action in [&"attack_left",&"attack_right"]

@@ -165,7 +165,7 @@
     {
       "id": "scribes_grimoire",
       "name": "Scribe's Grimoire",
-      "description": "An archive codex recovered from an Ibis Scribe. Its open pages preserve temple records in luminous notation; a floating quill follows its bearer's conducting hand.",
+      "description": "An archive codex recovered from an Ibis Scribe. Its golden pages preserve temple records in hieroglyphs; a cyan-tipped quill writes ankhs, eyes, reeds and river marks into the air.",
       "category": "weapons",
       "kind": "named",
       "family": "scribe",
@@ -179,13 +179,14 @@
         "family": "scribe",
         "renderer": "scribe",
         "length": 0.6,
-        "tint": "ffd170"
+        "tint": "ffd170",
+        "writing_system": "hieroglyphic"
       },
       "effects": [],
       "moves": {
         "attack_right": [
           {
-            "name": "Quick Inscription",
+            "name": "Reed Inscription",
             "duration": 0.34,
             "windup": 0.1,
             "damage": 10.4,
@@ -1325,7 +1326,6 @@
             ],
             "weapon_family": "scribe",
             "scribe_shape": "line",
-            "equation": "??F",
             "stroke_radius": 0.11,
             "page_energy": 0.32,
             "motion_contact": 0.411764705882353,
@@ -1335,10 +1335,16 @@
               "action": "attack_right",
               "stage": 0
             },
-            "gesture_recipe": "named_source_with_conducting_silhouette"
+            "gesture_recipe": "named_source_with_conducting_silhouette",
+            "writing_system": "hieroglyphic",
+            "inscription": [
+              4,
+              0,
+              1
+            ]
           },
           {
-            "name": "Crossed Expression",
+            "name": "Crossing of the Eye",
             "duration": 0.34,
             "windup": 0.1,
             "damage": 12.8,
@@ -3336,7 +3342,6 @@
             ],
             "weapon_family": "scribe",
             "scribe_shape": "cross",
-            "equation": "x?+y?=r?",
             "stroke_radius": 0.11,
             "page_energy": 0.32,
             "motion_contact": 0.411764705882353,
@@ -3346,10 +3351,16 @@
               "action": "attack_right",
               "stage": 1
             },
-            "gesture_recipe": "named_source_with_conducting_silhouette"
+            "gesture_recipe": "named_source_with_conducting_silhouette",
+            "writing_system": "hieroglyphic",
+            "inscription": [
+              1,
+              0,
+              5
+            ]
           },
           {
-            "name": "Descending Proof",
+            "name": "River Edict",
             "duration": 0.34,
             "windup": 0.1,
             "damage": 14.4,
@@ -3664,7 +3675,6 @@
             ],
             "weapon_family": "scribe",
             "scribe_shape": "descending",
-            "equation": "?f(x)dx",
             "stroke_radius": 0.11,
             "page_energy": 0.32,
             "motion_contact": 0.411764705882353,
@@ -3674,10 +3684,16 @@
               "action": "special_y",
               "stage": 0
             },
-            "gesture_recipe": "named_source_with_conducting_silhouette"
+            "gesture_recipe": "named_source_with_conducting_silhouette",
+            "writing_system": "hieroglyphic",
+            "inscription": [
+              3,
+              4,
+              0
+            ]
           },
           {
-            "name": "Circular Derivation",
+            "name": "Lotus Seal",
             "duration": 0.34,
             "windup": 0.1,
             "damage": 13.6,
@@ -5675,7 +5691,6 @@
             ],
             "weapon_family": "scribe",
             "scribe_shape": "circle",
-            "equation": "e^(i?)+1=0",
             "stroke_radius": 0.11,
             "page_energy": 0.32,
             "motion_contact": 0.411764705882353,
@@ -5685,12 +5700,18 @@
               "action": "attack_right",
               "stage": 2
             },
-            "gesture_recipe": "named_source_with_conducting_silhouette"
+            "gesture_recipe": "named_source_with_conducting_silhouette",
+            "writing_system": "hieroglyphic",
+            "inscription": [
+              2,
+              0,
+              1
+            ]
           }
         ],
         "attack_right_air": [
           {
-            "name": "Aerial Quick Inscription",
+            "name": "Reed Inscription",
             "duration": 0.34,
             "windup": 0.1,
             "damage": 10.4,
@@ -6830,7 +6851,6 @@
             ],
             "weapon_family": "scribe",
             "scribe_shape": "line",
-            "equation": "??F",
             "stroke_radius": 0.11,
             "page_energy": 0.32,
             "motion_contact": 0.411764705882353,
@@ -6840,10 +6860,16 @@
               "action": "attack_right",
               "stage": 0
             },
-            "gesture_recipe": "named_source_with_conducting_silhouette"
+            "gesture_recipe": "named_source_with_conducting_silhouette",
+            "writing_system": "hieroglyphic",
+            "inscription": [
+              4,
+              0,
+              1
+            ]
           },
           {
-            "name": "Aerial Crossed Expression",
+            "name": "Crossing of the Eye",
             "duration": 0.34,
             "windup": 0.1,
             "damage": 12.8,
@@ -8841,7 +8867,6 @@
             ],
             "weapon_family": "scribe",
             "scribe_shape": "cross",
-            "equation": "x?+y?=r?",
             "stroke_radius": 0.11,
             "page_energy": 0.32,
             "motion_contact": 0.411764705882353,
@@ -8851,10 +8876,16 @@
               "action": "attack_right",
               "stage": 1
             },
-            "gesture_recipe": "named_source_with_conducting_silhouette"
+            "gesture_recipe": "named_source_with_conducting_silhouette",
+            "writing_system": "hieroglyphic",
+            "inscription": [
+              1,
+              0,
+              5
+            ]
           },
           {
-            "name": "Aerial Descending Proof",
+            "name": "River Edict",
             "duration": 0.34,
             "windup": 0.1,
             "damage": 14.4,
@@ -9169,7 +9200,6 @@
             ],
             "weapon_family": "scribe",
             "scribe_shape": "descending",
-            "equation": "?f(x)dx",
             "stroke_radius": 0.11,
             "page_energy": 0.32,
             "motion_contact": 0.411764705882353,
@@ -9179,10 +9209,16 @@
               "action": "special_y",
               "stage": 0
             },
-            "gesture_recipe": "named_source_with_conducting_silhouette"
+            "gesture_recipe": "named_source_with_conducting_silhouette",
+            "writing_system": "hieroglyphic",
+            "inscription": [
+              3,
+              4,
+              0
+            ]
           },
           {
-            "name": "Aerial Circular Derivation",
+            "name": "Lotus Seal",
             "duration": 0.34,
             "windup": 0.1,
             "damage": 13.6,
@@ -11180,7 +11216,6 @@
             ],
             "weapon_family": "scribe",
             "scribe_shape": "circle",
-            "equation": "e^(i?)+1=0",
             "stroke_radius": 0.11,
             "page_energy": 0.32,
             "motion_contact": 0.411764705882353,
@@ -11190,12 +11225,18 @@
               "action": "attack_right",
               "stage": 2
             },
-            "gesture_recipe": "named_source_with_conducting_silhouette"
+            "gesture_recipe": "named_source_with_conducting_silhouette",
+            "writing_system": "hieroglyphic",
+            "inscription": [
+              2,
+              0,
+              1
+            ]
           }
         ],
         "attack_left": [
           {
-            "name": "Final Statement",
+            "name": "Final Cartouche",
             "duration": 0.395,
             "windup": 0.103,
             "damage": 24.0,
@@ -12863,7 +12904,6 @@
             ],
             "weapon_family": "scribe",
             "scribe_shape": "theorem",
-            "equation": "E=mc?",
             "stroke_radius": 0.11,
             "page_energy": 1.0,
             "motion_contact": 0.4050632911392405,
@@ -12873,12 +12913,18 @@
               "action": "attack_right",
               "stage": 2
             },
-            "gesture_recipe": "named_source_with_conducting_silhouette"
+            "gesture_recipe": "named_source_with_conducting_silhouette",
+            "writing_system": "hieroglyphic",
+            "inscription": [
+              0,
+              1,
+              5
+            ]
           }
         ],
         "attack_left_air": [
           {
-            "name": "Aerial Final Statement",
+            "name": "Final Cartouche",
             "duration": 0.395,
             "windup": 0.103,
             "damage": 24.0,
@@ -14546,7 +14592,6 @@
             ],
             "weapon_family": "scribe",
             "scribe_shape": "theorem",
-            "equation": "E=mc?",
             "stroke_radius": 0.11,
             "page_energy": 1.0,
             "motion_contact": 0.4050632911392405,
@@ -14556,12 +14601,18 @@
               "action": "attack_right",
               "stage": 2
             },
-            "gesture_recipe": "named_source_with_conducting_silhouette"
+            "gesture_recipe": "named_source_with_conducting_silhouette",
+            "writing_system": "hieroglyphic",
+            "inscription": [
+              0,
+              1,
+              5
+            ]
           }
         ],
         "special_x": [
           {
-            "name": "Theorem",
+            "name": "Tablet of the Archive",
             "duration": 0.9,
             "windup": 0.16,
             "damage": 22.4,
@@ -15833,7 +15884,6 @@
             ],
             "weapon_family": "scribe",
             "scribe_shape": "theorem",
-            "equation": "a?+b?=c?",
             "stroke_radius": 0.11,
             "page_energy": 1.0,
             "motion_contact": 0.26666666666666666,
@@ -15843,12 +15893,18 @@
               "action": "special_x",
               "stage": 0
             },
-            "gesture_recipe": "named_source_with_conducting_silhouette"
+            "gesture_recipe": "named_source_with_conducting_silhouette",
+            "writing_system": "hieroglyphic",
+            "inscription": [
+              4,
+              0,
+              1
+            ]
           }
         ],
         "special_x_air": [
           {
-            "name": "Aerial Theorem",
+            "name": "Tablet of the Archive",
             "duration": 0.9,
             "windup": 0.16,
             "damage": 22.4,
@@ -17120,7 +17176,6 @@
             ],
             "weapon_family": "scribe",
             "scribe_shape": "theorem",
-            "equation": "a?+b?=c?",
             "stroke_radius": 0.11,
             "page_energy": 1.0,
             "motion_contact": 0.26666666666666666,
@@ -17130,12 +17185,18 @@
               "action": "special_x",
               "stage": 0
             },
-            "gesture_recipe": "named_source_with_conducting_silhouette"
+            "gesture_recipe": "named_source_with_conducting_silhouette",
+            "writing_system": "hieroglyphic",
+            "inscription": [
+              4,
+              0,
+              1
+            ]
           }
         ],
         "special_y": [
           {
-            "name": "Integral Closure",
+            "name": "River Closure",
             "duration": 0.8,
             "windup": 0.16,
             "damage": 19.2,
@@ -18836,7 +18897,6 @@
             ],
             "weapon_family": "scribe",
             "scribe_shape": "descending",
-            "equation": "?f(x)dx",
             "stroke_radius": 0.11,
             "page_energy": 1.0,
             "motion_contact": 0.325,
@@ -18846,12 +18906,18 @@
               "action": "special_y",
               "stage": 0
             },
-            "gesture_recipe": "named_source_with_conducting_silhouette"
+            "gesture_recipe": "named_source_with_conducting_silhouette",
+            "writing_system": "hieroglyphic",
+            "inscription": [
+              3,
+              2,
+              0
+            ]
           }
         ],
         "special_y_air": [
           {
-            "name": "Aerial Integral Closure",
+            "name": "River Closure",
             "duration": 0.8,
             "windup": 0.16,
             "damage": 19.2,
@@ -20552,7 +20618,6 @@
             ],
             "weapon_family": "scribe",
             "scribe_shape": "descending",
-            "equation": "?f(x)dx",
             "stroke_radius": 0.11,
             "page_energy": 1.0,
             "motion_contact": 0.325,
@@ -20562,12 +20627,18 @@
               "action": "special_y",
               "stage": 0
             },
-            "gesture_recipe": "named_source_with_conducting_silhouette"
+            "gesture_recipe": "named_source_with_conducting_silhouette",
+            "writing_system": "hieroglyphic",
+            "inscription": [
+              3,
+              2,
+              0
+            ]
           }
         ],
         "special_rt_x": [
           {
-            "name": "Crossed Axiom",
+            "name": "Warding Reeds",
             "duration": 1.0,
             "windup": 0.18,
             "damage": 18.4,
@@ -20915,7 +20986,6 @@
             ],
             "weapon_family": "scribe",
             "scribe_shape": "cross",
-            "equation": "x?+y?=r?",
             "stroke_radius": 0.11,
             "page_energy": 1.0,
             "motion_contact": 0.25,
@@ -20925,12 +20995,18 @@
               "action": "special_rt_x",
               "stage": 0
             },
-            "gesture_recipe": "named_source_with_conducting_silhouette"
+            "gesture_recipe": "named_source_with_conducting_silhouette",
+            "writing_system": "hieroglyphic",
+            "inscription": [
+              4,
+              0,
+              4
+            ]
           }
         ],
         "special_rt_x_air": [
           {
-            "name": "Aerial Crossed Axiom",
+            "name": "Warding Reeds",
             "duration": 1.0,
             "windup": 0.18,
             "damage": 18.4,
@@ -21278,7 +21354,6 @@
             ],
             "weapon_family": "scribe",
             "scribe_shape": "cross",
-            "equation": "x?+y?=r?",
             "stroke_radius": 0.11,
             "page_energy": 1.0,
             "motion_contact": 0.25,
@@ -21288,12 +21363,18 @@
               "action": "special_rt_x",
               "stage": 0
             },
-            "gesture_recipe": "named_source_with_conducting_silhouette"
+            "gesture_recipe": "named_source_with_conducting_silhouette",
+            "writing_system": "hieroglyphic",
+            "inscription": [
+              4,
+              0,
+              4
+            ]
           }
         ],
         "special_rt_y": [
           {
-            "name": "Circular Proof",
+            "name": "Circle of the Eye",
             "duration": 0.95,
             "windup": 0.22,
             "damage": 20.0,
@@ -22367,7 +22448,6 @@
             ],
             "weapon_family": "scribe",
             "scribe_shape": "circle",
-            "equation": "e^(i?)+1=0",
             "stroke_radius": 0.11,
             "page_energy": 1.0,
             "motion_contact": 0.3578947368421053,
@@ -22377,12 +22457,18 @@
               "action": "special_rt_y",
               "stage": 0
             },
-            "gesture_recipe": "named_source_with_conducting_silhouette"
+            "gesture_recipe": "named_source_with_conducting_silhouette",
+            "writing_system": "hieroglyphic",
+            "inscription": [
+              1,
+              0,
+              5
+            ]
           }
         ],
         "special_rt_y_air": [
           {
-            "name": "Aerial Circular Proof",
+            "name": "Circle of the Eye",
             "duration": 0.95,
             "windup": 0.22,
             "damage": 20.0,
@@ -23456,7 +23542,6 @@
             ],
             "weapon_family": "scribe",
             "scribe_shape": "circle",
-            "equation": "e^(i?)+1=0",
             "stroke_radius": 0.11,
             "page_energy": 1.0,
             "motion_contact": 0.3578947368421053,
@@ -23466,7 +23551,13 @@
               "action": "special_rt_y",
               "stage": 0
             },
-            "gesture_recipe": "named_source_with_conducting_silhouette"
+            "gesture_recipe": "named_source_with_conducting_silhouette",
+            "writing_system": "hieroglyphic",
+            "inscription": [
+              1,
+              0,
+              5
+            ]
           }
         ]
       }
@@ -23474,229 +23565,20 @@
     {
       "id": "thothic_scepter",
       "name": "Thothic Scepter",
-      "description": "A ceremonial reed of the Ibis archive, crowned with a listening eye. Its keeper measured every interruption before answering it.",
+      "description": "A ceremonial wand of the Ibis archive, crowned with a listening eye. Its keeper measured every interruption before answering it.",
       "category": "weapons",
       "kind": "named",
-      "family": "staff",
+      "family": "wand",
       "slot": "left",
-      "combat_kind": "spear",
+      "combat_kind": "wand",
       "rarity": "Rare",
       "value": 160,
       "acquisition": "Pyramid B4 / Tower Exchange / Equipment Archive",
       "geometry": {
-        "family": "staff",
-        "length": 1.805,
-        "width": 0.134,
-        "depth": 0.05,
-        "curve": 0,
-        "guard": 0.32,
-        "detail": 5,
-        "paired": false,
+        "family": "wand",
+        "length": 0.74,
         "tint": "ffd170",
-        "style": "plate",
-        "bulk": 0.054,
-        "outline": [
-          [
-            -0.0372,
-            -0.3522
-          ],
-          [
-            -0.0647,
-            -0.2641
-          ],
-          [
-            -0.0587,
-            -0.1761
-          ],
-          [
-            -0.0461,
-            -0.088
-          ],
-          [
-            -0.0283,
-            0.0
-          ],
-          [
-            -0.0226,
-            0.088
-          ],
-          [
-            -0.0288,
-            0.1761
-          ],
-          [
-            -0.0308,
-            0.2641
-          ],
-          [
-            -0.0322,
-            0.3522
-          ],
-          [
-            -0.0273,
-            0.4402
-          ],
-          [
-            -0.0222,
-            0.5283
-          ],
-          [
-            -0.0196,
-            0.6163
-          ],
-          [
-            -0.0249,
-            0.7044
-          ],
-          [
-            -0.0266,
-            0.7924
-          ],
-          [
-            -0.0267,
-            0.8805
-          ],
-          [
-            -0.025,
-            0.9685
-          ],
-          [
-            -0.0246,
-            1.0566
-          ],
-          [
-            -0.0244,
-            1.1446
-          ],
-          [
-            -0.0255,
-            1.2327
-          ],
-          [
-            -0.0217,
-            1.3207
-          ],
-          [
-            -0.0215,
-            1.4088
-          ],
-          [
-            -0.0158,
-            1.4968
-          ],
-          [
-            -0.0149,
-            1.5849
-          ],
-          [
-            -0.0166,
-            1.6729
-          ],
-          [
-            -0.0186,
-            1.761
-          ],
-          [
-            0.0135,
-            1.761
-          ],
-          [
-            0.0145,
-            1.6729
-          ],
-          [
-            0.0168,
-            1.5849
-          ],
-          [
-            0.021,
-            1.4968
-          ],
-          [
-            0.0232,
-            1.4088
-          ],
-          [
-            0.0237,
-            1.3207
-          ],
-          [
-            0.0251,
-            1.2327
-          ],
-          [
-            0.023,
-            1.1446
-          ],
-          [
-            0.0239,
-            1.0566
-          ],
-          [
-            0.0223,
-            0.9685
-          ],
-          [
-            0.0248,
-            0.8805
-          ],
-          [
-            0.0304,
-            0.7924
-          ],
-          [
-            0.0348,
-            0.7044
-          ],
-          [
-            0.0314,
-            0.6163
-          ],
-          [
-            0.0275,
-            0.5283
-          ],
-          [
-            0.023,
-            0.4402
-          ],
-          [
-            0.029,
-            0.3522
-          ],
-          [
-            0.0278,
-            0.2641
-          ],
-          [
-            0.0379,
-            0.1761
-          ],
-          [
-            0.0477,
-            0.088
-          ],
-          [
-            0.0486,
-            0.0
-          ],
-          [
-            0.0409,
-            -0.088
-          ],
-          [
-            0.0413,
-            -0.1761
-          ],
-          [
-            0.0551,
-            -0.2641
-          ],
-          [
-            0.0607,
-            -0.3522
-          ]
-        ]
+        "motif": "eye"
       },
       "effects": [],
       "motion_set": {
@@ -23726,7 +23608,8 @@
         "offhand": "free",
         "stow": "back",
         "model_axis": "+Y"
-      }
+      },
+      "guard": 0.55
     },
     {
       "id": "ibis_scribe_robes",

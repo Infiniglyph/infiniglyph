@@ -106,7 +106,7 @@ func run() -> void:
 	check(back.get_node("WandEmitter").global_position.y>1.1,"Stowed wand remains high on the back and clears the legs")
 	await shot("stowed",p.position+Vector3(2.7,1.6,-3),p.position+Vector3(0,1.05,0))
 	p.hide()
-	var colors := Database.all().filter(func(entry: Dictionary): return entry.family=="wand")
+	var colors := Database.all().filter(func(entry: Dictionary): return entry.family=="wand" and entry.id not in ["thothic_scepter","ahkmets_scepter"])
 	check(colors.size()==8,"Exactly eight colored wand variants share the presentation")
 	for i in range(colors.size()):
 		var entry: Dictionary = colors[i]

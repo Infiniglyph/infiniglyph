@@ -65,7 +65,7 @@ static func _build(tint: Color) -> Array:
 	inlays.free()
 	return meshes
 
-static func model(tint: Color, length: float = .62) -> Node3D:
+static func model(tint: Color, length: float = .62, motif: String="") -> Node3D:
 	var key := tint.to_html()
 	if not _cache.has(key):
 		if _cache.size()>=CACHE_LIMIT: _cache.erase(_cache.keys()[0])
@@ -82,4 +82,16 @@ static func model(tint: Color, length: float = .62) -> Node3D:
 	emitter.name = "WandEmitter"
 	emitter.position = TIP
 	root.add_child(emitter)
+	if not motif.is_empty():
+		var points:=PackedVector3Array()
+		if motif=="eye":
+			for point: Vector3 in preload("res://scripts/dungeon_glyphs.gd").strokes(1): points.append(Vector3(0,.57,.04)+point*.12)
+		else:
+			for i in range(14):
+				for j in [i,i+1]:
+					var t: float=j/14.0
+					points.append(Vector3(sin(t*TAU)*.045,.47+t*.21,.035))
+		var emblem:=Lines.segments(points,tint,2.5)
+		emblem.name="TempleFocusEmblem"
+		root.add_child(emblem)
 	return root

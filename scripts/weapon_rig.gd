@@ -16,6 +16,7 @@ var left_hand: Node3D
 var models: Dictionary = {}
 var selected: StringName = &"down"
 var sheathed := false
+var caster_guard: Node3D
 var _edges := PackedVector3Array()
 var _faces := PackedVector3Array()
 var _solid: StandardMaterial3D
@@ -74,6 +75,11 @@ func grip(arm: String) -> Node3D:
 func equip(slot: StringName, stow: bool) -> void:
 	selected = slot
 	sheathed = stow
+	if is_instance_valid(caster_guard): caster_guard.hide()
+	if Library.loadout(slot).id in [&"wand",&"paintbrush"] and not is_instance_valid(caster_guard):
+		caster_guard=preload("res://scripts/caster_guard.gd").new()
+		caster_guard.rig=self
+		add_child(caster_guard)
 	for key: StringName in models:
 		models[key].right.visible = key == slot and not stow
 		models[key].left.visible = key == slot and not stow

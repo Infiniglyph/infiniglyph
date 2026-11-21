@@ -47,7 +47,7 @@ func run() -> void:
 	var wand_count:=0
 	for entry: Dictionary in Database.all():
 		if entry.family=="wand": wand_count+=1
-	check(wand_count==8,"Exactly eight Wand editions share the selectable weapon class")
+	check(wand_count==10,"Eight Arc colors and two Egyptian wands share the selectable weapon class")
 	for color: String in COLORS:
 		equip_wand(color)
 		var id:=StringName("dark_box_arc_wand" if color=="cyan" else "arc_wand_"+color)

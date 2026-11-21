@@ -142,7 +142,7 @@ func build(g: Dictionary) -> void:
 		edges.append_array([Vector3(0,.2,depth*.6),Vector3(width,.3,depth*.6),Vector3(width,.3,depth*.6),Vector3(0,.4,depth*.6)])
 
 static func model(g: Dictionary) -> Node3D:
-	if g.get("family")=="wand": return preload("res://scripts/wand_presentation.gd").model(Color(g.tint),float(g.get("length",.62)))
+	if g.get("family")=="wand": return preload("res://scripts/wand_presentation.gd").model(Color(g.tint),float(g.get("length",.62)),String(g.get("motif","")))
 	if g.get("family")=="paintbrush": return preload("res://scripts/paintbrush_presentation.gd").model(Color(g.tint))
 	Neon.prepare()
 	var key := JSON.stringify(g)

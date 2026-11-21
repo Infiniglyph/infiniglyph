@@ -1,22 +1,22 @@
-"""Native B8 keepsakes; reuse existing staff/sword recipes and cosmetic slots."""
+"""Native B8 keepsakes; reuse existing wand/sword handling and cosmetic slots."""
 import copy
 import json
 from pathlib import Path
 
 DATA = Path(__file__).resolve().parents[1] / "data" / "equipment"
-sources = json.loads((DATA / "pyramid_depth_equipment.json").read_text())["items"]
-sources += json.loads((DATA / "pyramid_equipment.json").read_text())["items"]
+sources = json.loads((DATA / "pyramid_depth_equipment.json").read_text(encoding="utf-8"))["items"]
+sources += json.loads((DATA / "pyramid_equipment.json").read_text(encoding="utf-8"))["items"]
 items = []
 for key, title, template, description in [
-    ("ahkmets_scepter", "Ahkmet's Scepter", "thothic_scepter", "A staff of solidified golden light, carried by Ahkmet upon the head of the serpent he raised. When he opened his arms for the final union, Lorai received the same light. Why the Pharaoh was imprisoned remains unknown."),
+    ("ahkmets_scepter", "Ahkmet's Scepter", "thothic_scepter", "A wand of solidified golden light, carried by Ahkmet upon the head of the serpent he raised. When he opened his arms for the final union, Lorai received the same light. Why the Pharaoh was imprisoned remains unknown."),
     ("lorais_fangblade", "Lorai's Fangblade", "warden_khopesh", "A curved blade shaped after the fangs of Lorai, the child of Apep raised by Ahkmet. Its edge recalls a bond freely kept, even when two forms became one.")]:
     item = copy.deepcopy(next(x for x in sources if x["id"] == template))
     item.update(id=key, name=title, description=description, rarity="Legendary", value=250,
                 acquisition="Pyramid B8 / Tower Exchange / Equipment Archive")
     item["geometry"]["tint"] = "ffd051"
     if key == "ahkmets_scepter":
-        item["geometry"].pop("outline", None)
-        item["geometry"].update(length=2.18, serpent_focus=True, light_surface=True)
+        item.update(family="wand", combat_kind="wand", guard=.55)
+        item["geometry"] = dict(family="wand", length=.79, tint="ffd051", motif="serpent")
         item["motion_set"].update(tempo=1.04, leverage=1.12, stance=.31, grip=.014)
     else:
         item["geometry"]["outline"] = [[-.055,-.28],[.055,-.28],[.07,.32],[.22,.64],[.40,1.02],[.37,1.32],[.28,1.12],[.12,.86],[-.01,.57],[-.055,.26]]

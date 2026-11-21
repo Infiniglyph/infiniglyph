@@ -10,6 +10,16 @@ and Ember**. Emitters and every laser effect match the equipped color. Cyan is
 Dark Box's Standard Arc Wand (`dark_box_arc_wand`); the other IDs are
 `arc_wand_<color>`.
 
+Thothic Scepter and Ahkmet's Scepter also use this class, with compact golden
+eye/serpent focuses. Their original item IDs, rarity, ownership and drop sources
+are retained, so existing copies automatically gain wand handling.
+
+Ready carry turns the body slightly right, plants the right foot ahead and the
+left foot behind, and keeps the upper casting arm down with its forearm raised
+45 degrees. The empty rear hand hangs relaxed. Blocking presents a glowing
+frontal circle in the current wand color, using the normal guard/parry state.
+The circle adds no collision, damage or separate defensive resource.
+
 | Controller | Keyboard / mouse | Cast |
 | --- | --- | --- |
 | LB / RB | Left / right mouse | Short-range laser flicks |

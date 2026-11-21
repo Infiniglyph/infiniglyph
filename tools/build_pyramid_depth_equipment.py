@@ -44,8 +44,18 @@ items[-1]["geometry"]["outline"] = [[-.06,-.35],[.06,-.35],[.07,.35],[.25,.65],[
 clothing("crocodile_cuirass", "Crocodile Warden Cuirass", "body", "B3", "Overlapping scales and river-blue seams from the wardens of the flooded halls. Every plate suggests a patience that can become violence.")
 clothing("floodguard_tassets", "Floodguard Tassets", "legs", "B3", "Layered cloth, scaled greaves and a sash of water glyphs. The flood guard kept its footing when the old channels overflowed.")
 clothing("sobek_emblem", "Sobek's Emblem", "ring", "B3", "A small river-warden emblem, worn smooth at its edges. A cosmetic token of the flood chambers.")
-weapon("scribes_grimoire", "Scribe's Grimoire", "scribe", "B4", "An archive codex recovered from an Ibis Scribe. Its open pages preserve temple records in luminous notation; a floating quill follows its bearer's conducting hand.", .8)
-weapon("thothic_scepter", "Thothic Scepter", "staff", "B4", "A ceremonial reed of the Ibis archive, crowned with a listening eye. Its keeper measured every interruption before answering it.")
+codex = weapon("scribes_grimoire", "Scribe's Grimoire", "scribe", "B4", "An archive codex recovered from an Ibis Scribe. Its golden pages preserve temple records in hieroglyphs; a cyan-tipped quill writes ankhs, eyes, reeds and river marks into the air.", .8)
+codex["geometry"]["writing_system"] = "hieroglyphic"
+names = ["Reed Inscription", "Crossing of the Eye", "River Edict", "Lotus Seal", "Final Cartouche", "Tablet of the Archive", "River Closure", "Warding Reeds", "Circle of the Eye"]
+symbols = [[4,0,1], [1,0,5], [3,4,0], [2,0,1], [0,1,5], [4,0,1], [3,2,0], [4,0,4], [1,0,5]]
+for action, sequence in codex["moves"].items():
+    offset = {"attack_right":0, "attack_left":4, "special_x":5, "special_y":6, "special_rt_x":7, "special_rt_y":8}[action.removesuffix("_air")]
+    for i, move in enumerate(sequence):
+        move.pop("equation", None)
+        move.update(writing_system="hieroglyphic", inscription=symbols[offset+i], name=names[offset+i])
+scepter = weapon("thothic_scepter", "Thothic Scepter", "staff", "B4", "A ceremonial wand of the Ibis archive, crowned with a listening eye. Its keeper measured every interruption before answering it.")
+scepter.update(family="wand", combat_kind="wand", guard=.55)
+scepter["geometry"] = dict(family="wand", length=.74, tint="ffd170", motif="eye")
 clothing("ibis_scribe_robes", "Ibis Scribe Robes", "body", "B4", "Gold-edged ceremonial robes with a turquoise collar and inscribed hanging panels. Knowledge survives here because someone still guards the shelves.")
 clothing("glyphweaver_sash", "Glyphweaver Sash", "legs", "B4", "An ordered cascade of linen and knowledge glyphs, with fitted temple greaves. The archive's scribes read its markings while they walked.")
 clothing("thoths_quill", "Thoth's Quill", "ring", "B4", "A feather-shaped archive keepsake. A cosmetic charm of recording and remembrance.")

@@ -1,6 +1,7 @@
 extends RefCounted
 ## Original conducting vocabulary. Points are shared by writing and hit queries.
 const Hat = preload("res://scripts/eturnull_hat.gd")
+const TempleGlyphs = preload("res://scripts/dungeon_glyphs.gd")
 const Motion = preload("res://scripts/weapon_motion.gd")
 const INK_COLOR := Color("c99aff")
 const INK_EMISSION := Color("ba8cff")
@@ -15,7 +16,9 @@ static func writing_basis(facing: Vector3) -> Basis:
 
 static func strokes(move: Dictionary) -> PackedVector3Array:
 	var expression: String = move.get("equation","E=mc²")
-	var key := expression+":"+String(move.get("scribe_shape","line"))+":"+str(move.reach)
+	var hieroglyphic: bool=move.get("writing_system")=="hieroglyphic"
+	var symbols: Array=move.get("inscription",[0,1,4])
+	var key := ("temple/"+str(symbols) if hieroglyphic else expression)+":"+String(move.get("scribe_shape","line"))+":"+str(move.reach)
 	if paths.has(key): return paths[key]
 	var points := PackedVector3Array()
 	# Draw out from the caster to the far equation, so both the near and far
@@ -27,20 +30,26 @@ static func strokes(move: Dictionary) -> PackedVector3Array:
 			var t: float = j/12.0
 			var sway := sin(t*PI)*(.24 if shape=="cross" else .10)
 			points.append(Vector3(sway,sin(t*TAU)*.08,lerpf(.65-far,0,t)))
-	for index in range(expression.length()):
-		var mesh: Mesh = Hat.glyph_mesh(expression[index])
-		# ImmediateMesh surface arrays are available after construction.
-		var vertices: PackedVector3Array = mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
-		var offset := Vector3((index-(expression.length()-1)*0.5)*0.18,0,0)
-		for vertex: Vector3 in vertices:
-			points.append(vertex*1.25+offset)
+	if hieroglyphic:
+		for index in range(symbols.size()):
+			var offset:=Vector3((index-(symbols.size()-1)*.5)*.42,0,0)
+			for vertex: Vector3 in TempleGlyphs.strokes(int(symbols[index])): points.append(vertex*.30+offset)
+	else:
+		for index in range(expression.length()):
+			var mesh: Mesh = Hat.glyph_mesh(expression[index])
+			var vertices: PackedVector3Array = mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
+			var offset := Vector3((index-(expression.length()-1)*0.5)*0.18,0,0)
+			for vertex: Vector3 in vertices: points.append(vertex*1.25+offset)
 	# Purposeful diagram strokes expand the readable equation into its attack region.
 	if shape in ["circle","theorem","ward"]:
 		for i in range(24):
 			for j in [i,i+1]:
 				var angle: float = TAU*j/24.0
 				points.append(Vector3(cos(angle)*0.72,sin(angle)*0.52,0))
-		if shape=="theorem":
+		if shape=="theorem" and hieroglyphic:
+			for i in range(32):
+				for j in [i,i+1]: points.append(Vector3(cos(j*TAU/32)*.85,sin(j*TAU/32)*.32,0))
+		elif shape=="theorem":
 			# A small self-similar proof diagram, with explicit coordinate axes.
 			# These are real strokes, included in the same contact geometry.
 			points.append_array([Vector3(-.60,-.34,0),Vector3(.60,-.34,0),Vector3(-.60,-.34,0),Vector3(-.60,.38,0)])

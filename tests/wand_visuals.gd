@@ -31,7 +31,7 @@ func run() -> void:
 	check(bounds.size.x<.11 and bounds.size.z<.11 and bounds.position.y>=-.151 and bounds.end.y<=.651 and vertices<1200,"The slender wand stays within its bounded handheld geometry budget")
 	check(first.get_node("WandEmitter").position==Wand.TIP,"The actual emitter marker matches projectile origin geometry")
 	var variants := Database.all().filter(func(entry: Dictionary): return entry.family=="wand")
-	check(variants.size()==8,"The shared equipment catalogue provides exactly eight wand variants")
+	check(variants.size()==10,"The shared catalogue provides eight Arc colors and two Egyptian wands")
 	for entry: Dictionary in variants:
 		var tint := Color(entry.geometry.tint)
 		var model := Preview.model(entry)

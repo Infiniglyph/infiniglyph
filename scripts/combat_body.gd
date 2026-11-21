@@ -136,7 +136,7 @@ func apply(delta: float, move: Dictionary, time: float, guarding: bool, kind: St
 	if _gym_active and not gym: _settle_gym_turn()
 	_gym_active=gym
 	var visual: Node3D = actor.visual
-	var ready: bool = kind in [&"scribe",&"paintbrush"] and not actor.combat.sheathed and not actor.dodge.active and not active
+	var ready: bool = kind in [&"scribe",&"paintbrush",&"wand"] and not actor.combat.sheathed and not actor.dodge.active and not active
 	var speed := Vector2(actor.velocity.x,actor.velocity.z).length()
 	var turn_replant := _stance_basis.z.dot(facing)<cos(deg_to_rad(50))
 	var moved := actor.global_position.distance_to(_stance_origin)>0.45
@@ -231,6 +231,16 @@ func apply(delta: float, move: Dictionary, time: float, guarding: bool, kind: St
 			stagger = .26
 			side = -1.0
 			phase_label = "paintbrush-ready"
+		elif kind==&"wand":
+			# Anatomical right (negative X) leads; turn the body gently to its
+			# right while keeping the relaxed casting arm beside the torso.
+			offset=Vector3(0,-.06,-.015)*envelope
+			rotation=Vector3(.01,-.22,0)*envelope
+			chest=Vector3(0,-.08,0)*envelope
+			width=.18
+			stagger=.23
+			side=1.0
+			phase_label="wand-ready"
 	# Release the lower-body lock as locomotion takes over. Airborne poses keep
 	# the existing kick/cradle: hips can turn, but feet never seek a floor in air.
 	var stationary := 1-smoothstep(0.15,1.6,speed)

@@ -474,8 +474,9 @@ stow orientation accounts for the leaf hinges rotating during closure.
 ## B8 keepsakes
 
 `tools/build_ahkmet_equipment.py` builds seven original equipment definitions in
-`data/equipment/ahkmet_equipment.json`. Ahkmet's Scepter uses the existing staff
-motion family and a solid golden-light shaft with a double halo/serpent focus.
+`data/equipment/ahkmet_equipment.json`. Ahkmet's Scepter is a golden Wand with a
+serpent focus, using the shared five-cast wand vocabulary. The encounter keeps
+Ahkmet's original large ceremonial staff independently of the collectible.
 Lorai's Fangblade uses the existing sword family with an original curved outline.
 The Nemes, Mantle, Bracers and Greaves occupy Head, Body, Hands and Legs;
 Serpent Crown of Union is an alternative Head cosmetic. `ahkmet_regalia.gd`
@@ -490,3 +491,31 @@ inventory's validated `boss_reward_claims` stores the first-clear entitlement in
 the same atomic checkpoint as ownership and unclaimed drops. Death/exit resets
 the encounter, rather than the already earned entitlement. Tower Exchange and
 Equipment Archive list the new equipment through the normal registry.
+
+## Caster stances, wards and temple writing
+
+Drawn Wands use a gently right-turned body, right foot forward and left foot
+back. The upper right arm hangs beside the body and its forearm rises 45 degrees;
+the empty rear hand stays down. Locomotion, air steps and immediate combat cancels
+remain authoritative over the controller and its collision capsule.
+
+Blocking with a Wand displays a glowing circle in front of the caster. A blocked
+Paintbrush points forward while the actual right hand and nib draw three
+concentric circles, with smooth changes in radius and matching pigment. These
+wards are cosmetic views of the existing block/parry state, with no extra
+hurtboxes or damage. They hide on release, sheathing, dodge, stagger and travel.
+
+Thothic Scepter and Ahkmet's Scepter keep their IDs, ownership and drop tables,
+but use Wand handling and compact eye/serpent focus models. Old saved copies
+therefore use the new class without replacement grants; both appear under Wands.
+
+Scribe's Grimoire uses the pyramid's original drawn ankh, eye, lotus, water,
+reed and scarab shapes on its pages, casts and ward. Temple casts use inscribed
+tablets and cartouches instead of mathematical expressions. The same bounded
+stroke geometry supplies visuals and contacts; damage, reach and hit timing
+remain unchanged. Eturnull retains its mathematical pages, equations and traces.
+
+`tests/caster_visuals.gd` checks the actual limbs, wards, converted equipment,
+saved identities and calligraphy. Its `--capture` option renders native review
+frames; the existing wand, paintbrush, Scribe and pyramid fixtures cover shared
+combat and encounter boundaries.

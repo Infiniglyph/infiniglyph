@@ -25,6 +25,7 @@ const WandMotion = preload("res://scripts/wand_motion.gd")
 var equation_trace: MultiMeshInstance3D
 @export var paintbrush_settings: Resource = PaintSettings.new()
 var paint_trace: MultiMeshInstance3D
+var guard_visual_time:=0.0
 const PARRY_WINDOW := 0.18
 const PARRY_FEEDBACK_TIME := 0.60
 const BASE_HEALTH := 1000.0
@@ -247,6 +248,7 @@ func ensure_paint_trace() -> MultiMeshInstance3D:
 	return paint_trace
 
 func paint_brush_basis() -> Basis:
+	if actor.combat.blocking: return PaintMoves.guard_basis(actor.visual.rotation.y)
 	var roll := 0.0
 	if not active_move.is_empty() and active_move.get("weapon_family")=="paintbrush": roll = -.28 if active_move.side<0 else .28
 	return PaintMoves.brush_basis(actor.visual.rotation.y,roll)
@@ -941,6 +943,7 @@ func apply_pose(delta: float) -> void:
 	_arm_pose_delta = maxf(0,delta)
 	var attacking := not active_move.is_empty()
 	var guarding: bool = actor.combat.blocking and not is_staggered()
+	guard_visual_time=guard_visual_time+maxf(0,delta) if guarding else 0.0
 	var recoil := recoil_amount()
 	var natural: bool = attacking and active_move.get("retargeted",false)
 	var named: bool = Equipment.is_weapon(rig.selected)
@@ -1072,7 +1075,7 @@ func apply_pose(delta: float) -> void:
 	for axis in range(3):
 		_right_rotation[axis] = lerp_angle(_right_rotation[axis],right_rotation[axis],1-exp(-22*delta))
 		_left_rotation[axis] = lerp_angle(_left_rotation[axis],left_rotation[axis],1-exp(-22*delta))
-	var body_facing: Vector3 = aim_direction() if guarding or (scribe or paint) and is_writing_stance() else (actor.visual.global_basis.z if (scribe or paint) and not attacking else _facing)
+	var body_facing: Vector3 = aim_direction() if guarding or (scribe or paint) and is_writing_stance() else (actor.visual.global_basis.z if (scribe or paint or wand) and not attacking else _facing)
 	body.apply(delta,active_move,elapsed,guarding,kind,body_facing)
 	if recoil>0: apply_recoil_body(recoil)
 	if _kneel_remaining>0: apply_exhausted_body()
@@ -1081,6 +1084,9 @@ func apply_pose(delta: float) -> void:
 		var left_world := hand_world(left)
 		if scribe and tracing_active(): left_world = equation_trace.desired_tip+Vector3.UP*.16
 		if paint and is_instance_valid(paint_trace) and paint_trace.action!=&"": left_world = paint_trace.desired_tip-paint_brush_basis()*PaintMoves.TIP
+		if paint and guarding:
+			var frame:=PaintMoves.guard_frame(actor,aim_direction())
+			left_world=frame*PaintMoves.guard_pen(guard_visual_time)-paint_brush_basis()*PaintMoves.TIP
 		if named and not shared_grip:
 			# Match the existing pose influence using reachable endpoints, rather
 			# than independently blending upper/lower joint quaternions. In air,
@@ -1122,6 +1128,13 @@ func apply_pose(delta: float) -> void:
 		var arm_weight := 1.0 if named else _pose_weight
 		solve_arm("RightArm",actor.visual.to_local(right_world),1.0 if shared_grip else arm_weight)
 		if not shared_grip: solve_arm("LeftArm",actor.visual.to_local(left_world),arm_weight)
+	if wand and not attacking and not guarding and recoil<=0:
+		# Upper right arm hangs down; its forearm rises 45 degrees above
+		# horizontal. Historical LeftArm is the anatomical right on this rig.
+		actor.visual.combat_rotation(actor.visual.joints.LeftArm,Quaternion.IDENTITY,_pose_weight)
+		actor.visual.combat_rotation(actor.visual.joints.LeftArm.get_node("Hinge"),Quaternion(Vector3.RIGHT,-3*PI/4),_pose_weight)
+		actor.visual.combat_rotation(actor.visual.joints.RightArm,Quaternion.from_euler(Vector3(.06,0,-.03)),_pose_weight)
+		actor.visual.combat_rotation(actor.visual.joints.RightArm.get_node("Hinge"),Quaternion(Vector3.RIGHT,-.08),_pose_weight)
 	rig.orient(_right_rotation,_left_rotation)
 	if paint: rig.orient_hand(rig.left_hand,paint_brush_basis())
 	if shared_grip:

@@ -115,7 +115,9 @@ func _ready() -> void:
 		elbows.append(elbow)
 		hands.append(hand)
 	staff=part(rider,"AhkmetsOriginalStaff",Vector3(1.0,1.5,.3))
-	var geometry: Dictionary=preload("res://scripts/equipment_database.gd").get_item(&"ahkmets_scepter").geometry
+	# The collectible is a player-sized wand. Ahkmet retains the original
+	# ceremonial staff silhouette and focus height used by this encounter.
+	var geometry: Dictionary={"family":"staff","length":2.18,"width":.134,"depth":.05,"guard":.32,"detail":5,"paired":false,"tint":"ffd051","style":"plate","bulk":.054,"serpent_focus":true,"light_surface":true}
 	staff.add_child(Geometry.model(geometry))
 	staff.scale=Vector3.ONE*2.2
 	staff_tip=part(staff,"RadiantFocus",Vector3(0,1.65,0))

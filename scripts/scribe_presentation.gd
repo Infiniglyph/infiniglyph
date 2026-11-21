@@ -3,6 +3,7 @@ extends Node3D
 const Lines = preload("res://scripts/robe_lines.gd")
 const Robe = preload("res://scripts/eternal_scribe_robe.gd")
 const Glyphs = preload("res://scripts/eturnull_hat.gd")
+const TempleGlyphs = preload("res://scripts/dungeon_glyphs.gd")
 const Moves = preload("res://scripts/scribe_moves.gd")
 const STROKE_LIMIT := 160
 const AFTERGLOW_LIMIT := 6
@@ -37,6 +38,7 @@ var hover_trail := Vector3.ZERO
 var afterglows: Array[Dictionary] = []
 var _afterglow_cursor := 0
 var _manuscript := false
+var _hieroglyphic := false
 
 func configure(value: Node3D, definition: Dictionary = {}) -> void:
 	rig = value
@@ -44,14 +46,15 @@ func configure(value: Node3D, definition: Dictionary = {}) -> void:
 	actor = rig.visual.get_parent() as CharacterBody3D
 	combat = actor.get("weapon_combat")
 	name = "ScribePresentation"
-	book = make_book()
-	add_child(book)
 	var geometry: Dictionary = definition.get("geometry",{})
+	_hieroglyphic=geometry.get("writing_system")=="hieroglyphic"
+	book = make_book(_hieroglyphic)
+	add_child(book)
 	_manuscript = definition.get("id","")=="eturnull_manuscript"
 	book_size = clampf(float(geometry.get("book_scale",1)),.6,1.4)
 	leaves = [book.get_node("LeftLeaf"),book.get_node("RightLeaf")]
 	turning_page = book.get_node("TurningPage")
-	quill = make_quill()
+	quill = make_quill(_hieroglyphic)
 	add_child(quill)
 	quill_size = clampf(float(geometry.get("quill_scale",1)),.6,1.4)
 	ink_root = Node3D.new()
@@ -96,10 +99,14 @@ func configure(value: Node3D, definition: Dictionary = {}) -> void:
 			afterglows.append({"node":echo,"material":material,"remaining":0.0})
 	ward = Node3D.new()
 	ink_root.add_child(ward)
-	var spell_color := Moves.INK_COLOR if _manuscript else Robe.SILVER_BLUE
+	var spell_color := Moves.INK_COLOR if _manuscript else Color("ffd170") if _hieroglyphic else Robe.SILVER_BLUE
 	var ring := Lines.circle(.46,32,spell_color)
 	ward.add_child(ring)
-	ward.add_child(Lines.polyline(PackedVector3Array([Vector3(-.32,-.22,0),Vector3(.32,-.22,0),Vector3(0,.38,0)]),spell_color,true))
+	if _hieroglyphic:
+		var symbol:=MeshInstance3D.new(); symbol.mesh=TempleGlyphs.mesh(0); symbol.scale=Vector3.ONE*.44
+		symbol.material_override=Lines.make_material(Color("65ffff"),2.4); ward.add_child(symbol)
+	else:
+		ward.add_child(Lines.polyline(PackedVector3Array([Vector3(-.32,-.22,0),Vector3(.32,-.22,0),Vector3(0,.38,0)]),spell_color,true))
 	ward.hide()
 	_query.shape = _capsule
 	_query.collision_mask = 6 # Fighter hurtboxes and physical civilians.
@@ -110,7 +117,8 @@ func configure(value: Node3D, definition: Dictionary = {}) -> void:
 	quill.global_position = book.global_position
 	_last_tip = quill.global_position
 
-static func make_book() -> Node3D:
+static func make_book(hieroglyphic: bool=false) -> Node3D:
+	var ink_color:=Color("ffd170") if hieroglyphic else Robe.SILVER_BLUE
 	var result := Node3D.new()
 	result.name = "OpenGrimoire"
 	for side in [-1,1]:
@@ -124,14 +132,15 @@ static func make_book() -> Node3D:
 		surface.mesh = mesh
 		surface.position.x = side*.107
 		hinge.add_child(surface)
-		var edge := Lines.box(Vector3(.21,.29,.026),Robe.SILVER_BLUE)
+		var edge := Lines.box(Vector3(.21,.29,.026),ink_color)
 		edge.position.x = side*.107
 		hinge.add_child(edge)
 		for i in range(3):
 			var glyph := MeshInstance3D.new()
-			glyph.mesh = Glyphs.glyph_mesh(["∫","π","="][i])
+			glyph.mesh = TempleGlyphs.mesh(i+(0 if side<0 else 3)) if hieroglyphic else Glyphs.glyph_mesh(["∫","π","="][i])
 			glyph.position = Vector3(side*.107,.075-i*.075,.016)
-			glyph.scale = Vector3.ONE*.32
+			glyph.scale = Vector3.ONE*(.085 if hieroglyphic else .32)
+			if hieroglyphic: glyph.material_override=Lines.make_material(Color("65ffff"),1.8)
 			hinge.add_child(glyph)
 	var page := Node3D.new()
 	page.name = "TurningPage"
@@ -146,14 +155,18 @@ static func make_book() -> Node3D:
 	outline.position = sheet.position
 	page.add_child(outline)
 	var notation := MeshInstance3D.new()
-	notation.mesh = Glyphs.glyph_mesh("∑")
+	notation.mesh = TempleGlyphs.mesh(1) if hieroglyphic else Glyphs.glyph_mesh("∑")
 	notation.position = Vector3(.10,0,.025)
-	notation.scale = Vector3.ONE*.5
+	notation.scale = Vector3.ONE*(.13 if hieroglyphic else .5)
+	if hieroglyphic: notation.material_override=Lines.make_material(Color("65ffff"),1.8)
 	page.add_child(notation)
 	result.add_child(page)
 	return result
 
-static func make_quill() -> Node3D:
+static func make_quill(hieroglyphic: bool=false) -> Node3D:
+	var primary:=Color("ffd170") if hieroglyphic else Robe.SILVER_BLUE
+	var secondary:=Color("65ffff") if hieroglyphic else Robe.SILVER
+	var nib_ink:=Color("65ffff") if hieroglyphic else Robe.VIOLET
 	# Preserve Scriptorus' recognizable feather outline, six paired barbs and
 	# violet diamond nib. Tip is the origin, so writing has no invisible offset.
 	var result := Node3D.new()
@@ -162,7 +175,7 @@ static func make_quill() -> Node3D:
 	var profile := [Vector2(0,-.78),Vector2(-.10,-.43),Vector2(-.17,-.06),Vector2(-.21,.36),Vector2(-.14,.70),Vector2(0,.92),Vector2(.14,.70),Vector2(.21,.36),Vector2(.17,-.06),Vector2(.10,-.43),Vector2(0,-.78)]
 	for i in range(profile.size()-1):
 		for j in [i,i+1]: outline.append(Vector3(profile[j].x,profile[j].y+1.16,0)*.26)
-	result.add_child(Lines.segments(outline,Robe.SILVER_BLUE,1.8))
+	result.add_child(Lines.segments(outline,primary,1.8))
 	var barbs := PackedVector3Array()
 	for i in range(6):
 		var y := -.30+i*.18
@@ -170,10 +183,10 @@ static func make_quill() -> Node3D:
 		for side in [-1,1]:
 			barbs.append(Vector3(0,y-.05+1.16,.015)*.26)
 			barbs.append(Vector3(side*width,y+.10+1.16,.015)*.26)
-	result.add_child(Lines.segments(barbs,Robe.SILVER,1.6))
+	result.add_child(Lines.segments(barbs,secondary,1.6))
 	var nib := PackedVector3Array([Vector3(0,.80+1.16,.025),Vector3(0,-.78+1.16,.025),Vector3(0,-.78+1.16,.025),Vector3(-.12,-1.02+1.16,.025),Vector3(-.12,-1.02+1.16,.025),Vector3(0,0,.025),Vector3(0,0,.025),Vector3(.12,-1.02+1.16,.025),Vector3(.12,-1.02+1.16,.025),Vector3(0,-.78+1.16,.025)])
 	for i in range(nib.size()): nib[i] *= .26
-	result.add_child(Lines.segments(nib,Robe.VIOLET,2.0))
+	result.add_child(Lines.segments(nib,nib_ink,2.0))
 	return result
 
 func set_sheathed(value: bool) -> void:
