@@ -240,7 +240,9 @@ func _career_offer(row: Dictionary,id: String) -> Dictionary:
 
 func career_perform(id: String,capability: String,employment: Dictionary) -> Dictionary:
 	if _post_business_need(id,capability,employment): return {"performed":true,"action":"posted_supply_request"}
-	return world.career_actions.perform(id,capability,employment)
+	var result: Dictionary=world.career_actions.perform(id,capability,employment)
+	if not result.is_empty() and is_instance_valid(world.get("civilian_errands")): world.civilian_errands.show_work(id,String(result.get("action",capability)))
+	return result
 
 func _post_business_need(id: String,capability: String,employment: Dictionary) -> bool:
 	if _busy or capability not in ["production","food_preparation"]: return false
@@ -256,6 +258,7 @@ func _post_business_need(id: String,capability: String,employment: Dictionary) -
 		_busy=true
 		var posted:=String(_quests().request_work(id,"personal_delivery","resident:"+id,{"need_id":"supplies/"+workplace+"/"+type+"/"+str(_day()),"item_type":type,"count":needed,"recipient_id":id,"reward":3},_now()))
 		_busy=false
+		if not posted.is_empty(): _local_news(id,"shortage",workplace,"My station needs "+Catalog.get_definition(StringName(type)).display_name+". I posted a funded delivery request.")
 		return not posted.is_empty()
 	return false
 
@@ -459,7 +462,7 @@ func handle_message(message: Dictionary) -> Dictionary:
 			return _reply("inform",{"detail":"Inspect actual goods or offer an item from your inventory. Accepted trades transfer existing coins and owned stock."},{"branch":"trade"})
 		"ask_identity":
 			if npc=="avat_ar": return _reply("introduce",{"name":"Avat Ar","role":"The First Merchant","detail":"I supplied food and water after the first Great Blessings. Trade gave those blessings a purpose."})
-			return _reply("introduce",{"name":identity(npc).name,"role":record.get("occupation","resident"),"goal":record.get("current_goal","rest")},{"branch":"identity"})
+			return _reply("introduce",{"name":identity(npc).name,"role":record.get("occupation","resident"),"goal":record.get("current_goal","rest"),"detail":_society().describe(npc)},{"branch":"identity"})
 		"request_info","ask_guild":
 			if p.get("topic")=="career" and actor=="player" and identity(npc).get("kind")=="code_form":
 				world.career_menu.call_deferred("open",npc)
@@ -524,9 +527,9 @@ func handle_message(message: Dictionary) -> Dictionary:
 			var delivered:=complete_delivery(row,actor)
 			return _reply("thank" if delivered else "inform",{"quest_id":id,"detail":describe_objective(row),"status":row.status})
 		"ask_rumor":
-			var memories: Array=record.get("memories",[])
+			var memories: Array=record.get("memories",[]).duplicate(); memories.reverse()
 			for entry: Dictionary in memories:
-				if entry.type in ["discovery","guild","quest","work","purchase"]:
+				if entry.type in ["discovery","guild","quest","work","purchase","errand","shortage","delivery","appointment","production","heard"]:
 					return _reply("share_rumor",{"fact_id":String(entry.type)+"/"+String(entry.target),"detail":entry.summary})
 			return _reply("inform",{"detail":"I have no first-hand news to share."})
 		"threaten","hostility":
@@ -616,6 +619,14 @@ func transaction_committed(receipt: Dictionary) -> void:
 	for participant: String in [String(receipt.get("asset_sender_id","")),String(receipt.get("asset_receiver_id",""))]:
 		if identity(participant).get("kind")=="code_form": _queue_career_event({"event_id":String(receipt.transaction_id)+"/"+participant,"actor_id":participant,"service":String(receipt.get("context","trade"))})
 	if receipt.get("context")=="item_transfer":
+		var recipient:=String(receipt.get("asset_receiver_id",""))
+		var helper:=String(receipt.get("asset_sender_id",""))
+		if helper==_economy().owner_id: helper="player"
+		var item_name:=String(Catalog.get_definition(StringName(receipt.get("asset_type",""))).display_name)
+		_local_news(recipient,"delivery",String(receipt.transaction_id),String(identity(helper).get("name",helper))+" delivered "+item_name+". My supplies have arrived.")
+		if is_instance_valid(world.get("civilian_errands")):
+			world.civilian_errands.show_work(helper,"delivery")
+			world.civilian_errands.supply_arrived(recipient,StringName(receipt.asset_type))
 		var actor:=String(receipt.asset_sender_id)
 		if actor==_economy().owner_id: actor="player"
 		_event({"event_id":String(receipt.transaction_id),"event_type":"delivery","actor_id":actor,"target_id":"","timestamp":_now(),"item_type":String(receipt.asset_type),"recipient_id":String(receipt.asset_receiver_id),"quantity":int(receipt.quantity)})
@@ -768,7 +779,7 @@ func _process(delta: float) -> void:
 	_hold_source()
 	_clock-=delta
 	if _clock>0 or not initialized or world.inventory_session._loading or _society().transaction_active(): return
-	_clock=.75
+	_clock=.75 if world.dungeon_travel.active_location==world.dungeon_travel.OUTSIDE else 3.0
 	_society().ensure_starter_capital()
 	_flush_career_events()
 	_quests().advance_to(_now())
@@ -900,7 +911,7 @@ func socialize(a: String,b: String,physical: bool) -> bool:
 	if physical and not near: return false
 	var options: Array=[_node("greet","Greet"),_node("ask_work","Ask for work"),_node("offer_help","Offer help")]
 	for memory: Dictionary in _registry().records[a].get("memories",[]):
-		if memory.type in ["discovery","guild","quest","purchase"]:
+		if memory.type in ["discovery","guild","quest","purchase","shortage","delivery","errand","production","heard"]:
 			options.append(_node("share_rumor","Share known news",{"fact_id":String(memory.type)+"/"+String(memory.target),"detail":String(memory.summary)}))
 			break
 	var choice: Dictionary=world.communication.choose_autonomous(identity(a),identity(b),{"nodes":options},int(_society().autonomy._state(a).turn))
@@ -961,3 +972,10 @@ func _interview(actor: String,witness: String) -> void:
 		if entry.is_empty() or witness not in entry.witnesses or not _recipient_near(actor,witness): continue
 		if not world.law.investigate(entry.id,actor) or not world.law.resolve(entry.id,actor): continue
 		_event({"event_id":"investigation/"+String(entry.id),"event_type":"service","actor_id":actor,"target_id":String(entry.id),"timestamp":_now(),"service":"investigate","quantity":1})
+
+func _local_news(id: String,kind: String,target: String,detail: String) -> void:
+	if id=="guild": id=String(_registry().slots.get("service/guild_receptionist",""))
+	if not _registry().records.get(id,{}).get("active",false): return
+	_registry().remember(id,kind,target,detail,.65)
+	for witness: String in nearby_witnesses(id,[id]):
+		_registry().remember(witness,"heard",kind+"/"+target,detail,.4)

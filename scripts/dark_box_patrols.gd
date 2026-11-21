@@ -61,6 +61,7 @@ func _issue(id: String) -> bool:
 	elif not issued.has(id):
 		issued[id]=wand.instance_id
 		changed.emit()
+	preload("res://scripts/code_form_wardrobe.gd").issue(store,world.civilization.autonomy._state(id),true)
 	var equipped: bool=store.assign(&"up",wand.instance_id)
 	_busy=false
 	return equipped

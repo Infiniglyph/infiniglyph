@@ -35,6 +35,7 @@ var _autosave_wait := 0.0
 var _autosave_failures := 0
 var last_autosave_error := ""
 var _encoder := CheckpointEncoder.new()
+var last_capture_timings: Dictionary={}
 var _previous_mouse := Input.MOUSE_MODE_CAPTURED
 var _hint_clock := 0.0
 var _notice_time := 0.0
@@ -511,7 +512,7 @@ func _autosave() -> void:
 	_save_again=false
 	var snapshot:=_capture_checkpoint()
 	if snapshot.is_empty(): _autosave_wait=AUTOSAVE_DEBOUNCE; return
-	var error: Error=_encoder.start(snapshot)
+	var error: Error=_encoder.start_owned(snapshot)
 	if error!=OK:
 		_autosave_failed(error,"capture validation")
 
@@ -558,23 +559,34 @@ func _capture_checkpoint() -> Dictionary:
 	if _civic_busy(): return {}
 	var civilization: Node=actor.get_parent().get("civilization")
 	if is_instance_valid(civilization) and (not civilization.ready_for_simulation or civilization.transaction_active()): return {}
+	last_capture_timings={}
+	var began:=Time.get_ticks_usec()
 	var location: String=String(dungeon_travel.active_location) if is_instance_valid(dungeon_travel) else "overworld"
 	var state: Dictionary=dungeon_travel.location_state() if is_instance_valid(dungeon_travel) else {}
-	var civilian: Dictionary=civilian_services.economy.serialize() if is_instance_valid(civilian_services) else {}
-	var society: Dictionary=civilization.serialize() if is_instance_valid(civilization) else {}
-	var snapshot: Dictionary={"version":Store.VERSION,"policy":Store.POLICY,"session_id":loot.session_id,"inventory":actor.inventory.serialize(),"world_drops":loot.serialize_world(),"markers":[]}
+	var civilian: Dictionary=civilian_services.economy.capture_values() if is_instance_valid(civilian_services) else {}
+	last_capture_timings["economy"]=float(Time.get_ticks_usec()-began)/1000.0
+	var society: Dictionary=civilization.capture_values() if is_instance_valid(civilization) else {}
+	last_capture_timings["society"]=float(Time.get_ticks_usec()-began)/1000.0
+	var snapshot: Dictionary={"version":Store.VERSION,"policy":Store.POLICY,"session_id":loot.session_id,"inventory":actor.inventory.capture_values(),"world_drops":loot.serialize_world(),"markers":[]}
+	last_capture_timings["core"]=float(Time.get_ticks_usec()-began)/1000.0
 	if location!="overworld": snapshot.location_context=location
 	if not state.is_empty(): snapshot.location_state=state
 	if not civilian.is_empty(): snapshot.civilian_state=civilian
 	if not society.is_empty(): snapshot.civilization_state=society
+	last_capture_timings["inventory"]=float(Time.get_ticks_usec()-began)/1000.0
 	if is_instance_valid(glyphic_wonders): snapshot.glyphic_wonders_state=glyphic_wonders.serialize()
+	last_capture_timings["stock"]=float(Time.get_ticks_usec()-began)/1000.0
 	if is_instance_valid(actor.get_parent().get("civic_interactions")):
 		snapshot.quest_state=actor.get_parent().quest_system.serialize()
 		snapshot.communication_state=actor.get_parent().communication.serialize()
 		snapshot.law_state=actor.get_parent().law.serialize()
+	last_capture_timings["civic"]=float(Time.get_ticks_usec()-began)/1000.0
 	if is_instance_valid(actor.get_parent().get("building_civilization")): snapshot.building_state=actor.get_parent().building_civilization.serialize()
+	last_capture_timings["buildings"]=float(Time.get_ticks_usec()-began)/1000.0
 	if is_instance_valid(actor.get_parent().get("careers")): snapshot.career_state=actor.get_parent().careers.serialize()
+	last_capture_timings["careers"]=float(Time.get_ticks_usec()-began)/1000.0
 	if is_instance_valid(actor.get_parent().get("dark_box_patrols")): snapshot.dark_box_state=actor.get_parent().dark_box_patrols.serialize()
+	last_capture_timings["patrol"]=float(Time.get_ticks_usec()-began)/1000.0
 	return snapshot
 
 func _civic_busy() -> bool:
@@ -607,6 +619,8 @@ func _restore_civic(snapshot: Dictionary) -> bool:
 	return world.quest_system.restore(snapshot.get("quest_state")) and world.communication.restore(snapshot.get("communication_state")) and world.law.restore(snapshot.get("law_state")) and (not is_instance_valid(world.get("careers")) or world.careers.restore(snapshot.get("career_state")))
 
 func _prepare_checkpoint_borrowers() -> void:
+	var errands: Node=actor.get_parent().get("civilian_errands")
+	if is_instance_valid(errands): errands.clear()
 	var world: Node=actor.get_parent()
 	for key: String in ["dark_box_patrols","theft_reactions"]:
 		var adapter: Node=world.get(key)

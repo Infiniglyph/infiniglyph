@@ -67,7 +67,8 @@ func run() -> void:
 	check(not Store.decode(JSON.parse_string(JSON.stringify(base))).is_empty(),"Civic records survive a full-precision JSON parse and canonical validation")
 	var stripped:=base.duplicate(true)
 	for key: String in Store.CIVIC_FIELDS: stripped.erase(key)
-	check(Store.decode(stripped).is_empty() and encoder.start(stripped)==ERR_INVALID_DATA,"Removing every civic field cannot disguise newer escrow obligations as a legacy save")
+	check(Store.decode(stripped).is_empty() and encoder.start(stripped)==OK,"Escrow obligations enter background validation")
+	check((await worker_result()).get("error")==ERR_INVALID_DATA,"Removing every civic field cannot disguise newer escrow obligations as a legacy save")
 	for missing: String in ["quest_state","communication_state","law_state","civilian_state","civilization_state"]:
 		var invalid:=base.duplicate(true); invalid.erase(missing)
 		check(Store.decode(invalid).is_empty(),"Civic state rejects a missing linked "+missing)

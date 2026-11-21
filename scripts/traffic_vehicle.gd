@@ -22,6 +22,7 @@ var wave_enabled := false
 var npc_boost := false
 var npc_wave_requested := false
 var patrol := false
+var passenger_id:=""
 var passenger_visual: Node3D
 var emergency_markers: Array[Node3D] = []
 var _emergency_clock := 0.0
@@ -96,6 +97,7 @@ func _ready() -> void:
 	_sensor_clock = float(record.id%7)*0.014
 	has_driver = record.traffic and not record.taken and health>0 and not record.get("patrol_deployed",false)
 	driver_visual.visible = has_driver
+	sync_native_clothing()
 	if health<=0: _wreck()
 
 func set_wave_enabled(value: bool) -> void:
@@ -132,13 +134,14 @@ func configure_patrol(passenger: Dictionary = {}) -> void:
 		emergency_markers.append(marker)
 	if kind=="car" and not passenger.is_empty():
 		driver_visual.position.x=-.38
+		passenger_id=String(passenger.get("code_form_id",""))
 		passenger_visual=PersonVisual.new()
 		passenger_visual.tint=Color("53b8ff")
 		passenger_visual.body_profile=passenger.get("body_profile",&"male")
 		passenger_visual.sitting=true
 		passenger_visual.position.x=.4
 		add_child(passenger_visual)
-		pose_driver()
+	sync_native_clothing()
 
 func clear_patrol() -> void:
 	patrol=false
@@ -147,6 +150,7 @@ func clear_patrol() -> void:
 	emergency_markers.clear()
 	if is_instance_valid(passenger_visual): passenger_visual.queue_free()
 	passenger_visual=null
+	passenger_id=""
 	driver_visual.position.x=0
 
 func combat_point() -> Vector3: return global_position+Vector3.UP*dimensions.y*.5
@@ -301,6 +305,14 @@ func build_visual() -> void:
 	driver_visual.sitting = true
 	pose_driver()
 
+func sync_native_clothing() -> void:
+	if not is_instance_valid(life.civilization): return
+	var economy: Node=life.civilization.economy
+	for pair: Array in [[driver_visual,String(record.driver.get("code_form_id",""))],[passenger_visual,passenger_id]]:
+		var store: Node=economy.npc_stores.get(pair[1])
+		if is_instance_valid(pair[0]) and is_instance_valid(store): pair[0].sync_clothing(store)
+	pose_driver()
+
 func pose_driver() -> void:
 	_pose_person(driver_visual)
 	if is_instance_valid(passenger_visual): _pose_person(passenger_visual)
@@ -312,6 +324,9 @@ func _pose_person(person: Node3D) -> void:
 	var hip: Vector3 = contacts.hip
 	var lean := Basis(Vector3.RIGHT,contacts.chest_pitch)
 	var chest := hip+lean*Vector3.UP*0.51
+	if is_instance_valid(person.attire):
+		person.attire.at("body",0,hip+Vector3(0,.025,0))
+		person.attire.at("head",0,chest+Vector3(0,.13,0))
 	var hip_width := 0.18 if person.body_profile==&"female" else 0.125
 	person.segment(0,hip,chest,0.037)
 	person.segment(1,hip+Vector3(-hip_width,0,0),hip+Vector3(hip_width,0,0))
@@ -324,6 +339,9 @@ func _pose_person(person: Node3D) -> void:
 		var leg_hip := hip+Vector3(side*hip_width,0,0)
 		var foot: Vector3 = contacts[key+"_foot"]
 		var knee := MountedPose.bend_point(leg_hip,foot,contacts.knee_pole,0.45,0.45)
+		if is_instance_valid(person.attire):
+			person.attire.at("legs",i*2,leg_hip,knee)
+			person.attire.at("legs",i*2+1,knee,foot)
 		person.segment(3+i*2,leg_hip,knee)
 		person.segment(4+i*2,knee,foot)
 		person.dot_at(2+i*3,leg_hip)
@@ -334,6 +352,7 @@ func _pose_person(person: Node3D) -> void:
 		var elbow_pole: Vector3 = contacts.elbow_pole
 		elbow_pole.x = side*0.35
 		var elbow := MountedPose.bend_point(shoulder,hand,elbow_pole,0.30,0.29)
+		if is_instance_valid(person.attire): person.attire.at("hands",i,elbow,hand)
 		person.segment(7+i*2,shoulder,elbow)
 		person.segment(8+i*2,elbow,hand)
 		person.dot_at(8+i*2,elbow)

@@ -84,7 +84,7 @@ func _home() -> void:
 		options.append(_choice("Access: "+String(row.access),_access))
 	else: options.append(_choice("Inspect installed objects",_installed))
 	var owner_name:=String(world.civic_interactions.identity(String(row.owner)).get("name",row.owner)) if not row.owner.is_empty() else "Vacant"
-	menu.show_page("BUILDING · "+Regions.grid_label(Regions.grid_at(descriptors[current].point)),"Use: "+String(row.usage).replace("_"," ").capitalize()+"\nOwner: "+owner_name+"\nInstalled objects: "+str(row.placements.size())+" / 64\nKeep doorways, stairs and exit routes clear.",options)
+	menu.show_page("BUILDING · "+Regions.grid_label(Regions.grid_at(descriptors[current].point)),"Use: "+String(row.usage).replace("_"," ").capitalize()+"\nOwner: "+owner_name+"\nHome Drip: %d / 100" % preload("res://scripts/code_form_wardrobe.gd").home_drip(row)+"\nInstalled objects: "+str(row.placements.size())+" / 64\nKeep doorways, stairs and exit routes clear.",options)
 
 func _guild_terminal() -> void:
 	menu.close_menu()
@@ -359,6 +359,9 @@ func _process(delta: float) -> void:
 	if _clock>0 or not ready_for_use: return
 	_clock=.5
 	_assign_starter_guilds()
+	# All shell geometry belongs to the inactive outdoor World3D. Its model
+	# remains available, while render/access polls sleep inside other instances.
+	if world.dungeon_travel.active_location!=world.dungeon_travel.OUTSIDE: return
 	if menu.is_open and not _near(current): menu.close_menu()
 	var inside_id:=nearest()
 	for id: String in descriptors:

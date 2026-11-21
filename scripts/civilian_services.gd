@@ -193,7 +193,9 @@ func _plans() -> void:
 	var plans:="I'm taking time for "+String(record.current_goal).replace("_"," ")+"."
 	if record.current_goal=="idle": plans="I'm deciding what to do next."
 	if float(record.relationships.get("player",0))<-.2: plans="I remember our trouble. Keep your distance."
-	var text:=String(record.name)+"\n\n"+plans
+	var text: String=String(record.name)+"\n\n"+plans+"\n"+society.autonomy.Needs.summary(society.autonomy._state(id))
+	var store: Node=economy.npc_stores.get(id)
+	if is_instance_valid(store): text+="\nClothing Drip: %d / 100" % society.autonomy.Wardrobe.drip(store)
 	if not String(record.guild).is_empty(): text+="\nI have ties with the Adventurers Guild."
 	for memory: Dictionary in record.memories:
 		if memory.type in ["work","meal","guild","social","combat"]: text+="\n"+String(memory.summary); break

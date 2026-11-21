@@ -1,11 +1,13 @@
 extends RefCounted
 ## Civilian decisions and model actions; existing pedestrian/combat systems own bodies.
+const Needs=preload("res://scripts/code_form_needs.gd")
+const Wardrobe=preload("res://scripts/code_form_wardrobe.gd")
 const Profiles = preload("res://scripts/resident_profiles.gd")
 const Neon = preload("res://scripts/neon.gd")
 const Catalog = preload("res://scripts/item_catalog.gd")
 const BATCH_SIZE := 12
 const MAX_STATES := 8192
-const GOALS := ["work","trade","eat","socialize","explore","rest","train","guild","wonder"]
+const GOALS := ["work","trade","eat","socialize","explore","rest","train","guild","wonder","drink"]
 var civilization: Node
 var states: Dictionary = {}
 var cursor := 0
@@ -38,7 +40,7 @@ func _id(source: Node) -> String:
 
 func _state(id: String) -> Dictionary:
 	if not states.has(id):
-		states[id]={"next_decision":0.0,"next_action":0.0,"last_update":_now(),"hunger":.15+float(posmod(id.hash(),45))/100.0,"turn":0,"actions":0}
+		states[id]={"next_decision":0.0,"next_action":0.0,"last_update":_now(),"hunger":.15+float(posmod(id.hash(),45))/100.0,"thirst":.15+float(posmod(id.hash(),35))/100.0,"vitality":1000.0,"attire_issued":false,"uniform_issued":false,"turn":0,"actions":0}
 	return states[id]
 
 func bind_source(source: Node) -> void:
@@ -60,6 +62,8 @@ func bind_source(source: Node) -> void:
 		source.record.code_form_slot=slot
 		_regional_records[record.id]=source.record
 	_sources[record.id]=weakref(source)
+	var pantry: Node=_economy().npc_stores.get(String(record.id)) if is_instance_valid(_economy()) and _economy().has_method("npc_store") else null
+	if is_instance_valid(pantry): _sync_clothes(String(record.id),pantry)
 
 func bind_sources() -> void:
 	_sources.clear()
@@ -72,6 +76,9 @@ func bind_sources() -> void:
 		for source: Node in population.residents: bind_source(source)
 	var life=world.get("district_life")
 	if not is_instance_valid(life): return
+	for person: Node3D in world.civilian_services._people:
+		var id:=String(civilization.id_for_source(person))
+		if not id.is_empty(): _sources[id]=weakref(person)
 	life.civilization=civilization
 	for record: Dictionary in life.resident_records:
 		var slot: String=record.get("code_form_slot","region/"+str(record.id))
@@ -99,14 +106,23 @@ func _source(id: String) -> Node:
 	var reference: WeakRef=_sources.get(id)
 	return reference.get_ref() if reference!=null else null
 
+func _reactions(source: Node) -> Node:
+	if not is_instance_valid(source): return null
+	if is_instance_valid(source.get("reactions")): return source.reactions
+	if source.get("population")!=null: return source.population.reactions
+	if source.get("life")!=null: return source.life.reactions
+	return null
+
 func _unavailable(id: String,source: Node=null) -> bool:
 	if _regional_records.get(id,{}).get("combat",false): return true
 	if not is_instance_valid(source): source=_source(id)
 	if not is_instance_valid(source): return false
+	if not source is CharacterBody3D: return false
 	if source.get("record") is Dictionary and source.record.get("combat",false): return true
 	if source.get("indoor_left") is float and is_inf(source.indoor_left): return true
-	var reactions=source.population.reactions if source.get("population")!=null else source.life.reactions
+	var reactions:=_reactions(source)
 	if not is_instance_valid(reactions): return false
+	if not reactions.has_method("key_for"): return is_instance_valid(source.get("weapon_combat"))
 	var key: String=reactions.key_for(source)
 	var entry: Dictionary=reactions.entries.get(key,{})
 	return entry.get("dead",false) or entry.get("suspended",false) or reactions.fighters.has(key)
@@ -180,6 +196,8 @@ func _shopping_interest(record: Dictionary,coins: int) -> float:
 func choose_goal(record: Dictionary,state: Dictionary) -> String:
 	var coins:=_balance(String(record.id))
 	var hunger: float=state.hunger
+	var thirst:=float(state.get("thirst",.25))
+	if maxf(hunger,thirst)>=.65: return ("eat" if hunger>=thirst else "drink") if coins>=8 else "work"
 	var lifespan: float=_day()*float(_registry().config.days_per_year)*float(_registry().config.lifetime_years)
 	var urgency:=clampf(1.0-_registry().remaining_lifetime(record.id)/maxf(1.0,lifespan*.15),0,1)
 	var safety:=maxf(0,-float(record.relationships.get("player",0)))
@@ -193,6 +211,7 @@ func choose_goal(record: Dictionary,state: Dictionary) -> String:
 		"work":.25+_motivation(record,"security")*.9+_motivation(record,"wealth")*.4+(1.0 if coins<8 else 0.0),
 		"trade":.1+_motivation(record,"wealth")*.65,
 		"eat":.08+hunger*hunger*2.4+_motivation(record,"survival")*.2,
+		"drink":.08+thirst*thirst*2.8+_motivation(record,"survival")*.2,
 		"socialize":.2+_motivation(record,"social")*1.3,
 		"explore":.15+_motivation(record,"knowledge")*.8+_motivation(record,"novelty")*.75,
 		"rest":.15+_motivation(record,"survival")*.55,
@@ -205,6 +224,10 @@ func choose_goal(record: Dictionary,state: Dictionary) -> String:
 	scores.train+=urgency*.2
 	scores.rest+=safety*.9
 	scores.socialize+=company*.5
+	var economy=_economy()
+	if coins>60 and is_instance_valid(economy) and economy.has_method("npc_store"):
+		var owned: Node=economy.npc_stores.get(String(record.id))
+		if is_instance_valid(owned) and Wardrobe.drip(owned)<desired_drip(record): scores.wonder+=_motivation(record,"social")*.6+_motivation(record,"novelty")*.25
 	scores.explore*=1.0-safety*.4
 	if unavailable_work:
 		scores.work*=.45
@@ -219,6 +242,15 @@ func choose_goal(record: Dictionary,state: Dictionary) -> String:
 		if score>highest: highest=score; best=goal
 	return best
 
+func desired_drip(record: Dictionary) -> int:
+	var target:=25+mini(30,int(record.get("level",1))*2)
+	var world=_world()
+	if is_instance_valid(world) and is_instance_valid(world.get("quest_system")):
+		for group: Dictionary in [world.quest_system.organizations.guilds,world.quest_system.organizations.factions]:
+			for organization: Dictionary in group.values():
+				if organization.get("leader")==record.id: target=maxi(target,55)
+	return target
+
 func process_batch(_delta: float) -> void:
 	var registry=_registry()
 	if registry==null: return
@@ -228,7 +260,10 @@ func process_batch(_delta: float) -> void:
 	_interest_stock=null; _interest_prices={}; _interest_revision=-1
 	# The authoritative clock advances centrally, including capped offline time.
 	# One call never catches up by running an unbounded loop of old decisions.
-	for offset in range(mini(BATCH_SIZE,ids.size())):
+	var batch:=BATCH_SIZE
+	var world=_world()
+	if is_instance_valid(world) and is_instance_valid(world.get("dungeon_travel")) and world.dungeon_travel.active_location!=world.dungeon_travel.OUTSIDE: batch=4
+	for offset in range(mini(batch,ids.size())):
 		var id: String=ids[cursor%ids.size()]
 		cursor=(cursor+1)%ids.size()
 		var record: Dictionary=registry.records.get(id,{})
@@ -236,7 +271,32 @@ func process_batch(_delta: float) -> void:
 		var state:=_state(id)
 		var elapsed:=maxf(0,_now()-float(state.last_update))
 		state.last_update=_now()
-		state.hunger=minf(1,float(state.hunger)+elapsed/(_day()*6.0))
+		Needs.advance(state,elapsed/_scale())
+		var pantry: Node=_economy().npc_store(id) if is_instance_valid(_economy()) and _economy().has_method("npc_store") else null
+		if is_instance_valid(pantry):
+			var changed:=Wardrobe.issue(pantry,state)
+			if is_instance_valid(world) and is_instance_valid(world.get("quest_system")) and world.quest_system.organizations.is_member(id,"dark_box"):
+				changed=Wardrobe.issue(pantry,state,true) or changed
+			if changed: _sync_clothes(id,pantry)
+		var body:=_source(id)
+		if is_instance_valid(body) and body is CharacterBody3D:
+			var reactions:=_reactions(body)
+			if is_instance_valid(body.get("weapon_combat")):
+				body.weapon_combat.health=minf(body.health,float(state.vitality))
+			elif is_instance_valid(reactions) and reactions.has_method("key_for"):
+				var key: String=reactions.key_for(body)
+				if reactions.fighters.has(key): reactions.fighters[key].weapon_combat.health=minf(reactions.fighters[key].health,float(state.vitality))
+		if state.vitality<=0:
+			if is_instance_valid(body) and body is CharacterBody3D:
+				var reactions:=_reactions(body)
+				if is_instance_valid(body.get("weapon_combat")):
+					body.set_meta("native_defeat","survival")
+					body.on_combat_defeat()
+				elif is_instance_valid(reactions) and reactions.has_method("receive_survival_damage"): reactions.receive_survival_damage(body,1000)
+			_registry().remember(id,"survival","reconstruction","Reconstructed after going without food or water. I need to plan my next meal.",.8)
+			Needs.reset(state)
+			state.last_update=_now()
+			state.next_decision=0.0
 		if _now()>=float(state.next_decision):
 			state.turn+=1
 			registry.set_goal(id,choose_goal(record,state),"")
@@ -245,10 +305,12 @@ func process_batch(_delta: float) -> void:
 		if _now()<float(state.next_action): continue
 		state.next_action=_now()+(60+posmod(id.hash(),61))*_scale()
 		var source:=_source(id)
+		var errands: Node=_world().get("civilian_errands") if is_instance_valid(_world()) else null
+		if is_instance_valid(errands) and errands.consider(id): continue
 		if _unavailable(id,source): continue
 		# Nearby visible inhabitants complete work at real arrivals. Unloaded,
 		# virtual and indoor identities use the same bounded economic model.
-		if is_instance_valid(source) and source.is_visible_in_tree() and source.get("virtualized")!=true: continue
+		if is_instance_valid(source) and source is CharacterBody3D and source.is_visible_in_tree() and source.get("virtualized")!=true: continue
 		perform_action(record,state,false)
 	_batch_active=false
 	_interest_stock=null; _interest_prices={}
@@ -273,19 +335,22 @@ func perform_action(record: Dictionary,state: Dictionary,physical: bool) -> bool
 					var key: String="tavern_work" if tavern else "guild_work"
 					success=economy.npc_service_wage(id,key,floori(_now()/_day()))
 					if success: registry.remember(id,"work",key,"Completed paid civilian work.",.4)
-			"eat":
+			"eat","drink":
 				if is_instance_valid(economy):
 					var pantry: Node=economy.npc_store(id) if economy.has_method("npc_store") else null
 					# Owned meals and desserts take priority over drinks and buying
 					# another meal; the same authority consumes the real item.
-					for drinks: bool in [false,true]:
+					for drinks: bool in [String(record.current_goal)=="drink"]:
 						if success or not is_instance_valid(pantry): break
 						for item: Resource in pantry.items.values():
 							var definition: Resource=Catalog.get_definition(item.item_type_id)
 							if definition==null or not definition.custom_properties.get("civilian_food",false) or (definition.custom_properties.get("cuisine_kind")=="drink")!=drinks: continue
 							if economy.npc_consume_food(id,item.item_type_id): success=true; break
-					if not success and economy.npc_buy_food(id,&"electron_meal"): success=economy.npc_consume_food(id,&"electron_meal")
-					if success: state.hunger=0.0; registry.remember(id,"meal","cuisine","Enjoyed some owned Electron cuisine.",.3)
+					var wanted: StringName=&"electron_draught" if record.current_goal=="drink" else &"electron_meal"
+					if not success and economy.npc_buy_food(id,wanted): success=economy.npc_consume_food(id,wanted)
+					if success:
+						Needs.consume(state,record.current_goal=="drink",60)
+						registry.remember(id,"meal","cuisine","Enjoyed some owned Electron cuisine.",.3)
 			"trade":
 				if is_instance_valid(economy):
 					var inventory: Node=economy.npc_store(id)
@@ -297,6 +362,7 @@ func perform_action(record: Dictionary,state: Dictionary,physical: bool) -> bool
 			"wonder":
 				var shop:=_shop()
 				if is_instance_valid(shop): success=shop.npc_shop(record,physical)
+				if success: _wear_owned_upgrade(id)
 				if success: registry.remember(id,"shop","glyphic_wonders","Purchased an offered wonder with my own Glyph Coins.",.6)
 			"guild":
 				if not is_instance_valid(civic) and String(record.get("guild","")).is_empty():
@@ -318,7 +384,7 @@ func perform_action(record: Dictionary,state: Dictionary,physical: bool) -> bool
 	if success:
 		state.actions+=1
 		completed_actions+=1
-	if String(record.current_goal) in ["work","eat","trade","wonder"]:
+	if String(record.current_goal) in ["work","eat","drink","trade","wonder"]:
 		registry.remember(id,"outcome",String(record.current_goal),("Completed " if success else "Unavailable ")+String(record.current_goal)+" opportunity.",.35)
 	return success
 
@@ -342,6 +408,9 @@ func choose_destination(resident: CharacterBody3D) -> StringName:
 		if distance<5: continue
 		var score:=float(posmod((id+String(target)+str(_state(id).turn)).hash(),100))/100.0
 		var title: String=population.place_name(target)
+		for peer: CharacterBody3D in population.active_residents:
+			var affinity:=float(record.relationships.get(_id(peer),0))
+			if affinity<-.1 and population.points[target].distance_to(peer.position)<10: score+=affinity*4
 		if requested=="place/"+String(target): score+=8.0
 		if goal=="explore":
 			score+=minf(distance/40.0,2.0)
@@ -400,6 +469,8 @@ func on_arrival(source: Node) -> void:
 
 func on_regional_arrival(record: Dictionary) -> void:
 	var world=_world()
+	var errands: Node=world.get("civilian_errands") if is_instance_valid(world) else null
+	if is_instance_valid(errands) and errands.on_arrival(record): return
 	var commute=world.get("career_commute") if is_instance_valid(world) else null
 	if is_instance_valid(commute) and commute.on_arrival(record): return
 	var id: String=record.get("code_form_id","")
@@ -420,8 +491,8 @@ func on_regional_arrival(record: Dictionary) -> void:
 func on_talk(source: Node) -> void:
 	var id:=_id(source)
 	if id.is_empty(): return
-	var reactions=source.population.reactions if source.get("population")!=null else source.life.reactions
-	var positive: bool=not is_instance_valid(reactions) or not reactions.is_annoyed(source)
+	var reactions:=_reactions(source)
+	var positive: bool=not is_instance_valid(reactions) or not reactions.has_method("is_annoyed") or not reactions.is_annoyed(source)
 	civilization.record_interaction(id,"conversation","player",positive)
 
 func _social(a: Dictionary,b: Dictionary,physical: bool = false) -> void:
@@ -443,9 +514,49 @@ func on_converse(a: Node,b: Node) -> void:
 	if not _registry().records.has(left) or not _registry().records.has(right): return
 	_social(_registry().records[left],_registry().records[right],true)
 
+func _sync_clothes(id: String,store: Node) -> void:
+	var source:=_source(id)
+	if is_instance_valid(source) and is_instance_valid(source.get("visual")) and source.visual.has_method("sync_clothing"): source.visual.sync_clothing(store)
+	if is_instance_valid(source) and is_instance_valid(source.get("visual")):
+		source.visual.set_meta("civilization",civilization)
+		source.visual.set_meta("civilian_id",id)
+	var world=_world()
+	if is_instance_valid(world) and is_instance_valid(world.get("district_life")):
+		for vehicle: Node in world.district_life.vehicles.values():
+			if vehicle.has_method("sync_native_clothing") and (vehicle.record.driver.get("code_form_id")==id or vehicle.passenger_id==id): vehicle.sync_native_clothing()
+
+func _wear_owned_upgrade(id: String) -> void:
+	var store: Node=_economy().npc_store(id)
+	if not is_instance_valid(store): return
+	for item: Resource in store.items.values():
+		var slot:=Wardrobe.upgrade_slot(store,item.item_type_id,id,int(_state(id).turn))
+		if not slot.is_empty(): store.assign(slot,item.instance_id)
+	_sync_clothes(id,store)
+
+func on_food(id: String,effects: Dictionary) -> void:
+	if _registry()==null or not _registry().records.get(id,{}).get("active",false): return
+	var state:=_state(id)
+	Needs.advance(state,maxf(0,_now()-float(state.last_update))/_scale())
+	state.last_update=_now()
+	Needs.consume(state,float(effects.get("shield_restore",0))>0,float(effects.get("healing",effects.get("hp_restore",60))))
+	state.next_decision=0.0
+	var body:=_source(id)
+	if is_instance_valid(body) and body is CharacterBody3D:
+		var reactions:=_reactions(body)
+		if is_instance_valid(body.get("weapon_combat")):
+			body.weapon_combat.health=minf(body.weapon_combat.max_health,body.health+maxf(0,float(effects.get("healing",0))))
+		elif is_instance_valid(reactions) and reactions.has_method("key_for"):
+			var key: String=reactions.key_for(body)
+			var healing:=maxf(0,float(effects.get("healing",0)))
+			if reactions.fighters.has(key):
+				var fighter: Node=reactions.fighters[key]
+				fighter.weapon_combat.health=minf(fighter.weapon_combat.max_health,fighter.health+healing)
+			elif reactions.entries.has(key): reactions.entries[key].health=minf(1000,float(reactions.entries[key].health)+healing)
+
 func on_combat(source: Node,kind: String) -> void:
 	var id:=_id(source)
 	if id.is_empty() or _registry()==null: return
+	if kind=="defeated": Needs.reset(_state(id))
 	if kind in ["assault","defeated"]:
 		_registry().relate(id,"player",-.08 if kind=="assault" else -.25)
 		_registry().remember(id,"combat","player","A human attacked me." if kind=="assault" else "I returned after a combat defeat.",.85)
@@ -462,7 +573,14 @@ func dialogue_line(source: Node) -> String:
 	var record: Dictionary=_registry().records.get(id,{})
 	if record.is_empty(): return ""
 	if float(record.relationships.get("player",0))<-.2: return "I remember the fighting. Give me some space, human."
+	var errand: Node=_world().get("civilian_errands") if is_instance_valid(_world()) else null
+	if is_instance_valid(errand):
+		var plan: String=errand.describe(id)
+		if not plan.is_empty(): return plan
+	if record.current_goal=="drink": return "I am going for water before I get back to work."
+	if record.current_goal=="eat": return "I need a meal. I am heading to the tavern."
 	if record.current_goal=="work" and _balance(id)<8: return "I've work to find. Coins don't circulate by themselves."
+	if record.current_goal=="wonder": return "I'm looking for something better for my clothes or my home."
 	if record.current_goal=="explore": return "I'm looking for a route I haven't learned yet."
 	if record.current_goal=="socialize" and not record.relationships.is_empty(): return "I've people of my own to catch up with."
 	return ""
@@ -538,25 +656,31 @@ func serialize() -> Dictionary:
 	if _registry()!=null:
 		for id: String in _registry().active_ids():
 			if states.has(id): active[id]=states[id].duplicate(true)
-	return {"version":1,"cursor":cursor,"states":active}
+	return {"version":2,"cursor":cursor,"states":active}
 
 static func validate(data: Variant,active_ids: Array) -> Dictionary:
-	if not data is Dictionary or data.get("version")!=1 or not data.get("states") is Dictionary: return {}
+	if not data is Dictionary or (data.get("version")!=1 and data.get("version")!=2) or not data.get("states") is Dictionary: return {}
 	if data.states.size()>MAX_STATES or not _whole(data.get("cursor"),1000000): return {}
 	var result: Dictionary={}
 	for id: Variant in data.states:
 		if not id is String or not active_ids.has(id): return {}
 		var state: Variant=data.states[id]
-		if not state is Dictionary or state.size()!=6: return {}
+		if not state is Dictionary or state.size()!=(6 if data.version==1 else 10): return {}
 		for key: String in ["next_decision","next_action","last_update","hunger"]:
 			if not (state.get(key) is int or state.get(key) is float) or not is_finite(float(state[key])) or float(state[key])<0 or float(state[key])>1e15: return {}
 		if state.hunger>1: return {}
 		for key: String in ["turn","actions"]:
 			if not _whole(state.get(key),1000000000): return {}
+		if data.version==2:
+			for key: String in ["thirst","vitality"]:
+				if not (state.get(key) is int or state.get(key) is float) or not is_finite(float(state[key])) or state[key]<0 or state[key]>(1 if key=="thirst" else 1000): return {}
+			if not state.get("attire_issued") is bool or not state.get("uniform_issued") is bool: return {}
 		result[id]=state.duplicate(true)
+		if data.version==1:
+			result[id].thirst=.25; result[id].vitality=1000.0; result[id].attire_issued=false; result[id].uniform_issued=false
 		result[id].turn=int(state.turn)
 		result[id].actions=int(state.actions)
-	return {"version":1,"cursor":int(data.cursor),"states":result}
+	return {"version":2,"cursor":int(data.cursor),"states":result}
 
 static func _whole(value: Variant,maximum: int) -> bool:
 	return (value is int or value is float) and is_finite(float(value)) and value>=0 and value<=maximum and float(value)==floorf(float(value))

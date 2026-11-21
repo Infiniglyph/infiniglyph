@@ -62,7 +62,8 @@ func run() -> void:
 	var legacy:=base.duplicate(true); legacy.erase("dark_box_state")
 	check(not Store.decode(legacy).is_empty(),"Legacy checkpoints without optional Dark Box state remain valid")
 	var invalid:=base.duplicate(true); invalid.dark_box_state.issued.partner=wand_id
-	check(Store.decode(invalid).is_empty() and encoder.start(invalid)==ERR_INVALID_DATA,"One actual issued wand cannot be attributed to two officer identities")
+	check(Store.decode(invalid).is_empty() and encoder.start(invalid)==OK,"Duplicate issue provenance is captured for background validation")
+	check((await worker_result()).get("error")==ERR_INVALID_DATA,"One actual issued wand cannot be attributed to two officer identities")
 	invalid=base.duplicate(true); invalid.dark_box_state.issued["invented-officer"]="unowned-provenance"
 	check(Store.decode(invalid).is_empty(),"Unregistered officer identities cannot acquire persisted issue provenance")
 	check(encoder.start(invalid)==OK,"Cross-registry officer validation uses the worker's isolated society capture")
@@ -73,7 +74,8 @@ func run() -> void:
 	var equipped_bytes: Variant=JSON.parse_string(result.get("bytes",PackedByteArray()).get_string_from_utf8())
 	check(result.get("error")==OK and equipped_bytes is Dictionary and equipped_bytes.civilian_state.npc_stores.officer.equipment.up==wand_id and not Store.decode(equipped_bytes).is_empty(),"Value-only worker encoding preserves actual civilian equipment assignments")
 	invalid=base.duplicate(true); invalid.dark_box_state.defeated_until.officer=-1
-	check(Store.decode(invalid).is_empty() and encoder.start(invalid)==ERR_INVALID_DATA,"Invalid recovery times are rejected before a worker starts")
+	check(Store.decode(invalid).is_empty() and encoder.start(invalid)==OK,"Invalid recovery times enter background validation")
+	check((await worker_result()).get("error")==ERR_INVALID_DATA,"Invalid recovery times cannot produce commit bytes")
 	invalid=base.duplicate(true); invalid.dark_box_state.defeated_until.partner=300
 	check(Store.decode(invalid).is_empty(),"A recovery deadline requires an actual historical issue record")
 	var sword: Resource=Catalog.create(&"katana")

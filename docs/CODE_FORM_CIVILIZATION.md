@@ -24,7 +24,7 @@ excluded. No player XP, leveling or lifetime system is introduced. Existing
 damage, movement, weapon animations and dungeon enemy respawns remain unchanged.
 
 Economy checkpoints from versions one through four migrate to the audited
-version-five ledger.
+version-six ledger.
 Existing wallets, treasuries, rentals, room storage and guild crystal stock retain
 their values. Newly identified civilians receive their opening 100-coin blessing
 once; old residents do not receive another opening payment. A legacy checkpoint
@@ -205,9 +205,9 @@ value data and encode JSON on one private worker. The main thread atomically
 commits completed bytes. Changes during encoding queue a newer capture; manual
 load/save joins and discards an older pending encoding before proceeding. No
 scene objects or live mutable model containers are operated on by the worker.
-The capture boundary uses Godot's
-[object-disabled binary encoding](https://docs.godotengine.org/en/stable/classes/class_@globalscope.html#class-globalscope-method-var-to-bytes).
-Validation avoids repeated reconstruction of the same large registry.
+The current capture uses detached inventory values and immutable warmed copies
+of changed model rows, described below. Complete validation runs in the private
+worker before any bytes are committed.
 The checkpoint byte limit is 128 MiB, expanded from the former item-only 8 MiB.
 Normal early-population saves remain far smaller; saturated memory/novelty states
 can legitimately exceed the old ceiling.
@@ -326,3 +326,109 @@ The existing Windows certificate-store warning may appear in headless stderr.
 It is separate from fixture failures, which are explicitly counted and exit
 nonzero. Test artifacts use isolated application-data profiles and do not touch
 the player's ordinary save.
+
+
+## Visible civilian life, survival and status
+
+Civilian Code Forms now have separate food and water meters. These are not
+player resources. Zero need debt is full; at 80% debt (20% remaining), the meter
+turns red and begins costing HP. A full food meter lasts 3,600 real simulation
+seconds; water lasts 1,800. Red food costs 1 HP/second and red water 2 HP/second.
+The analytic calculation charges only time actually spent in red, including
+coarse updates. A paid, owned meal restores food and its ordinary healing;
+a drink restores water independently. Existing combat reconstruction retains
+identity, memories, money and possessions and resets the survivor's needs.
+There is no survival assault, wanted report or free combat XP.
+
+Within ten metres in the same World3D, pedestrians show food, water and clothing
+Drip. These small indicators yield to a speaking bubble. Identity conversations
+and establishment conversations expose the same data. No distant translation,
+per-frame census scan or player survival bar is introduced.
+
+The first physical loop uses nearby regional street routes connected to the
+Electron Tavern. At most six residents have tavern visits at once. A visitor
+must start within 96 metres and pass the existing capsule sweep, ground and
+route-length checks. Their actual walker enters the public door, reaches the
+counter, pays existing coins for actual inventory items, reserves a free chair,
+sits, consumes those items and walks back out along the validated route. An
+unaffordable order can lead to a fifteen-second tavern shift, paying twenty coins
+from the finite tavern account. The existing service proof prevents the same
+half-day shift being paid twice. A broke business declines work; it cannot mint
+wages. This is a local connected demonstration, not global navigation through
+unconnected walls or teleporting residents to a shop.
+
+Up to three pairs of reciprocal friends can arrange local meetings within
+64 metres. One takes a validated walk while the other waits; only actual
+arrival creates their in-person exchange. The appointment is remembered and
+cannot repeat with the same person on the same day. Nearby rivals reduce the
+appeal of city destinations. Conversations and rumor sharing can mention recent
+work, purchases, appointments, shortages and deliveries.
+
+Couriers display a parcel only while an active delivery has actual owned goods.
+Completed station work gives a brief working pose and a factual caption.
+Existing material shortages post funded delivery contracts; nearby witnesses
+remember the request and successful arrivals. Registered businesses and guild
+reception can display the received item type's actual owned stock count. Displays
+are bounded to eight and hidden beyond 32 metres. These are views of authority
+receipts and inventory, never substitutes for a successful delivery.
+
+Each native receives real, equipped Braided starter clothing once: Horizon
+Vestment, Accord Crown, Promise Grips and Lattice Greaves. Dark Box issues a
+shared uniform of Braided Circuit Vestment, Transit Crown, Accord Grips and
+Recursion Greaves. Both issue receipts live in the version-two autonomy state;
+loading, defeat or selling a piece does not resupply it. Officers, ordinary
+pedestrians and seated native drivers show their actual owned clothing. The
+lightweight civilian view batches eight articulated mounts into two skinned
+surfaces, shares outfit meshes and uses the existing throttled pose updates.
+Combat bodies continue using the full existing equipment renderer.
+
+Clothing Drip is a bounded 0-100 score derived from four equipped items' rarity,
+value, complexity and quality. Status labels progress from Everyday to Well
+dressed, Distinguished and Celebrated; this does not automatically confer a
+guild office or change combat stats. Desired Drip rises with level and office.
+Shopping can seek upgrades or a different look while retaining forty coins for
+necessities. Home Drip uses the same item scoring for actually installed
+furnishings, appears in building inspection and encourages further furnishing.
+
+## Institutional starter capital and checkpoint preparation
+
+The earlier role-based influx paid individual wallets only. A separate audited,
+one-time institutional rollout now adds 20,000 coins to guild reception and
+10,000 to the tavern, plus 5,000 + 50/member to each active guild and
+15,000 + 100/distinct member to each faction (100,000 per-account cap). It applies
+to old saves as well as new worlds. A version-six `institution_influx` journal
+receipt folds into the audit base on compaction, so loading or running low cannot
+repeat the grant. Neither rollout awards circulation XP or funds human wallets.
+Normal purchases, wages, escrow, rentals and trade continue transferring existing
+coins. Version-one through version-five ledgers migrate without losing balances.
+
+Autosaves now transfer detached/frozen value captures directly to one private
+worker. That worker performs the complete normal checkpoint validation, including
+all inventory, economy, civic, building, career and officer links, and emits bytes
+only after success. Its temporary inventory Nodes never enter the active tree;
+shared catalog content is initialized on the main thread and read without edits.
+This follows Godot's [off-tree threading rules](https://docs.godotengine.org/en/stable/tutorials/performance/thread_safe_apis.html).
+Loads/manual saves still join older jobs; the main thread owns the atomic disk
+commit. No safety checks or cross-system validation have been disabled.
+
+Changed registry and audit rows and native inventories are copied in small
+bounded warming batches between saves. Frozen copies are replaced, never edited,
+and inventory transaction signals invalidate their cached values. A first capture
+fills any remaining tail rather than writing an incomplete checkpoint. Strict
+serializers used by transactions and loading remain available. Inactive-world
+physical scenes remain disabled; indoor play also reduces civilian decision
+batches to four and civic polls to three seconds, while shell-render polling
+sleeps. The authoritative society clock and financial deadlines continue.
+
+On the isolated 15.5 MB copied save, warmed main-thread capture plus worker start
+measured roughly 67-88 ms in the overworld and pyramid, compared with the previous
+multi-second save-start stall. This is a preparation measurement, not an FPS
+promise; first captures and disk commits still have work to do.
+
+`civilian_needs.gd` tests separate depletion, red damage, equipment issuance,
+institutional replay/migration and frozen captures. `civilian_errands.gd` covers
+both distant route records and a real moving physics body entering the tavern,
+sitting, eating and returning. It exercises work, purchasing, seated consumption,
+safe egress and an actual friend appointment. The existing checkpoint, patrol, economy,
+career and wand fixtures cover the shared boundaries. Native visual captures
+are available through `capture_civilian_life.gd` and `capture_wand_effects.gd`.

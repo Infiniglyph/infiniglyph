@@ -4,6 +4,7 @@ extends Node3D
 const Neon = preload("res://scripts/neon.gd")
 static var rod_mesh: CylinderMesh
 static var joint_mesh: SphereMesh
+var attire: Node3D
 var rods: MultiMesh
 var joints: MultiMesh
 var phase := 0.0
@@ -13,6 +14,51 @@ var stature := 1.0
 var body_profile: StringName = &"male"
 var tint := Color(0.12,0.82,0.9)
 var sitting := false
+var activity:=""
+var _parcel: MeshInstance3D
+var _food_meter: Label3D
+var _drip_meter: Label3D
+var _water_meter: Label3D
+var _status_clock:=0.0
+
+func _status(delta: float) -> void:
+	_status_clock+=delta
+	if _status_clock<.5: return
+	_status_clock=0
+	if not has_meta("civilization"): return
+	var society: Node=get_meta("civilization")
+	if not is_instance_valid(society): return
+	var id:=String(get_meta("civilian_id",""))
+	if id.is_empty(): return
+	var near: bool=society.world.player.get_world_3d()==get_world_3d() and society.world.player.global_position.distance_to(global_position)<10 and is_visible_in_tree()
+	if not is_instance_valid(_food_meter):
+		if not near: return
+		_food_meter=Label3D.new(); _water_meter=Label3D.new(); _drip_meter=Label3D.new()
+		for meter: Label3D in [_food_meter,_water_meter,_drip_meter]:
+			meter.billboard=BaseMaterial3D.BILLBOARD_ENABLED; meter.font_size=24; meter.pixel_size=.003
+			add_child(meter)
+		_food_meter.position.y=2.55; _water_meter.position.y=2.40; _drip_meter.position.y=2.25
+	var bubble: Label3D=get_parent().get("caption")
+	if is_instance_valid(bubble) and bubble.visible and not bubble.text.is_empty(): near=false
+	_food_meter.visible=near; _water_meter.visible=near; _drip_meter.visible=near
+	if not near: return
+	var state: Dictionary=society.autonomy._state(id)
+	var store: Node=society.economy.npc_stores.get(id)
+	var drip: int=preload("res://scripts/code_form_wardrobe.gd").drip(store) if is_instance_valid(store) else 0
+	_drip_meter.text="Drip %d / 100" % drip
+	_drip_meter.modulate=Color(.9,.65,1)
+	_food_meter.text="Food %d%%" % roundi((1-float(state.hunger))*100)
+	_water_meter.text="Water %d%%" % roundi((1-float(state.thirst))*100)
+	_food_meter.modulate=Color(1,.25,.12) if state.hunger>=.8 else Color(.6,1,.5)
+	_water_meter.modulate=Color(1,.25,.12) if state.thirst>=.8 else Color(.3,.8,1)
+
+
+func sync_clothing(store: Node) -> void:
+	if not is_instance_valid(attire):
+		attire=preload("res://scripts/resident_attire.gd").new()
+		add_child(attire)
+	attire.sync(store)
+	animate(0,0,false)
 
 func batch(mesh: Mesh, count: int, ink: Material) -> MultiMesh:
 	var instance := MultiMeshInstance3D.new()
@@ -63,6 +109,7 @@ func knee_between(hip: Vector3, foot: Vector3) -> Vector3:
 
 func animate(delta: float, speed: float, gesturing: bool) -> void:
 	clock += delta
+	_status(delta)
 	walking = lerpf(walking,clampf(speed/1.5,0,1),1-exp(-10*delta))
 	phase = fposmod(phase+delta*TAU*1.05*clampf(speed/1.5,0,1.3),TAU)
 	var sway := sin(phase)*walking
@@ -82,6 +129,9 @@ func animate(delta: float, speed: float, gesturing: bool) -> void:
 			segment(11+i*2,chest+Vector3(side*0.23,0,0),waist_edge,0.023)
 			segment(12+i*2,waist_edge,pelvis+Vector3(side*hip_width,0,0),0.023)
 	dot_at(0,chest+Vector3(0,0.26,0),0.128)
+	if is_instance_valid(attire):
+		attire.at("body",0,pelvis+Vector3(0,.025,0))
+		attire.at("head",0,chest+Vector3(0,.13,0))
 	dot_at(1,pelvis,0.05)
 	for i in range(2):
 		var side := -1.0 if i==0 else 1.0
@@ -91,6 +141,9 @@ func animate(delta: float, speed: float, gesturing: bool) -> void:
 		var foot := Vector3(side*(hip_width+0.015),0.052+maxf(0,cos(cycle))*0.055*walking,stride*0.24)
 		if sitting: foot = pelvis+Vector3(side*(hip_width+0.04),-0.65,0.4)
 		var knee := knee_between(hip,foot)
+		if is_instance_valid(attire):
+			attire.at("legs",i*2,hip,knee)
+			attire.at("legs",i*2+1,knee,foot)
 		segment(3+i*2,hip,knee)
 		segment(4+i*2,knee,foot)
 		dot_at(2+i*3,hip)
@@ -99,13 +152,22 @@ func animate(delta: float, speed: float, gesturing: bool) -> void:
 		var shoulder := chest+Vector3(side*0.23,0,side*sway*0.018)
 		var elbow := shoulder+Vector3(side*0.035,-0.29,-stride*0.13+0.04)
 		var hand := elbow+Vector3(-side*0.025,-0.27,-stride*0.10+0.03)
-		if sitting:
+		if sitting or not activity.is_empty():
 			elbow = shoulder+Vector3(0,-0.18,0.23)
-			hand = elbow+Vector3(0,-0.12,0.22)
+			hand = elbow+Vector3(0,-0.12+(sin(clock*8)*.045 if activity=="work" else 0.0),0.22)
 		if gesturing and i==1:
 			elbow += Vector3(0.08,0.08,0.05)
 			hand = elbow+Vector3(0.02,0.02+sin(clock*3)*0.045,0.25)
+		if is_instance_valid(attire): attire.at("hands",i,elbow,hand)
 		segment(7+i*2,shoulder,elbow)
 		segment(8+i*2,elbow,hand)
 		dot_at(8+i*2,elbow)
 		dot_at(9+i*2,hand,0.04)
+		if i==1:
+			if not is_instance_valid(_parcel) and activity in ["parcel","meal"]:
+				_parcel=MeshInstance3D.new()
+				var box:=BoxMesh.new(); box.size=Vector3(.22,.14,.2); _parcel.mesh=box
+				_parcel.material_override=Neon.shared_material(Color(.6,.35,.12)); add_child(_parcel)
+			if is_instance_valid(_parcel):
+				_parcel.visible=activity in ["parcel","meal"]
+				_parcel.position=hand+Vector3(0,.055,0)

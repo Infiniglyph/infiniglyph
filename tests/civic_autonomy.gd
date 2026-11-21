@@ -1,4 +1,4 @@
-﻿extends "res://tests/code_form_autonomy.gd"
+extends "res://tests/code_form_autonomy.gd"
 class Civic extends Node:
 	var calls: Array=[]
 	var arrivals: Array=[]
@@ -54,7 +54,7 @@ func run() -> void:
 	source.indoor_left=INF
 	var calls: int=civic.calls.size()
 	check(not society.autonomy.perform_action(record,state,true) and civic.calls.size()==calls,"Suspended or combat-held inhabitants cannot run hidden civic transactions")
-	check(state.size()==6 and not Autonomy.validate(society.autonomy.serialize(),society.registry.active_ids()).is_empty(),"Civic hooks preserve the existing strict six-field scheduler checkpoint")
+	check(state.size()==10 and not Autonomy.validate(society.autonomy.serialize(),society.registry.active_ids()).is_empty(),"Civic hooks preserve the existing strict needs-and-wardrobe scheduler checkpoint")
 	world.free(); society.free()
 	print("CIVIC AUTONOMY: ",checks," checks, ",failures," failures")
 	quit(0 if failures==0 else 1)

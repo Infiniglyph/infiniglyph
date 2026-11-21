@@ -32,6 +32,7 @@ func _ready() -> void:
 	world.population.civilization=self
 	if is_instance_valid(world.district_life): world.district_life.civilization=self
 	economy.commerce_committed.connect(_commerce)
+	economy.npc_food_consumed.connect(autonomy.on_food)
 	economy.world_clock=func(): return world_seconds
 	# A clock batch must not be saved halfway between a retirement and admission.
 	world.loot.external_transaction_guard=func(): return economy.transaction_active() or _busy
@@ -122,6 +123,8 @@ func bind_sources() -> void:
 	var bar: Dictionary=registry.for_slot("service/tavern_bartender")
 	economy.merchant_ids={"guild":reception.get("id",""),"tavern":bar.get("id","")}
 	autonomy.bind_sources()
+	if is_instance_valid(world.district_life):
+		for vehicle: Node in world.district_life.vehicles.values(): vehicle.sync_native_clothing()
 
 func reconcile_economy() -> bool:
 	# Older checkpoints have only the original 104 wallets. Admit the rest once;
@@ -141,12 +144,24 @@ func id_for_source(source: Node) -> String:
 	return id if registry.records.get(id,{}).get("active",false) else ""
 
 func ensure_starter_capital() -> bool:
-	if economy.starter_influx_applied: return true
+	if economy.starter_influx_applied and economy.institution_influx_applied: return true
 	# Wait until checkpoint, census, governance and careers are authoritative.
 	# No per-body calls and no scans at all after this single ledger event.
 	if _busy or not ready_for_simulation or not _ledger_ready or world.inventory_session._checkpoint_pending or world.inventory_session._loading or not world.civic_interactions.initialized: return false
 	var amounts:=StarterCapital.payouts(registry.records,registry.active_ids(),world.quest_system.organizations,world.careers.model)
-	return economy.issue_starter_influx(amounts)
+	if not economy.starter_influx_applied and not economy.issue_starter_influx(amounts): return false
+	if not economy.institution_influx_applied:
+		var funds: Dictionary={"business:guild":20000,"business:tavern":10000}
+		for guild: Dictionary in world.quest_system.organizations.guilds.values():
+			if guild.status=="active" and economy.balances.has(guild.treasury): funds[guild.treasury]=mini(100000,5000+guild.members.size()*50)
+		for faction: Dictionary in world.quest_system.organizations.factions.values():
+			var account:="faction:"+String(faction.id)
+			var members: Dictionary={}
+			for key: String in faction.guilds:
+				for member: String in world.quest_system.organizations.guilds[key].members: members[member]=true
+			if economy.balances.has(account): funds[account]=mini(100000,15000+members.size()*100)
+		if not economy.issue_institution_influx(funds): return false
+	return true
 
 func record_event(event: Dictionary) -> Dictionary:
 	if not ready_for_simulation or event.get("event_type")=="economic" or event.get("type")=="economic": return {}
@@ -254,7 +269,9 @@ func advance_real(seconds: float, offline: bool = false) -> bool:
 			identities_replaced.emit(_pending_replacements.duplicate(true))
 		# At most one coarse pass over every civilian during catch-up, never a
 		# replay of hours of individual pathfinding or combat frames.
-		var batches:=maxi(1,ceili(float(registry.slots.size())/float(Autonomy.BATCH_SIZE))) if offline and real_seconds>0 else 1
+		var batch_size:=Autonomy.BATCH_SIZE
+		if offline and is_instance_valid(world.get("dungeon_travel")) and world.dungeon_travel.active_location!=world.dungeon_travel.OUTSIDE: batch_size=4
+		var batches:=maxi(1,ceili(float(registry.slots.size())/float(batch_size))) if offline and real_seconds>0 else 1
 		for i in range(batches): autonomy.process_batch(real_seconds/float(batches))
 	_pending_replacements.clear()
 	if ok: _saved_unix=Time.get_unix_time_from_system()
@@ -262,6 +279,10 @@ func advance_real(seconds: float, offline: bool = false) -> bool:
 	return ok
 
 func _process(delta: float) -> void:
+	if ready_for_simulation:
+		registry.warm_capture()
+		economy.warm_capture()
+		economic_audit.warm_capture()
 	if not ready_for_simulation or not simulation_enabled or world.inventory_session._checkpoint_pending or world.inventory_session._loading: return
 	if not _ledger_ready:
 		if reconcile_economy(): world.inventory_session._dirty()
@@ -282,8 +303,17 @@ func describe(id: String) -> String:
 	if record.is_empty(): return ""
 	var years:=registry.remaining_lifetime(id)/(float(registry.config.day_seconds)*float(registry.config.days_per_year))
 	var text:="%s  /  Level %d\nOccupation: %s. Current intention: %s.\nRemaining lifetime: %.1f years." % [record.name,record.level,record.occupation,String(record.current_goal).replace("_"," "),years]
+	var state:=autonomy._state(id)
+	text+="\n"+Autonomy.Needs.summary(state)
+	var store: Node=economy.npc_stores.get(id)
+	if is_instance_valid(store): text+="\nClothing Drip: %d / 100  /  %s" % [Autonomy.Wardrobe.drip(store),Autonomy.Wardrobe.status(Autonomy.Wardrobe.drip(store))]
 	if not record.memories.is_empty(): text+="\n"+String(record.memories[-1].get("summary",""))
 	return text
+
+func capture_values() -> Dictionary:
+	if not ready_for_simulation: return {}
+	if economic_audit.owner_id.is_empty(): economic_audit.configure(String(economy.owner_id),int(economy.sequence))
+	return {"version":2,"registry":registry.capture_values(),"saved_unix":Time.get_unix_time_from_system(),"autonomy":autonomy.serialize(),"economic_audit":economic_audit.capture_values()}
 
 func serialize() -> Dictionary:
 	if not ready_for_simulation: return {}

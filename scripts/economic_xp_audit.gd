@@ -13,6 +13,23 @@ var review_cursor := 0
 var transactions: Dictionary={}
 var order: Array[String]=[]
 var _asset_index: Dictionary={}
+var _capture_rows: Dictionary={}
+var _capture_dirty: Dictionary={}
+
+func warm_capture() -> void:
+	var began:=Time.get_ticks_usec()
+	var count:=0
+	for id: String in _capture_dirty.keys():
+		_capture_rows[id]=transactions[id].duplicate(true)
+		_capture_dirty.erase(id)
+		count+=1
+		if count>=24 or Time.get_ticks_usec()-began>=2000: break
+
+func capture_values() -> Dictionary:
+	for id: String in _capture_dirty.keys(): _capture_rows[id]=transactions[id].duplicate(true)
+	_capture_dirty.clear()
+	return {"version":1,"owner_id":owner_id,"config":config.duplicate(),"last_sequence":last_sequence,"review_cursor":review_cursor,"transactions":_capture_rows.duplicate(),"order":order.duplicate()}
+
 
 static func _settings(input: Variant) -> Dictionary:
 	if not input is Dictionary or input.size()!=DEFAULT_CONFIG.size(): return {}
@@ -33,6 +50,7 @@ func configure(owner: String,sequence_floor: int = 0,settings: Dictionary = DEFA
 	if not Registry._text(owner,64) or not Registry._integer(sequence_floor,0,1000000000) or accepted.is_empty(): return false
 	owner_id=owner; last_sequence=sequence_floor; config=accepted
 	transactions.clear(); order.clear(); _asset_index.clear(); review_cursor=0
+	_capture_rows.clear(); _capture_dirty.clear()
 	return true
 
 static func _canonical_receipt(input: Variant,owner: String,known: Dictionary,now: float) -> Dictionary:
@@ -75,12 +93,14 @@ func record_transaction(receipt: Dictionary,registry: RefCounted) -> Dictionary:
 		registry.grant_xp(id,requested)
 		awards[id]=int(registry.records[id].experience)-before
 	row.xp_awards=awards; row.xp_status="awarded"; row.reversal_reason=""; row.reversed_at=0.0
+	_capture_dirty[row.id]=true
 	transactions[row.id]=row; order.append(row.id); last_sequence=int(row.sequence)
 	_index(row)
 	if order.size()>MAX_TRANSACTIONS:
 		var expired: String=order.pop_front()
 		var asset: String=transactions[expired].asset_id
 		transactions.erase(expired)
+		_capture_rows.erase(expired); _capture_dirty.erase(expired)
 		if _asset_index.has(asset):
 			_asset_index[asset].erase(expired)
 			if _asset_index[asset].is_empty(): _asset_index.erase(asset)
@@ -125,7 +145,8 @@ func find_reversals(now: float,day_seconds: float,budget: int = REVIEW_BATCH) ->
 		if now-float(row.world_timestamp)>float(config.review_window_days)*day_seconds: continue
 		for id: String in _circular_asset(row,now,day_seconds):
 			if transactions[id].xp_status!="reversed": found[id]=true
-		if row.xp_status=="awarded": row.xp_status="confirmed"
+		if row.xp_status=="awarded":
+			row.xp_status="confirmed"; _capture_dirty[row.id]=true
 	var result: Array[String]=[]
 	for id: String in order:
 		if found.has(id): result.append(id)
@@ -152,6 +173,7 @@ func apply_reversals(ids: Array,registry: RefCounted,reason: String = "Repeated 
 		if not result.get("accepted",false): return {}
 		corrected[id]=result
 	for id: String in selected:
+		_capture_dirty[id]=true
 		transactions[id].xp_status="reversed"; transactions[id].reversal_reason=reason; transactions[id].reversed_at=float(registry.world_seconds)
 	return {"transactions":selected,"corrections":corrected,"removed_xp":totals}
 
@@ -192,6 +214,7 @@ func restore(input: Variant,registry: Dictionary) -> bool:
 	var accepted:=validate(input,registry)
 	if accepted.is_empty(): return false
 	owner_id=accepted.owner_id; config=accepted.config; last_sequence=accepted.last_sequence; review_cursor=accepted.review_cursor; transactions=accepted.transactions; order.assign(accepted.order)
-	_asset_index.clear()
-	for id: String in order: _index(transactions[id])
+	_asset_index.clear(); _capture_rows.clear(); _capture_dirty.clear()
+	for id: String in order:
+		_index(transactions[id]); _capture_dirty[id]=true
 	return true

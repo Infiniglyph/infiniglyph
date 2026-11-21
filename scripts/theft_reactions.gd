@@ -125,7 +125,11 @@ func retire_source(source: CharacterBody3D) -> void:
 
 func civilian_health(source: CharacterBody3D) -> float:
 	var entry: Dictionary = entries.get(key_for(source),{})
-	return float(entry.get("health",Combat.BASE_HEALTH))
+	var hp:=float(entry.get("health",Combat.BASE_HEALTH))
+	var society:=_civilization()
+	var id:=String(society.id_for_source(source)) if is_instance_valid(society) else ""
+	if not id.is_empty(): hp=minf(hp,float(society.autonomy._state(id).vitality))
+	return hp
 
 func is_annoyed(source: CharacterBody3D) -> bool:
 	return float(entries.get(key_for(source),{}).get("anger",0))>0
@@ -145,6 +149,7 @@ func _entry_for(source: CharacterBody3D) -> Dictionary:
 		var spawn_point: Vector3 = source.record.get("spawn",source.record.route[0]) if source.get("record") is Dictionary else source.population.points.get(source.profile.home,source.global_position)
 		entries[key] = {"source":weakref(source),"regional":source.get("record") is Dictionary,"spawn":spawn_point,"anger":0.0,"health":Combat.BASE_HEALTH,"hold":0.0,"speech":0.0,"line":"","bubble":null,"respawn":0.0,"dead":false,"suspended":false,"away":0.0,"challenge":0.0,"assault":false,"last_attack":-1,"taunt_stage":-1}
 	entries[key].source = weakref(source)
+	entries[key].health=minf(float(entries[key].health),civilian_health(source))
 	return entries[key]
 
 func _theft_gain(source: CharacterBody3D, key: String, owner: bool) -> float:
@@ -232,6 +237,18 @@ func receive_native_attack(source: CharacterBody3D,amount: float,origin: Vector3
 		entry.dead=true; entry.respawn=respawn_delay
 		_clear_anger(entry)
 	return applied
+
+func receive_survival_damage(source: CharacterBody3D,amount: float) -> void:
+	# A physiological defeat has no attacker, wanted report, retaliation or XP.
+	var entry:=_entry_for(source)
+	if entry.dead: return
+	var key:=key_for(source)
+	if fighters.has(key): finish_fighter(key,true)
+	entry.health=maxf(0,float(entry.health)-maxf(0,amount))
+	if entry.health<=0:
+		_suspend_source(entry,source)
+		entry.dead=true; entry.respawn=respawn_delay
+		_clear_anger(entry)
 
 func can_fight() -> bool:
 	if is_instance_valid(actor.kyren_encounter) and (actor.kyren_encounter.active or actor.kyren_encounter.dialogue_open): return false

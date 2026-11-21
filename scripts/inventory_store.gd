@@ -35,7 +35,8 @@ static func encode(inventory: Node, world_drops: Array = [], markers: Array = []
 static func decode(data: Variant) -> Dictionary:
 	return _decode(data,false)
 
-static func _decode(data: Variant,deferred_civic_links: bool) -> Dictionary:
+static func _decode(data: Variant,deferred_civic_links: bool,diagnostic: Dictionary={}) -> Dictionary:
+	diagnostic.stage="inventory and world drops"
 	if not data is Dictionary or not Instance.whole_number(data.get("version"),VERSION,VERSION) or data.get("policy") != POLICY: return {}
 	if not Instance.valid_text(data.get("session_id")) or not data.get("world_drops") is Array or data.world_drops.size()>MAX_WORLD_DROPS: return {}
 	if data.has("markers") and not data.markers is Array: return {}
@@ -112,6 +113,7 @@ static func _decode(data: Variant,deferred_civic_links: bool) -> Dictionary:
 	if data.get("location_context","overworld")!="overworld": decoded.location_context=String(data.location_context)
 	if not state.is_empty(): decoded.location_state=state
 	if data.has("civilian_state"):
+		diagnostic.stage="economy"
 		var civilian:=Economy.validate(data.civilian_state,owned,drops)
 		if civilian.is_empty(): return {}
 		decoded.civilian_state=civilian
@@ -119,6 +121,7 @@ static func _decode(data: Variant,deferred_civic_links: bool) -> Dictionary:
 		# a newer save must not turn funded work into an orphaned legacy account.
 		if not deferred_civic_links and not has_civic_state(data) and not civilian.contracts.is_empty(): return {}
 	if data.has("civilization_state"):
+		diagnostic.stage="civilization"
 		if not decoded.has("civilian_state"): return {}
 		var society:=Civilization.validate(data.civilization_state)
 		if society.is_empty(): return {}
@@ -139,6 +142,7 @@ static func _decode(data: Variant,deferred_civic_links: bool) -> Dictionary:
 		if not Civilization.ledger_matches(society,decoded.civilian_state): return {}
 		decoded.civilization_state=society
 	if data.has("glyphic_wonders_state"):
+		diagnostic.stage="merchant stock"
 		if not decoded.has("civilian_state"): return {}
 		# Eligibility/price metadata touches the shared catalog. This validation
 		# stays on the main thread, including the async encoder's core capture.
@@ -147,21 +151,26 @@ static func _decode(data: Variant,deferred_civic_links: bool) -> Dictionary:
 		if decoded.has("civilization_state") and not wonders_clock_matches(stock,decoded.civilization_state.registry): return {}
 		decoded.glyphic_wonders_state=stock
 	if has_civic_state(data):
+		diagnostic.stage="civic links"
 		var civic:=canonical_civic_state(data)
 		if civic.is_empty(): return {}
 		decoded.merge(civic)
 		if not civic_links_match(decoded): return {}
 	if data.has("building_state"):
+		diagnostic.stage="buildings"
 		var buildings:=Buildings.validate(data.building_state)
 		if buildings.is_empty(): return {}
 		decoded.building_state=buildings
 		if not building_links_match(decoded): return {}
 	if data.has("career_state"):
+		diagnostic.stage="careers"
 		var careers:=Careers.validate(data.career_state)
 		if careers.is_empty(): return {}
 		decoded.career_state=careers
-		if not career_links_match(decoded): return {}
+		var error:=career_link_error(decoded)
+		if not error.is_empty(): diagnostic.stage="career links: "+error; return {}
 	if data.has("dark_box_state"):
+		diagnostic.stage="officers"
 		# Runtime loading stays on the main thread. The encoding worker receives
 		# only this canonical value model and checks its civilian/item links.
 		var patrol: Script=load("res://scripts/dark_box_patrols.gd")

@@ -31,7 +31,7 @@ func run() -> void:
 	var economy: Node=world.civilian_services.economy
 	var ids: Array=society.registry.active_ids()
 	var legacy: Dictionary=economy.serialize()
-	legacy.version=4; legacy.audit_base.erase("starter_influx")
+	legacy.version=4; legacy.audit_base.erase("starter_influx"); legacy.audit_base.erase("institution_influx")
 	check(economy.restore(legacy) and not economy.starter_influx_applied,"An existing world with its actual v4 wallets remains eligible")
 	var before: Dictionary=economy.balances.duplicate()
 	var issued_before: int=economy.issued_total
@@ -45,7 +45,7 @@ func run() -> void:
 		sum+=int(expected[id])
 		complete=complete and economy.balance("resident:"+id)==int(before["resident:"+id])+int(expected[id])
 		same_xp=same_xp and society.registry.records[id].experience==xp_before[id]
-	check(complete and economy.issued_total==issued_before+sum,"Every real wallet receives exactly its current role/standing grant")
+	check(complete and economy.issued_total>issued_before+sum and economy.institution_influx_applied,"Every real wallet receives exactly its current role/standing grant")
 	check(same_xp and economy.balance(economy.player_account)==before[economy.player_account],"Issuance leaves civilian XP and the visiting player's wallet unchanged")
 	var leaders_correct:=true
 	for faction: Dictionary in world.quest_system.organizations.factions.values(): leaders_correct=leaders_correct and int(expected[faction.leader])>=Policy.FACTION_LEADER

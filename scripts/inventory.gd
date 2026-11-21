@@ -11,6 +11,15 @@ const MAX_ITEMS := 4096
 signal changed
 signal equipment_changed
 @export var owner_id := "local"
+var capture_cache_enabled:=false
+var _capture_dirty:=true
+var _capture_cache: Dictionary={}
+
+func _init() -> void:
+	changed.connect(_invalidate_capture)
+
+func _invalidate_capture() -> void: _capture_dirty=true
+
 var actor: Node3D
 var items: Dictionary = {}
 var equipment: Dictionary = {}
@@ -144,6 +153,27 @@ func eligible_equipped() -> Array:
 		if item == null or not item.is_valid() or item.owner_id != owner_id or result.has(item.instance_id): continue
 		var definition: Resource = Catalog.get_definition(item.item_type_id)
 		if definition.is_equippable and definition.is_droppable and definition.is_tradeable: result.append(item.instance_id)
+	return result
+
+func capture_values() -> Dictionary:
+	if capture_cache_enabled and not _capture_dirty: return _capture_cache
+	# Checkpoint-only ownership transfer. Defer catalog lookup, JSON
+	# normalization and validation of every item to the private save worker.
+	# Transactions and restores continue using the strict serialize() boundary.
+	var entries: Array[Dictionary]=[]
+	for iid: String in items:
+		var item: Resource=items[iid]
+		if item==null or item.instance_id!=iid or item.owner_id!=owner_id: return {}
+		entries.append({"item_type_id":String(item.item_type_id),"instance_id":String(item.instance_id),"quantity":item.quantity,"upgrade_level":item.upgrade_level,"custom_properties":item.custom_properties.duplicate(true),"owner_id":String(item.owner_id)})
+	var assignments: Dictionary={}
+	for slot: StringName in equipment: assignments[String(slot)]=equipment[slot]
+	var result:={"version":1,"owner_id":owner_id,"items":entries,"equipment":assignments,"starter_glyphs_granted":starter_glyphs_granted}
+	if not shield_state.is_empty(): result.shield_state=shield_state.duplicate()
+	if not respawn_points.is_empty(): result.respawn_points=respawn_points.duplicate(true)
+	if not boss_reward_claims.is_empty(): result.boss_reward_claims=boss_reward_claims.duplicate()
+	if capture_cache_enabled:
+		_capture_cache=result
+		_capture_dirty=false
 	return result
 
 func serialize() -> Dictionary:

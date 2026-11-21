@@ -26,6 +26,7 @@ var _bolts: Array[Dictionary] = []
 var _visited: Dictionary = {}
 var _rays: Array[Dictionary] = []
 var _mesh := ImmediateMesh.new()
+var _core: StandardMaterial3D
 var _ink: StandardMaterial3D
 var _shape := CapsuleShape3D.new()
 var _query := PhysicsShapeQueryParameters3D.new()
@@ -56,7 +57,13 @@ func _ready() -> void:
 	global_position = Vector3.ZERO
 	_ink = Neon.material(color)
 	_ink.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	_ink.emission_energy_multiplier = 1.7
+	_ink.emission_energy_multiplier = 3.2
+	_ink.albedo_color.a = .36
+	_ink.cull_mode = BaseMaterial3D.CULL_DISABLED
+	_core = Neon.material(color.lerp(Color.WHITE,.8))
+	_core.emission_energy_multiplier = 3.8
+	_core.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_core.cull_mode = BaseMaterial3D.CULL_DISABLED
 	var visual := MeshInstance3D.new()
 	visual.mesh = _mesh
 	visual.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -326,6 +333,19 @@ func _draw() -> void:
 					points.append_array([tip+side*sin(a)*.42-heading*(1-cos(a))*.3,tip+side*sin(b)*.42-heading*(1-cos(b))*.3])
 			else: points.append_array([tip-heading*.45,tip+heading*.15])
 	if points.is_empty(): return
-	_mesh.surface_begin(Mesh.PRIMITIVE_LINES,_ink)
-	for point in points: _mesh.surface_add_vertex(point)
-	_mesh.surface_end()
+	_core.albedo_color.a=minf(1,_ink.albedo_color.a*2.8)
+	# Physical width survives distance and GL Compatibility without bloom.
+	# Two crossed ribbons per segment keep the beam round from every view;
+	# the bright core is surrounded by a saturated colored sleeve.
+	for layer: int in range(2):
+		var radius: float=.065 if layer==0 else .022
+		_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES,_ink if layer==0 else _core)
+		for index in range(0,points.size(),2):
+			var a:=points[index]; var b:=points[index+1]
+			var axis:=(b-a).normalized()
+			if axis.is_zero_approx(): continue
+			var side:=axis.cross(Vector3.UP).normalized()
+			if side.is_zero_approx(): side=Vector3.RIGHT
+			for offset: Vector3 in [side*radius,axis.cross(side).normalized()*radius]:
+				for vertex: Vector3 in [a-offset,b-offset,b+offset,a-offset,b+offset,a+offset]: _mesh.surface_add_vertex(vertex)
+		_mesh.surface_end()

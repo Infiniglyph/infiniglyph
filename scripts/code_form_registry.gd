@@ -23,6 +23,27 @@ var replacement_serial := 0
 var last_error := ""
 var _active_census: Array[String] = []
 var _census_dirty := true
+var _capture_rows: Dictionary={}
+var _capture_dirty: Dictionary={}
+
+func warm_capture(budget: int=24) -> void:
+	# Frozen row copies are replaced, never edited. A worker may safely retain
+	# an older copy while gameplay mutates the independent live registry.
+	var began:=Time.get_ticks_usec()
+	var count:=0
+	for id: String in _capture_dirty.keys():
+		_capture_rows[id]=records[id].duplicate(true)
+		_capture_dirty.erase(id)
+		count+=1
+		if count>=budget or Time.get_ticks_usec()-began>=2000: break
+
+func capture_values() -> Dictionary:
+	# Warm continuously between saves; a first capture still fills any tail
+	# synchronously rather than saving a partial census or inconsistent clock.
+	for id: String in _capture_dirty.keys(): _capture_rows[id]=records[id].duplicate(true)
+	_capture_dirty.clear()
+	return {"version":1,"config":config.duplicate(true),"world_seconds":world_seconds,"replacement_serial":replacement_serial,"records":_capture_rows.duplicate(),"slots":slots.duplicate()}
+
 
 static func _number(value: Variant, low: float, high: float) -> bool:
 	return (value is int or value is float) and is_finite(float(value)) and value>=low and value<=high
@@ -118,6 +139,7 @@ func bootstrap(rows: Array[Dictionary]) -> bool:
 	if not additions.is_empty() and world_seconds+_initial_life()<=world_seconds: last_error="Lifetime is below clock precision"; return false
 	for row: Dictionary in additions:
 		records[row.id] = _new_record(row,world_seconds)
+		_capture_dirty[row.id]=true
 		slots[row.slot] = row.id
 	if not additions.is_empty(): _census_dirty=true
 	return true
@@ -173,6 +195,7 @@ func advance_to(target: float) -> Array[Dictionary]:
 			old.event_bloom = ""
 			old.memories.sort_custom(func(a: Dictionary,b: Dictionary): return a.importance>b.importance if a.importance!=b.importance else a.timestamp>b.timestamp)
 			old.memories.resize(mini(4,old.memories.size()))
+			_capture_dirty[old.id]=true; _capture_dirty[id]=true
 			records[id] = next
 			slots[slot] = id
 			replacements.append({"slot":slot,"old_id":String(old.id),"new_id":id})
@@ -184,6 +207,7 @@ func advance_to(target: float) -> Array[Dictionary]:
 func grant_xp(id: String, amount: int) -> int:
 	if not _prepare() or not records.has(id) or not records[id].active or amount<=0 or amount>1000000000000: return 0
 	var row: Dictionary = records[id]
+	_capture_dirty[id]=true
 	var before: int = row.level
 	row.experience = mini(_threshold(config.max_level,config),int(row.experience)+amount)
 	while row.level<config.max_level and row.experience>=_threshold(int(row.level)+1,config): row.level += 1
@@ -195,6 +219,7 @@ func reconcile_xp(id: String, legitimate_experience: int) -> Dictionary:
 	var rejected:={"accepted":false,"xp_delta":0,"level_delta":0,"expires_at":0.0,"expired":false}
 	if not _prepare() or not records.has(id) or not records[id].active or legitimate_experience<0 or legitimate_experience>_threshold(config.max_level,config): return rejected
 	var row: Dictionary=records[id]
+	_capture_dirty[id]=true
 	var level:=1
 	while level<int(config.max_level) and legitimate_experience>=_threshold(level+1,config): level+=1
 	var xp_delta:=legitimate_experience-int(row.experience)
@@ -233,6 +258,7 @@ func record_event(event: Dictionary) -> Dictionary:
 	if not _text(event.get("event_id"),128) or not _text(event.get("target_id"),128) or event.get("type") not in EVENT_TYPES or event.get("rarity") not in config.rarity_xp or not _number(event.get("significance"),-1000000,1000000): return rejected
 	if event.type=="economic" and not _integer(event.get("coins"),1,1000000000): return rejected
 	var row: Dictionary = records[event.actor_id]
+	_capture_dirty[event.actor_id]=true
 	var bits: PackedByteArray = String(row.event_bloom).hex_decode()
 	if bits.is_empty(): bits.resize(BLOOM_BYTES); bits.fill(0)
 	var positions := _bloom_positions("receipt/"+String(event.event_id))
@@ -271,6 +297,7 @@ func record_event(event: Dictionary) -> Dictionary:
 
 func remember(id: String, type: String, target: String, summary: String, importance: float = .5) -> bool:
 	if not records.has(id) or not records[id].active or not _text(type,32) or not _text(target,128,true) or not _text(summary,512) or not _number(importance,0,1): return false
+	_capture_dirty[id]=true
 	var memories: Array = records[id].memories
 	var entry := {"type":type,"target":target,"summary":summary,"importance":importance,"timestamp":world_seconds}
 	for i in range(memories.size()):
@@ -291,11 +318,13 @@ func relate(id: String, target: String, delta: float) -> bool:
 	if not records.has(id) or not records[id].active or not _text(target,128) or target==id or not is_finite(delta): return false
 	var relations: Dictionary=records[id].relationships
 	if not relations.has(target) and relations.size()>=MAX_RELATIONSHIPS: return false
+	_capture_dirty[id]=true
 	relations[target]=clampf(float(relations.get(target,0))+delta,-1,1)
 	return true
 
 func set_goal(id: String, goal: String, target: String = "") -> bool:
 	if not records.has(id) or not records[id].active or not _text(goal,64) or not _text(target,128,true): return false
+	_capture_dirty[id]=true
 	records[id].current_goal=goal
 	records[id].goal_target=target
 	return true
@@ -393,6 +422,8 @@ func restore(data: Variant) -> bool:
 	world_seconds=decoded.world_seconds
 	replacement_serial=decoded.replacement_serial
 	records=decoded.records
+	_capture_rows.clear(); _capture_dirty.clear()
+	for id: String in records: _capture_dirty[id]=true
 	slots=decoded.slots
 	_census_dirty=true
 	last_error=""

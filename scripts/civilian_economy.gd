@@ -67,6 +67,7 @@ var destroyed_total := 0
 var last_cycle := -1
 var sequence := 0
 var starter_influx_applied := false
+var institution_influx_applied := false
 var audit_base: Dictionary = {}
 var journal: Array[Dictionary] = []
 var rental: Dictionary = {}
@@ -76,6 +77,7 @@ var npc_stores: Dictionary = {}
 var service_tokens: Dictionary = {}
 var _initial_ids: Array[String] = []
 var _busy := false
+var _capture_queue: Dictionary={}
 
 static func resident_account(id: String) -> String: return "resident:"+id
 static func storage_owner(owner: String,room: int) -> String: return "room:"+owner+":"+str(room)
@@ -96,7 +98,7 @@ func configure(owner: String, eligible_natural_ids: Array) -> bool:
 	active_ids.assign(ids)
 	_initial_ids.assign(ids)
 	for account: String in _account_ids(owner,natural_ids,[ESCROW_ACCOUNT]): balances[account] = 0
-	audit_base = {"balances":balances.duplicate(),"issued_total":0,"destroyed_total":0,"last_cycle":-1,"sequence":0,"known_ids":natural_ids.duplicate(),"active_ids":active_ids.duplicate(),"starter_influx":false}
+	audit_base = {"balances":balances.duplicate(),"issued_total":0,"destroyed_total":0,"last_cycle":-1,"sequence":0,"known_ids":natural_ids.duplicate(),"active_ids":active_ids.duplicate(),"starter_influx":false,"institution_influx":false}
 	for room in range(ROOM_COUNT): room_stores[room] = _new_store(storage_owner(owner,room),"RoomStorage"+str(room))
 	guild_stock = _new_store(guild_account,"GuildStock")
 	return true
@@ -106,13 +108,34 @@ func _new_store(owner: String,label: String) -> Node:
 	store.owner_id = owner
 	store.name = label
 	store.process_mode = Node.PROCESS_MODE_DISABLED
+	_track_capture(store)
 	add_child(store)
 	return store
+
+func _track_capture(store: Node) -> void:
+	store.capture_cache_enabled=true
+	var reference: WeakRef=weakref(store)
+	store.changed.connect(_queue_capture.bind(reference))
+	_queue_capture(reference)
+
+func _queue_capture(reference: WeakRef) -> void:
+	var store: Node=reference.get_ref()
+	if is_instance_valid(store): _capture_queue[store.get_instance_id()]=reference
+
+func warm_capture() -> void:
+	var began:=Time.get_ticks_usec()
+	var count:=0
+	for key: int in _capture_queue.keys():
+		var store: Node=_capture_queue[key].get_ref()
+		_capture_queue.erase(key)
+		if is_instance_valid(store): store.capture_values()
+		count+=1
+		if count>=24 or Time.get_ticks_usec()-began>=2000: break
 
 func balance(account: String) -> int: return int(balances.get(account,0))
 
 func _state() -> Dictionary:
-	return {"balances":balances,"issued_total":issued_total,"destroyed_total":destroyed_total,"last_cycle":last_cycle,"sequence":sequence,"known_ids":natural_ids,"active_ids":active_ids,"starter_influx":starter_influx_applied}
+	return {"balances":balances,"issued_total":issued_total,"destroyed_total":destroyed_total,"last_cycle":last_cycle,"sequence":sequence,"known_ids":natural_ids,"active_ids":active_ids,"starter_influx":starter_influx_applied,"institution_influx":institution_influx_applied}
 
 func _append_event(entry: Dictionary) -> bool:
 	entry.sequence = sequence+1
@@ -123,6 +146,7 @@ func _append_event(entry: Dictionary) -> bool:
 	last_cycle = state.last_cycle
 	sequence = state.sequence
 	starter_influx_applied = state.starter_influx
+	institution_influx_applied = state.institution_influx
 	journal.append(entry.duplicate(true))
 	if journal.size()>JOURNAL_LIMIT:
 		_apply_event(audit_base,journal.pop_front())
@@ -149,6 +173,14 @@ func issue_starter_influx(payouts: Dictionary) -> bool:
 	if not host_enabled or _busy or _externally_busy() or owner_id.is_empty() or starter_influx_applied: return false
 	_busy=true
 	var accepted:=_append_event({"kind":"starter_influx","payouts":payouts.duplicate(true)})
+	if accepted: changed.emit()
+	_busy=false
+	return accepted
+
+func issue_institution_influx(payouts: Dictionary) -> bool:
+	if not host_enabled or _busy or _externally_busy() or owner_id.is_empty() or institution_influx_applied: return false
+	_busy=true
+	var accepted:=_append_event({"kind":"institution_influx","payouts":payouts.duplicate(true)})
 	if accepted: changed.emit()
 	_busy=false
 	return accepted
@@ -426,17 +458,18 @@ func npc_sell_crystal(id: String,iid: String,qty: int) -> bool:
 	if unit<=0 or qty>COIN_CAP/unit or not _can_pay(guild_account,resident_account(id),unit*qty): return false
 	return _move_item(store,guild_stock,iid,qty,{"kind":"transfer","from":guild_account,"to":resident_account(id),"amount":unit*qty,"reason":"Code Form crystal purchase"},{"context":"crystal_sale","amount":unit*qty,"participants":[id,merchant_ids.get("guild","")],"counterpart":guild_account})
 
-func npc_service_wage(id: String,service_key: String,serial: int) -> bool:
+func npc_service_wage(id: String,service_key: String,serial: int,amount: int=1) -> bool:
 	if not _npc_allowed(id,&"npc_service_wage",{"id":id,"service_key":service_key,"serial":serial}): return false
+	if amount!=1 and not (amount==20 and service_key=="tavern_work"): return false
 	var token := id+"|"+service_key
 	if not WAGE_SERVICES.has(service_key) or serial<0 or serial>COIN_CAP or serial<=int(service_tokens.get(token,-1)) or not service_tokens.has(token) and service_tokens.size()>=MAX_SERVICE_TOKENS: return false
 	var business: String = WAGE_SERVICES[service_key]
-	if not _can_pay(business,resident_account(id),1): return false
+	if not _can_pay(business,resident_account(id),amount): return false
 	_busy = true
-	var accepted := _append_event({"kind":"transfer","from":business,"to":resident_account(id),"amount":1,"reason":"Completed "+service_key})
+	var accepted := _append_event({"kind":"transfer","from":business,"to":resident_account(id),"amount":amount,"reason":"Completed "+service_key})
 	if accepted:
 		service_tokens[token] = serial
-		_receipt("wage:"+service_key,1,[id,merchant_ids.get("guild" if business==guild_account else "tavern","")],business,{"related_event_id":token+"|"+str(serial)})
+		_receipt("wage:"+service_key,amount,[id,merchant_ids.get("guild" if business==guild_account else "tavern","")],business,{"related_event_id":token+"|"+str(serial)})
 		changed.emit()
 	_busy = false
 	return accepted
@@ -671,13 +704,19 @@ func consume_food(iid: String,inventory: Node) -> bool:
 	_busy = false
 	return consumed!=null
 
+func capture_values() -> Dictionary:
+	return _snapshot(true)
+
 func serialize() -> Dictionary:
+	return _snapshot(false)
+
+func _snapshot(checkpoint: bool) -> Dictionary:
 	if owner_id.is_empty(): return {}
 	var stores: Dictionary = {}
-	for room: int in room_stores: stores[str(room)] = room_stores[room].serialize()
+	for room: int in room_stores: stores[str(room)] = room_stores[room].capture_values() if checkpoint else room_stores[room].serialize()
 	var npc: Dictionary = {}
-	for id: String in npc_stores: npc[id] = npc_stores[id].serialize()
-	return {"version":5,"guilds":guilds.duplicate(),"factions":factions.duplicate(),"contracts":contracts.duplicate(true),"owner_id":owner_id,"natural_ids":natural_ids.duplicate(),"active_ids":active_ids.duplicate(),"balances":balances.duplicate(),"issued_total":issued_total,"destroyed_total":destroyed_total,"last_cycle":last_cycle,"sequence":sequence,"audit_base":audit_base.duplicate(true),"journal":journal.duplicate(true),"rental":rental.duplicate(true),"room_stores":stores,"guild_stock":guild_stock.serialize(),"npc_stores":npc,"service_tokens":service_tokens.duplicate()}
+	for id: String in npc_stores: npc[id] = npc_stores[id].capture_values() if checkpoint else npc_stores[id].serialize()
+	return {"version":6,"guilds":guilds.duplicate(),"factions":factions.duplicate(),"contracts":contracts.duplicate(true),"owner_id":owner_id,"natural_ids":natural_ids.duplicate(),"active_ids":active_ids.duplicate(),"balances":balances.duplicate(),"issued_total":issued_total,"destroyed_total":destroyed_total,"last_cycle":last_cycle,"sequence":sequence,"audit_base":audit_base.duplicate(true),"journal":journal.duplicate(true),"rental":rental.duplicate(true),"room_stores":stores,"guild_stock":guild_stock.capture_values() if checkpoint else guild_stock.serialize(),"npc_stores":npc,"service_tokens":service_tokens.duplicate()}
 
 func restore(data: Variant) -> bool:
 	if not host_enabled or _busy or _externally_busy(): return false
@@ -716,25 +755,31 @@ func restore(data: Variant) -> bool:
 	audit_base = decoded.audit_base
 	journal.assign(decoded.journal)
 	starter_influx_applied=bool(audit_base.starter_influx)
+	institution_influx_applied=bool(audit_base.institution_influx)
 	for event: Dictionary in journal:
 		if event.kind=="starter_influx": starter_influx_applied=true
+		if event.kind=="institution_influx": institution_influx_applied=true
 	rental = decoded.rental
 	service_tokens = decoded.service_tokens
 	factions.assign(decoded.factions)
 	guilds.assign(decoded.guilds)
 	contracts = decoded.contracts
 	room_stores = replacements
+	_capture_queue.clear()
 	for room: int in room_stores:
 		room_stores[room].name = "RoomStorage"+str(room)
 		room_stores[room].process_mode = Node.PROCESS_MODE_DISABLED
+		_track_capture(room_stores[room])
 		add_child(room_stores[room])
 	guild_stock = stock
 	guild_stock.name = "GuildStock"
 	guild_stock.process_mode = Node.PROCESS_MODE_DISABLED
+	_track_capture(guild_stock)
 	add_child(guild_stock)
 	npc_stores = npc
 	for id: String in npc_stores:
 		npc_stores[id].process_mode = Node.PROCESS_MODE_DISABLED
+		_track_capture(npc_stores[id])
 		add_child(npc_stores[id])
 	changed.emit()
 	_busy = false
@@ -810,6 +855,18 @@ static func _apply_event(state: Dictionary,entry: Dictionary) -> bool:
 			for id: String in state.active_ids: coins[resident_account(id)]+=int(entry.payouts[id])
 			state.issued_total+=total
 			state.starter_influx=true
+		"institution_influx":
+			if entry.size()!=3 or not state.has("institution_influx") or state.institution_influx or not entry.get("payouts") is Dictionary or entry.payouts.is_empty(): return false
+			var total:=0
+			for account: Variant in entry.payouts:
+				if not account is String or not coins.has(account) or not (account.begins_with("guild:") or account.begins_with("faction:") or account in ["business:guild","business:tavern"]): return false
+				var amount: Variant=entry.payouts[account]
+				if not Instance.whole_number(amount,1,100000) or int(coins[account])>COIN_CAP-int(amount): return false
+				total+=int(amount)
+			if state.issued_total>COIN_CAP-total: return false
+			for account: String in entry.payouts: coins[account]+=int(entry.payouts[account])
+			state.issued_total+=total
+			state.institution_influx=true
 		"issue":
 			if entry.size()!=5 or not Instance.whole_number(entry.get("cycle"),0,COIN_CAP) or entry.cycle<=state.last_cycle or not Instance.whole_number(entry.get("amount"),1,100000) or not entry.get("recipients") is Array: return false
 			var recipients: Array = entry.recipients.duplicate()
@@ -946,7 +1003,7 @@ static func _subset_ids(input: Variant,owner: String,known: Dictionary,maximum: 
 		if not known.has(id): return null
 	return ids
 
-static func _validate_v2(input: Variant,player: Dictionary = {},world_drops: Array = [],extra_accounts: Array = [],allow_influx: bool=false) -> Dictionary:
+static func _validate_v2(input: Variant,player: Dictionary = {},world_drops: Array = [],extra_accounts: Array = [],allow_influx: int=0) -> Dictionary:
 	if not input is Dictionary: return {}
 	if input.get("version")==1:
 		var migrated := _migrate_v1(_validate_v1(input,player,world_drops))
@@ -966,8 +1023,9 @@ static func _validate_v2(input: Variant,player: Dictionary = {},world_drops: Arr
 	var total := int(input.destroyed_total)
 	for value: int in coins.values(): total += value
 	if total!=int(input.issued_total): return {}
-	if not input.get("audit_base") is Dictionary or input.audit_base.size()!=(8 if allow_influx else 7): return {}
+	if not input.get("audit_base") is Dictionary or input.audit_base.size()!=(9 if allow_influx==2 else 8 if allow_influx==1 else 7): return {}
 	if allow_influx and not input.audit_base.get("starter_influx") is bool: return {}
+	if allow_influx==2 and not input.audit_base.get("institution_influx") is bool: return {}
 	var base_input: Dictionary = input.audit_base
 	var base_coins := _balances(base_input.get("balances"),accounts)
 	var base_known: Variant = _subset_ids(base_input.get("known_ids"),owner,known_set)
@@ -982,6 +1040,9 @@ static func _validate_v2(input: Variant,player: Dictionary = {},world_drops: Arr
 	if allow_influx:
 		base.starter_influx=base_input.starter_influx
 		if base.sequence==0 and base.starter_influx: return {}
+	if allow_influx==2:
+		base.institution_influx=base_input.institution_influx
+		if base.sequence==0 and base.institution_influx: return {}
 	total = base.destroyed_total
 	for value: int in base_coins.values(): total += value
 	if total!=base.issued_total or base.destroyed_total>base.issued_total: return {}
@@ -1034,7 +1095,7 @@ static func _validate_v2(input: Variant,player: Dictionary = {},world_drops: Arr
 static func _faction_key(key: Variant) -> bool:
 	return Instance.valid_text(key,false,64) and not ":" in key and not "|" in key
 
-static func _validate_v3(input: Variant,player: Dictionary = {},world_drops: Array = [],guild_accounts: Array = [],allow_influx: bool=false) -> Dictionary:
+static func _validate_v3(input: Variant,player: Dictionary = {},world_drops: Array = [],guild_accounts: Array = [],allow_influx: int=0) -> Dictionary:
 	if not input is Dictionary: return {}
 	if Instance.whole_number(input.get("version"),1,2):
 		var migrated:=_validate_v2(input,player,world_drops)
@@ -1072,7 +1133,7 @@ static func _validate_v3(input: Variant,player: Dictionary = {},world_drops: Arr
 	result.version=3; result.factions=faction_ids; result.contracts=reservations
 	return result
 
-static func _validate_v4(input: Variant,player: Dictionary = {},world_drops: Array = [],allow_influx: bool=false) -> Dictionary:
+static func _validate_v4(input: Variant,player: Dictionary = {},world_drops: Array = [],allow_influx: int=0) -> Dictionary:
 	if not input is Dictionary: return {}
 	if Instance.whole_number(input.get("version"),1,3):
 		var legacy:=_validate_v3(input,player,world_drops)
@@ -1095,11 +1156,13 @@ static func _validate_v4(input: Variant,player: Dictionary = {},world_drops: Arr
 
 static func validate(input: Variant,player: Dictionary = {},world_drops: Array = []) -> Dictionary:
 	if not input is Dictionary: return {}
-	var current: bool=input.get("version")==5
+	var current: bool=(input.get("version")==5 or input.get("version")==6)
+	var institutions: bool=input.get("version")==6
 	var core: Dictionary=input.duplicate(true)
 	if current: core.version=4
-	var result:=_validate_v4(core,player,world_drops,current)
+	var result:=_validate_v4(core,player,world_drops,2 if institutions else 1 if current else 0)
 	if result.is_empty(): return {}
 	if not current: result.audit_base.starter_influx=false
-	result.version=5
+	if not institutions: result.audit_base.institution_influx=false
+	result.version=6
 	return result

@@ -25,7 +25,9 @@ func _walkable(points: PackedVector3Array) -> bool:
 		if length>MAX_PATH_LENGTH or absf(a.y-b.y)>.25: return false
 		var query:=PhysicsShapeQueryParameters3D.new()
 		query.shape=_capsule; query.collision_mask=1; query.margin=.005
-		query.transform=Transform3D(Basis.IDENTITY,a+Vector3.UP*.95)
+		# Resting CharacterBody feet can settle a few centimetres below the
+		# ideal route height. Do not mistake floor contact for a blocked path.
+		query.transform=Transform3D(Basis.IDENTITY,a+Vector3.UP*.99)
 		if not space.intersect_shape(query,1).is_empty(): return false
 		query.motion=b-a
 		var sweep:=space.cast_motion(query)

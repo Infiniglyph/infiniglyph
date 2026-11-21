@@ -223,7 +223,8 @@ func run() -> void:
 	await key_g()
 	check(services.menu.is_open and services.current.kind==&"bartender","The independent tavern keeper can be reached through normal world interaction")
 	await capture("tavern")
-	services.menu._rows[0].pressed.emit()
+	services.menu._rows[0].pressed.emit() # Open the shared cuisine catalog.
+	services.menu._rows[0].pressed.emit() # Purchase the Electron Meal.
 	check(p.inventory.count_type(&"electron_meal")==1 and economy.balance(economy.player_account)==10 and economy.balance(economy.tavern_account)==108 and economy.balance(economy.guild_account)==82,"Tavern meal purchase transfers only the stated price to the tavern treasury")
 	var meal_id := ""
 	for item: Resource in p.inventory.items.values():

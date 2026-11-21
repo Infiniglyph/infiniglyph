@@ -62,9 +62,9 @@ func run() -> void:
 	for i in range(140): economy.transfer("resident:faction_head","resident:citizen",1,"Fixture transfer")
 	saved=JSON.parse_string(JSON.stringify(economy.serialize()))
 	check(saved.audit_base.starter_influx and economy.restore(saved) and not economy.issue_starter_influx(payouts) and coins(economy)==10500,"Compaction preserves the durable receipt and total supply")
-	var legacy:=before.duplicate(true); legacy.version=4; legacy.audit_base.erase("starter_influx")
+	var legacy:=before.duplicate(true); legacy.version=4; legacy.audit_base.erase("starter_influx"); legacy.audit_base.erase("institution_influx")
 	var upgraded:=Economy.validate(legacy)
-	check(not upgraded.is_empty() and upgraded.version==5 and not upgraded.audit_base.starter_influx and economy.restore(legacy) and economy.issue_starter_influx(payouts),"Existing v4 saves migrate and receive their missing grant exactly once")
+	check(not upgraded.is_empty() and upgraded.version==6 and not upgraded.audit_base.starter_influx and economy.restore(legacy) and economy.issue_starter_influx(payouts),"Existing v4 saves migrate and receive their missing grant exactly once")
 	check(economy.retire_code_form("citizen") and economy.enroll_code_form("successor",0) and economy.balance("resident:successor")==0 and not economy.issue_starter_influx(payouts),"The rollout is global; later births keep ordinary blessing rules")
 	check(economy.bless_cycle(1,economy.active_ids) and coins(economy)==11100 and not Economy.validate(economy.serialize()).is_empty(),"Regular equal blessings and strict validation continue after the influx")
 	economy.queue_free(); await process_frame

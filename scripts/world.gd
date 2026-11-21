@@ -41,6 +41,7 @@ var dark_box_patrols: Node3D
 var careers: Node
 var career_actions: RefCounted
 var career_menu: Node
+var civilian_errands: Node
 var career_commute: RefCounted
 var building_civilization: Node3D
 var quest_system: Node
@@ -243,6 +244,9 @@ func _ready() -> void:
 		career_actions.world=self
 		career_commute=CareerCommute.new()
 		career_commute.world=self
+		civilian_errands=preload("res://scripts/civilian_errands.gd").new()
+		civilian_errands.world=self
+		add_child(civilian_errands)
 		careers=CareerSystem.new()
 		careers.world=self
 		add_child(careers)

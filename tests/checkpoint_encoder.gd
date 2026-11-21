@@ -78,7 +78,7 @@ func run() -> void:
 	check(encoder.start(invalid)==ERR_INVALID_DATA and not encoder.pending(),"Invalid core ownership/policy is rejected on the main thread before a worker exists")
 	invalid=original.duplicate(true)
 	invalid.civilian_state.balances[economy.player_account]=1
-	check(encoder.start(invalid)==ERR_INVALID_DATA and not encoder.pending(),"An unconserved inventory/economy core cannot launch an encoding job")
+	await error_job(invalid,"An unconserved inventory/economy core")
 	var hidden := Node.new()
 	invalid=original.duplicate(true)
 	invalid.civilization_state.unexpected={"nested":[hidden]}
@@ -145,7 +145,7 @@ func run() -> void:
 	ordinary.civilian_state=large_economy.serialize()
 	ordinary.civilization_state=society(large)
 	var ordinary_began:=Time.get_ticks_usec()
-	check(encoder.start(ordinary)==OK,"An ordinary production-sized capture starts through the native binary boundary")
+	check(encoder.start(ordinary)==OK,"An ordinary production-sized capture starts through a detached value capture")
 	var ordinary_capture_ms:=float(Time.get_ticks_usec()-ordinary_began)/1000.0
 	result=await wait_result()
 	check(result.get("error")==OK,"Ordinary production-sized checkpoint encodes on the worker")
