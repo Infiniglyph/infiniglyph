@@ -16,6 +16,7 @@ var dead := false
 var female_shape: MultiMesh
 var store: Node
 var code_form_id := ""
+var _fallback_weapons: Dictionary={}
 
 func _ready() -> void:
 	live_motion_retrieval = false
@@ -79,11 +80,17 @@ func _ready() -> void:
 func attach_store(authority: Node) -> void:
 	if not is_instance_valid(authority) or inventory==authority: return
 	var starter: Node=inventory
+	var fallback:=default_combat_fallback()
+	for slot: StringName in authority.SLOTS:
+		if authority.weapon_slot(slot)!=&"": fallback=false
+	if fallback:
+		for slot: StringName in starter.SLOTS: _fallback_weapons[slot]=starter.weapon_slot(slot)
 	store=authority
 	inventory=authority
 	inventory.actor=self
-	combat.loadout_resolver=inventory.weapon_slot
+	combat.loadout_resolver=_combat_slot
 	inventory.equipment_changed.connect(combat.refresh_equipment)
+	inventory.equipment_changed.connect(weapon_combat.refresh_passives)
 	inventory.equipment_changed.connect(_clothing_changed)
 	if is_instance_valid(starter) and starter.get_parent()==self: starter.queue_free()
 	if inventory.weapon_slot(combat.selected_slot)==&"":
@@ -92,6 +99,16 @@ func attach_store(authority: Node) -> void:
 	combat.refresh_equipment()
 	combat.sheathed=false
 	visual.sync_clothing(inventory)
+	weapon_combat.refresh_passives()
+
+func _combat_slot(slot: StringName) -> StringName:
+	# Previously an unarmed resident retained the temporary four basic combat
+	# choices. Preserve that handling without replacing their owned wardrobe.
+	for direction: StringName in inventory.SLOTS:
+		if inventory.weapon_slot(direction)!=&"": return inventory.weapon_slot(slot)
+	return StringName(_fallback_weapons.get(slot,&""))
+
+func default_combat_fallback() -> bool: return true
 
 func _clothing_changed() -> void: visual.sync_clothing(inventory)
 
@@ -99,6 +116,7 @@ func detach_store() -> void:
 	if not is_instance_valid(store) or inventory!=store: return
 	if inventory.equipment_changed.is_connected(combat.refresh_equipment): inventory.equipment_changed.disconnect(combat.refresh_equipment)
 	if inventory.equipment_changed.is_connected(_clothing_changed): inventory.equipment_changed.disconnect(_clothing_changed)
+	if inventory.equipment_changed.is_connected(weapon_combat.refresh_passives): inventory.equipment_changed.disconnect(weapon_combat.refresh_passives)
 	if inventory.actor==self: inventory.actor=null
 
 func _exit_tree() -> void: detach_store()

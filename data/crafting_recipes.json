@@ -1,0 +1,405 @@
+{
+  "version": 1,
+  "recipes": [
+    {
+      "id": "prepare_byte_bites",
+      "output_item": "byte_bites",
+      "output_quantity": 1,
+      "ingredients": {
+        "electrons": 2,
+        "hadron_grains": 1
+      },
+      "category": "cuisine",
+      "source_dungeon": ""
+    },
+    {
+      "id": "prepare_pixel_toast",
+      "output_item": "pixel_toast",
+      "output_quantity": 1,
+      "ingredients": {
+        "electrons": 2,
+        "hadron_grains": 1
+      },
+      "category": "cuisine",
+      "source_dungeon": ""
+    },
+    {
+      "id": "prepare_binary_bowl",
+      "output_item": "binary_bowl",
+      "output_quantity": 1,
+      "ingredients": {
+        "electrons": 2,
+        "hadron_grains": 1,
+        "quark_clusters": 1
+      },
+      "category": "cuisine",
+      "source_dungeon": ""
+    },
+    {
+      "id": "prepare_circuit_noodles",
+      "output_item": "circuit_noodles",
+      "output_quantity": 1,
+      "ingredients": {
+        "electrons": 2,
+        "hadron_grains": 1,
+        "quark_clusters": 1
+      },
+      "category": "cuisine",
+      "source_dungeon": ""
+    },
+    {
+      "id": "prepare_data_dumplings",
+      "output_item": "data_dumplings",
+      "output_quantity": 1,
+      "ingredients": {
+        "electrons": 2,
+        "hadron_grains": 1,
+        "quark_clusters": 1
+      },
+      "category": "cuisine",
+      "source_dungeon": ""
+    },
+    {
+      "id": "prepare_electron_rice",
+      "output_item": "electron_rice",
+      "output_quantity": 1,
+      "ingredients": {
+        "electrons": 2,
+        "hadron_grains": 2
+      },
+      "category": "cuisine",
+      "source_dungeon": ""
+    },
+    {
+      "id": "prepare_bit_burger",
+      "output_item": "bit_burger",
+      "output_quantity": 1,
+      "ingredients": {
+        "electrons": 2,
+        "hadron_grains": 1,
+        "quark_clusters": 2,
+        "gluon_binder": 1
+      },
+      "category": "cuisine",
+      "source_dungeon": ""
+    },
+    {
+      "id": "prepare_cache_fries",
+      "output_item": "cache_fries",
+      "output_quantity": 1,
+      "ingredients": {
+        "electrons": 2,
+        "hadron_grains": 1
+      },
+      "category": "cuisine",
+      "source_dungeon": ""
+    },
+    {
+      "id": "prepare_quantum_ramen",
+      "output_item": "quantum_ramen",
+      "output_quantity": 1,
+      "ingredients": {
+        "electrons": 2,
+        "hadron_grains": 2,
+        "quark_clusters": 1,
+        "photon_essence": 1
+      },
+      "category": "cuisine",
+      "source_dungeon": ""
+    },
+    {
+      "id": "prepare_plasma_pizza",
+      "output_item": "plasma_pizza",
+      "output_quantity": 1,
+      "ingredients": {
+        "electrons": 2,
+        "hadron_grains": 2,
+        "quark_clusters": 2,
+        "photon_essence": 1,
+        "gluon_binder": 1
+      },
+      "category": "cuisine",
+      "source_dungeon": ""
+    },
+    {
+      "id": "prepare_voltage_stew",
+      "output_item": "voltage_stew",
+      "output_quantity": 1,
+      "ingredients": {
+        "electrons": 2,
+        "hadron_grains": 2,
+        "quark_clusters": 1,
+        "photon_essence": 1
+      },
+      "category": "cuisine",
+      "source_dungeon": ""
+    },
+    {
+      "id": "prepare_photon_skewers",
+      "output_item": "photon_skewers",
+      "output_quantity": 1,
+      "ingredients": {
+        "electrons": 2,
+        "hadron_grains": 2,
+        "quark_clusters": 2,
+        "photon_essence": 1,
+        "gluon_binder": 1
+      },
+      "category": "cuisine",
+      "source_dungeon": ""
+    },
+    {
+      "id": "prepare_fractal_curry",
+      "output_item": "fractal_curry",
+      "output_quantity": 1,
+      "ingredients": {
+        "electrons": 2,
+        "hadron_grains": 3,
+        "quark_clusters": 2,
+        "photon_essence": 1,
+        "gluon_binder": 1,
+        "plasma_nectar": 1
+      },
+      "category": "cuisine",
+      "source_dungeon": ""
+    },
+    {
+      "id": "prepare_neon_sushi",
+      "output_item": "neon_sushi",
+      "output_quantity": 1,
+      "ingredients": {
+        "electrons": 2,
+        "hadron_grains": 3,
+        "quark_clusters": 2,
+        "photon_essence": 1,
+        "gluon_binder": 1,
+        "plasma_nectar": 1
+      },
+      "category": "cuisine",
+      "source_dungeon": ""
+    },
+    {
+      "id": "prepare_algorithmic_pasta",
+      "output_item": "algorithmic_pasta",
+      "output_quantity": 1,
+      "ingredients": {
+        "electrons": 2,
+        "hadron_grains": 3,
+        "quark_clusters": 3,
+        "photon_essence": 1,
+        "gluon_binder": 1,
+        "plasma_nectar": 1,
+        "quantum_condensate": 1
+      },
+      "category": "cuisine",
+      "source_dungeon": ""
+    },
+    {
+      "id": "prepare_electron_feast",
+      "output_item": "electron_feast",
+      "output_quantity": 1,
+      "ingredients": {
+        "electrons": 2,
+        "hadron_grains": 4,
+        "quark_clusters": 4,
+        "photon_essence": 1,
+        "gluon_binder": 1,
+        "plasma_nectar": 1,
+        "quantum_condensate": 1
+      },
+      "category": "cuisine",
+      "source_dungeon": ""
+    },
+    {
+      "id": "prepare_refresh_packet",
+      "output_item": "refresh_packet",
+      "output_quantity": 1,
+      "ingredients": {
+        "neutrino_extract": 1,
+        "photon_essence": 1
+      },
+      "category": "cuisine",
+      "source_dungeon": ""
+    },
+    {
+      "id": "prepare_ion_tea",
+      "output_item": "ion_tea",
+      "output_quantity": 1,
+      "ingredients": {
+        "neutrino_extract": 1,
+        "photon_essence": 1
+      },
+      "category": "cuisine",
+      "source_dungeon": ""
+    },
+    {
+      "id": "prepare_charged_coffee",
+      "output_item": "charged_coffee",
+      "output_quantity": 1,
+      "ingredients": {
+        "neutrino_extract": 1,
+        "photon_essence": 1,
+        "muon_concentrate": 1
+      },
+      "category": "cuisine",
+      "source_dungeon": ""
+    },
+    {
+      "id": "prepare_liquid_light",
+      "output_item": "liquid_light",
+      "output_quantity": 1,
+      "ingredients": {
+        "neutrino_extract": 1,
+        "photon_essence": 1,
+        "muon_concentrate": 1,
+        "plasma_nectar": 1,
+        "quantum_condensate": 1
+      },
+      "category": "cuisine",
+      "source_dungeon": ""
+    },
+    {
+      "id": "prepare_data_smoothie",
+      "output_item": "data_smoothie",
+      "output_quantity": 1,
+      "ingredients": {
+        "neutrino_extract": 1,
+        "photon_essence": 1,
+        "muon_concentrate": 1,
+        "plasma_nectar": 1
+      },
+      "category": "cuisine",
+      "source_dungeon": ""
+    },
+    {
+      "id": "prepare_pixel_pudding",
+      "output_item": "pixel_pudding",
+      "output_quantity": 1,
+      "ingredients": {
+        "electrons": 1,
+        "boson_foam": 1,
+        "plasma_nectar": 1
+      },
+      "category": "cuisine",
+      "source_dungeon": ""
+    },
+    {
+      "id": "prepare_glitch_gelato",
+      "output_item": "glitch_gelato",
+      "output_quantity": 1,
+      "ingredients": {
+        "electrons": 1,
+        "boson_foam": 2,
+        "plasma_nectar": 1,
+        "photon_essence": 1
+      },
+      "category": "cuisine",
+      "source_dungeon": ""
+    },
+    {
+      "id": "prepare_quantum_cake",
+      "output_item": "quantum_cake",
+      "output_quantity": 1,
+      "ingredients": {
+        "electrons": 1,
+        "boson_foam": 3,
+        "plasma_nectar": 1,
+        "photon_essence": 1,
+        "quantum_condensate": 1
+      },
+      "category": "cuisine",
+      "source_dungeon": ""
+    },
+    {
+      "id": "prepare_electron_meal",
+      "output_item": "electron_meal",
+      "output_quantity": 1,
+      "ingredients": {
+        "electrons": 2,
+        "hadron_grains": 1
+      },
+      "category": "cuisine",
+      "source_dungeon": ""
+    },
+    {
+      "id": "prepare_electron_draught",
+      "output_item": "electron_draught",
+      "output_quantity": 1,
+      "ingredients": {
+        "electrons": 1,
+        "neutrino_extract": 1,
+        "boson_foam": 1
+      },
+      "category": "cuisine",
+      "source_dungeon": ""
+    },
+    {
+      "id": "prepare_signal_tonic",
+      "output_item": "signal_tonic",
+      "output_quantity": 1,
+      "ingredients": {
+        "neutrino_extract": 1,
+        "muon_concentrate": 1,
+        "photon_essence": 1
+      },
+      "category": "cuisine",
+      "source_dungeon": ""
+    },
+    {
+      "id": "forge_starter_sword",
+      "output_item": "sword_shield",
+      "output_quantity": 1,
+      "ingredients": {
+        "melted_ore": 3,
+        "glyph_crystal": 1
+      },
+      "category": "equipment",
+      "source_dungeon": ""
+    },
+    {
+      "id": "forge_civic_lattice",
+      "output_item": "eq_a_11607e48",
+      "output_quantity": 1,
+      "ingredients": {
+        "melted_ore": 5,
+        "glyph_crystal": 2
+      },
+      "category": "equipment",
+      "source_dungeon": ""
+    },
+    {
+      "id": "forge_tomb_blade",
+      "output_item": "tomb_blade",
+      "output_quantity": 1,
+      "ingredients": {
+        "melted_ore": 3,
+        "glyph_crystal": 2,
+        "tomb_bone_shards": 2
+      },
+      "category": "equipment",
+      "source_dungeon": "pyramid"
+    },
+    {
+      "id": "forge_civic_promise",
+      "output_item": "eq_r_20004e5c",
+      "output_quantity": 1,
+      "ingredients": {
+        "melted_ore": 2,
+        "glyph_crystal": 2
+      },
+      "category": "accessories",
+      "source_dungeon": ""
+    },
+    {
+      "id": "forge_civic_hearth",
+      "output_item": "eq_r_20005096",
+      "output_quantity": 1,
+      "ingredients": {
+        "melted_ore": 2,
+        "glyph_crystal": 3
+      },
+      "category": "accessories",
+      "source_dungeon": ""
+    }
+  ]
+}

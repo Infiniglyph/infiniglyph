@@ -5,7 +5,10 @@ const Catalog = preload("res://scripts/item_catalog.gd")
 
 static func for_id(id: StringName) -> Dictionary:
 	var entry := Database.get_item(id)
-	if not entry.is_empty(): return entry
+	if not entry.is_empty():
+		if entry.family=="ring":
+			entry=entry.duplicate(true); entry.description=Catalog.get_definition(id).description
+		return entry
 	var definition: Resource = Catalog.get_definition(id)
 	if definition==null: return {}
 	var properties: Dictionary=definition.custom_properties

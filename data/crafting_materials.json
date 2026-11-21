@@ -1,0 +1,135 @@
+{
+  "version": 1,
+  "materials": [
+    {
+      "id": "electrons",
+      "item_id": "electrons",
+      "name": "Electrons",
+      "description": "Universal base ingredient for Electron Meals.",
+      "category": "particle",
+      "stack": 99,
+      "source_dungeon": "",
+      "tint": "bf8fff"
+    },
+    {
+      "id": "hadron_grains",
+      "item_id": "hadron_grains",
+      "name": "Hadron Grains",
+      "description": "A grain and starch substitute.",
+      "category": "particle",
+      "stack": 99,
+      "source_dungeon": "",
+      "tint": "bf8fff"
+    },
+    {
+      "id": "quark_clusters",
+      "item_id": "quark_clusters",
+      "name": "Quark Clusters",
+      "description": "Dense protein-like clusters.",
+      "category": "particle",
+      "stack": 99,
+      "source_dungeon": "",
+      "tint": "bf8fff"
+    },
+    {
+      "id": "gluon_binder",
+      "item_id": "gluon_binder",
+      "name": "Gluon Binder",
+      "description": "Binds prepared foods.",
+      "category": "particle",
+      "stack": 99,
+      "source_dungeon": "",
+      "tint": "bf8fff"
+    },
+    {
+      "id": "photon_essence",
+      "item_id": "photon_essence",
+      "name": "Photon Essence",
+      "description": "Luminous flavoring for meals and drinks.",
+      "category": "particle",
+      "stack": 99,
+      "source_dungeon": "",
+      "tint": "bf8fff"
+    },
+    {
+      "id": "neutrino_extract",
+      "item_id": "neutrino_extract",
+      "name": "Neutrino Extract",
+      "description": "Refined liquid for beverages.",
+      "category": "particle",
+      "stack": 99,
+      "source_dungeon": "",
+      "tint": "bf8fff"
+    },
+    {
+      "id": "boson_foam",
+      "item_id": "boson_foam",
+      "name": "Boson Foam",
+      "description": "Aerated dessert and beverage ingredient.",
+      "category": "particle",
+      "stack": 99,
+      "source_dungeon": "",
+      "tint": "bf8fff"
+    },
+    {
+      "id": "muon_concentrate",
+      "item_id": "muon_concentrate",
+      "name": "Muon Concentrate",
+      "description": "Concentrated specialty beverage ingredient.",
+      "category": "particle",
+      "stack": 99,
+      "source_dungeon": "",
+      "tint": "bf8fff"
+    },
+    {
+      "id": "plasma_nectar",
+      "item_id": "plasma_nectar",
+      "name": "Plasma Nectar",
+      "description": "Luminous sweetener.",
+      "category": "particle",
+      "stack": 99,
+      "source_dungeon": "",
+      "tint": "bf8fff"
+    },
+    {
+      "id": "quantum_condensate",
+      "item_id": "quantum_condensate",
+      "name": "Quantum Condensate",
+      "description": "Premium ingredient for elaborate cuisine.",
+      "category": "particle",
+      "stack": 99,
+      "source_dungeon": "",
+      "tint": "bf8fff"
+    },
+    {
+      "id": "glyph_crystal",
+      "item_id": "glyph_crystal",
+      "name": "Glyph Crystal",
+      "description": "Standard energy material for basic equipment.",
+      "category": "industrial",
+      "stack": 99,
+      "source_dungeon": "",
+      "tint": "6fffe1"
+    },
+    {
+      "id": "melted_ore",
+      "item_id": "melted_ore",
+      "name": "Melted Ore",
+      "description": "Structural material recovered by terminal recycling.",
+      "category": "industrial",
+      "stack": 99,
+      "source_dungeon": "",
+      "tint": "6fffe1"
+    },
+    {
+      "id": "tomb_bone_shards",
+      "item_id": "bone_shards",
+      "name": "Bone Shards",
+      "description": "Tomb fragments used to reconstruct the Pyramid Tomb Blade.",
+      "category": "dungeon",
+      "stack": 99,
+      "source_dungeon": "pyramid",
+      "tint": "ffd170"
+    }
+  ]
+}

@@ -11,6 +11,7 @@ var model:=Model.new()
 var descriptors: Dictionary={}
 var menu: CanvasLayer
 var current:=""
+var crafting: RefCounted
 var ready_for_use:=false
 var _busy:=false
 var _clock:=0.0
@@ -283,10 +284,11 @@ func _object(id: String) -> void:
 	var interaction:=String(definition.custom_properties.get("interaction","decoration"))
 	var options: Array=[]
 	if interaction in ["storage","archive","wardrobe"]: options.append(_choice("Open property storage",_storage.bind(false)))
+	if interaction in ["storage","craft","cook","cooking"]: options.append(_choice("Terminal crafting and recycling",_crafting))
 	if interaction in ["seat","rest"]: options.append(_choice("Use "+interaction,_use_object.bind(id,interaction)))
 	if interaction in ["contracts","guild","trade"]: options.append(_choice("Open shared civic services",_civic_terminal.bind(interaction)))
 	options.append(_choice("Remove and reclaim owned item",_remove.bind(id),model.allowed(current,"player")))
-	menu.show_page(definition.display_name,definition.description+"\n\nInteraction: "+interaction+". "+("This equipment is ready for its future production system." if interaction in ["craft","cook","repair","security","lighting"] else ""),options,_installed)
+	menu.show_page(definition.display_name,definition.description+"\n\nInteraction: "+interaction+". "+("Craft and recycle using owned inventory and accessible storage." if interaction in ["storage","craft","cook","cooking"] else ""),options,_installed)
 func _remove(id: String) -> void:
 	if not _near(current) or _busy: return
 	_busy=true
@@ -319,6 +321,64 @@ func _transfer(iid: String,deposit: bool) -> void:
 	owned.free(); store.free(); _busy=false
 	if ok: changed.emit()
 	_storage(deposit)
+
+func _crafting() -> void:
+	if crafting==null: crafting=preload("res://scripts/terminal_crafting_menu.gd").new(menu,_crafting_context,_home)
+	crafting.open()
+
+func _crafting_context() -> Dictionary:
+	if _busy or not world.loot.host_enabled or world.civilian_services.economy.transaction_active() or not menu.is_open or not _near(current) or not model.allowed(current,"player") or world.inventory_session.networked() or world.player.health<=0 or world.player.transition_locked: return {}
+	var store:=Inventory.new()
+	if not store.restore(model.records[current].storage): store.free(); return {}
+	var building:=current
+	return {"inventory":world.player.inventory,"storage":store,"temporary":true,"commit":func(): model.records[building].storage=store.serialize(); changed.emit()}
+
+func craft_for_native(id: String,building: String,recipe: String) -> bool:
+	return _native_terminal_operation(id,building,recipe,"")
+
+func recycle_for_native(id: String,building: String,iid: String) -> bool:
+	return _native_terminal_operation(id,building,"",iid)
+
+func crafting_options_for_native(id: String,building: String) -> Array:
+	var context:=_native_crafting_context(id,building)
+	if context.is_empty(): return []
+	var result: Array=[]
+	for recipe: Dictionary in preload("res://scripts/crafting_recipes.gd").all():
+		var missing: Dictionary={}
+		for material: String in recipe.ingredients:
+			var quantity:=int(recipe.ingredients[material])-preload("res://scripts/terminal_crafting.gd").available(material,context.inventory,context.storage)
+			if quantity>0: missing[material]=quantity
+		result.append({"recipe_id":recipe.id,"output_item":recipe.output_item,"missing":missing,"ready":missing.is_empty()})
+	context.storage.free(); return result
+
+func _native_crafting_context(id: String,building: String) -> Dictionary:
+	# Physical access and the same owned material registry; no new AI loop.
+	if _busy or not world.loot.host_enabled or world.inventory_session.networked() or not world.civilization.registry.records.get(id,{}).get("active",false) or world.civilian_services.economy.transaction_active() or not model.allowed(building,id): return {}
+	if float(world.civilization.autonomy._state(id).get("vitality",0))<=0: return {}
+	var point: Vector3=world.civic_interactions.position_for(id)
+	if not point.is_finite(): return {}
+	var row: Dictionary=model.records.get(building,{})
+	if row.is_empty(): return {}
+	var terminal_near:=false
+	var base:=Vector3(float(row.position[0]),float(row.position[1]),float(row.position[2]))
+	for placement: Dictionary in row.placements.values():
+		var definition: Resource=Catalog.get_definition(StringName(placement.item.item_type_id))
+		if definition.custom_properties.get("interaction") not in ["storage","craft","cook","cooking"]: continue
+		var at:=base+Vector3(float(placement.position[0]),float(placement.position[1]),float(placement.position[2]))
+		terminal_near=terminal_near or point.distance_to(at)<=4
+	if not terminal_near: return {}
+	var store:=Inventory.new()
+	if not store.restore(row.storage): store.free(); return {}
+	return {"inventory":world.civilian_services.economy.npc_store(id),"storage":store}
+
+func _native_terminal_operation(id: String,building: String,recipe: String,iid: String) -> bool:
+	var context:=_native_crafting_context(id,building)
+	if context.is_empty(): return false
+	_busy=true
+	var ok:=preload("res://scripts/terminal_crafting.gd").transact(context.inventory,context.storage,recipe,iid,func(): model.records[building].storage=context.storage.serialize())
+	context.storage.free(); _busy=false
+	if ok: changed.emit()
+	return ok
 
 func _use_object(id: String,kind: String) -> void:
 	if not _near(current): return

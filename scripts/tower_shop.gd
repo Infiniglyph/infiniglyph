@@ -38,7 +38,7 @@ func anchor() -> Vector3:
 
 func offer(id: StringName) -> Dictionary:
 	var definition: Resource=Catalog.get_definition(id)
-	var civic: bool=definition!=null and (definition.custom_properties.get("civilization_catalog",false) or definition.custom_properties.get("civilian_food",false))
+	var civic: bool=definition!=null and (definition.custom_properties.get("civilization_catalog",false) or definition.custom_properties.get("civilian_food",false) or definition.custom_properties.has("material_id"))
 	if id not in ITEMS and Database.get_item(id).is_empty() and not civic: return {}
 	var price: Variant = prices.get(String(id),0 if civic or not Database.get_item(id).is_empty() else null)
 	if not price is int or price<0: return {}

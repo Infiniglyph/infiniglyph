@@ -64,6 +64,7 @@ static func create_support() -> StaticBody3D:
 
 func _ready() -> void:
 	name="GlyphicWondersGrandHall"
+	add_child(preload("res://scripts/wonders_column_crowns.gd").new())
 	structure=Chunk.new()
 	structure.name="GrandHallBatch"
 	add_child(structure)

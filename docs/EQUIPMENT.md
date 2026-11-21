@@ -15,11 +15,12 @@ filter, A/Enter acquires one item, and B/Escape returns to the exchange lobby.
 
 Equip purchases in the existing inventory. Four directions remain weapon
 shortcuts. Body, Head, Hands and Legs are cosmetic slots; two ring slots
-hold inert accessories. Health Glyph controls and healing remain unchanged.
+hold accessories with stable, rarity-scaled passive bonuses. See
+[terminal crafting and ring bonuses](TERMINAL_CRAFTING.md). Health Glyph controls and healing remain unchanged.
 Inventory rows, equipment assignments and the inspector now show the item's
 weapon family or wearable construction and slot, such as Scythe, Cloth Robe /
 Body, Plate Gauntlets / Hands or Hood / Head. The original starter equipment,
-Health Glyphs and inert rings also have readable types. Lore and weapon arts
+Health Glyphs and rings also have readable types. Lore and weapon arts
 scroll within the inspector using the mouse wheel, Page Up/Down or right stick;
 the selected type, assignment and menu controls remain visible.
 
@@ -248,7 +249,7 @@ Sentinel Mantle**, **Skyguard Tassets**, and **Eye of Horus Seal**. All use owne
 equipment slots, catalog previews, Tower Exchange offers and existing save
 validation. The cloak, tassets and wrist seal use the same batched procedural
 geometry worn by the aerial guard. Closed greaves hide the underlying feet.
-The accessory follows existing cosmetic ring rules. Falcon defeats choose a
+The accessory follows the shared equipped-ring passive rules. Falcon defeats choose a
 gear copy from all five items, plus an Uncommon or elite Rare remnant glyph;
 airborne rewards settle on supported ground in their own dungeon World3D.
 Dungeon enemies reset after player death or exiting the instance, including

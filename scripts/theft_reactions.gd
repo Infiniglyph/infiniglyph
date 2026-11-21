@@ -337,9 +337,7 @@ func begin_fighter(key: String) -> bool:
 	if is_instance_valid(society):
 		fighter.code_form_id=society.id_for_source(source)
 		var owned: Node=society.economy.npc_store(fighter.code_form_id)
-		if is_instance_valid(owned):
-			for slot: StringName in owned.SLOTS:
-				if owned.weapon_slot(slot)!=&"": fighter.store=owned; break
+		if is_instance_valid(owned): fighter.store=owned
 	fighter.spawn = at
 	fighter.position = at
 	add_child(fighter)

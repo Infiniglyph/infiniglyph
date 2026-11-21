@@ -211,9 +211,12 @@ func run() -> void:
 	for entry: Dictionary in reactions.entries.values(): entry.anger = 0
 	# Existing hub citizens use the same adapter without duplicating lobby exits.
 	var hub: CharacterBody3D = world.population.residents[0]
+	# Presence is evaluated on activation, so place the viewer first. Otherwise
+	# this manually staged body is correctly concealed at the old duel location.
+	actor.global_position = Vector3(210,0.05,130)
+	actor.velocity = Vector3.ZERO
 	hub.activate(Vector3(210,0.04,134))
 	hub.wait = 120
-	actor.global_position = Vector3(210,0.05,130)
 	reactions.react(hub,true)
 	reactions.react(hub,true)
 	reactions.react(hub,true)

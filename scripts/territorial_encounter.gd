@@ -47,10 +47,15 @@ func has_authority() -> bool:
 	return not networked() or multiplayer.is_server()
 
 func can_progress() -> bool:
-	return bool(progress.intro_completed)
+	return bool(progress.intro_completed) and is_instance_valid(player) and player.inventory.count_type(&"civic_key")>0
+
+func ensure_civic_pass() -> void:
+	if not has_authority() or not progress.intro_completed or not is_instance_valid(player) or player.inventory.count_type(&"civic_key")>0: return
+	player.inventory.add_item(preload("res://scripts/item_catalog.gd").create(&"civic_key"))
 
 func _ready() -> void:
 	name = "GreeferEncounter"
+	player.inventory.changed.connect(ensure_civic_pass)
 	layer = 5
 	persistence_enabled = persistence_enabled and not "--script" in OS.get_cmdline_args() and not networked()
 	# Existing isolated gameplay tests keep the perched boss, but opt into his
@@ -258,9 +263,12 @@ func finish(player_won: bool) -> void:
 	progress["wins" if player_won else "losses"] += 1
 	progress.last_outcome = "victory" if player_won else "defeat"
 	entries[String(encounter_id)] = progress.duplicate(true)
+	ensure_civic_pass()
 	if persistence_enabled and not save_checkpoint():
 		get_parent().inventory_session.show_notice("Encounter cleared. Progress save failed; retry before quitting.",8)
 	result_text = victory_line if player_won else defeat_line
+	if is_intro:
+		result_text+="\nCivic Pass received. Outer city access granted." if player.inventory.count_type(&"civic_key")>0 else "\nMake room in your inventory to receive your Civic Pass."
 	result_time = 7
 	boss.weapon_combat.cancel()
 	boss.combat.blocking = false
@@ -297,6 +305,7 @@ func load_checkpoint(path: String = "") -> bool:
 	if not loaded.has(String(encounter_id)): return false
 	entries = loaded
 	progress = entries[String(encounter_id)].duplicate(true)
+	ensure_civic_pass()
 	progression_changed.emit()
 	return true
 

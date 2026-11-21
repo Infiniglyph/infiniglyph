@@ -185,7 +185,13 @@ func run() -> void:
 	check(p.inventory.add_item(gear),"Add one unique owned weapon for real room storage transfer")
 	var gear_id := String(gear.instance_id)
 	check(economy.transfer_storage(0,gear_id,1,true,p.inventory) and p.inventory.get_item(gear_id)==null and economy.room_stores[0].get_item(gear_id)!=null,"Computer deposit transfers the weapon's exact identity to the room owner without duplication")
+	p.inventory.add_item(Catalog.create(&"electrons",1)); economy.room_stores[0].add_item(Catalog.create(&"electrons",1)); economy.room_stores[0].add_item(Catalog.create(&"hadron_grains",2))
+	services._crafting(); services.crafting.detail("prepare_electron_rice")
+	var rice_before: int=p.inventory.count_type(&"electron_rice")
+	services.menu._rows[0].pressed.emit()
+	check(p.inventory.count_type(&"electron_rice")==rice_before+1 and economy.room_stores[0].count_type(&"electrons")==0,"The actual room computer crafts using inventory plus authorized room storage")
 	services.menu.close_menu()
+	check(services._crafting_context().is_empty(),"Closing or leaving the terminal removes crafting authorization")
 	check(not economy.transfer_storage(0,gear_id,1,false,p.inventory),"Closing the computer removes storage transaction authorization")
 	await place(content.to_global(Vector3(-3.2,.17,-3.6)))
 	p.weapon_combat.health = 800

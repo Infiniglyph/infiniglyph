@@ -563,7 +563,7 @@ func _refresh_equipment() -> void:
 		_mark(button,index==selected_index)
 		equipment_buttons.append(button)
 	selected_iid = visible_ids[selected_index]
-	var note := _label("Four weapon directions. Armor is cosmetic.\nRings have no active effects.",13,MUTED)
+	var note := _label("Four weapon directions. Armor is cosmetic.\nEquipped rings grant stable rarity-based bonuses.",13,MUTED)
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_rows.add_child(note)
 	_page_label.text = "4 WEAPONS / 5 COSMETICS / 2 RINGS"
@@ -623,7 +623,7 @@ func _inspect() -> void:
 		_arts.text = ("BODY CLOTHING\nCosmetic; movement and combat values stay unchanged." if definition.is_equippable else "Stored cosmetic pattern.") if definition.category==&"cosmetics" else "Stored in your field kit.\nNo use action is available for this item."
 	var slots := _equipped_slots(selected_iid)
 	if definition.custom_properties.get("cosmetic_slot")=="ring":
-		_arts.text = "RING APPEARANCE\nNo gameplay effects are configured."
+		_arts.text = "EQUIPPED RING BONUSES\n"+preload("res://scripts/equipment_passives.gd").describe(item,definition)
 	elif definition.category==&"cosmetics" and definition.is_equippable:
 		_arts.text = String(definition.custom_properties.get("cosmetic_slot","body")).to_upper()+" APPEARANCE\nCosmetic; movement and combat values stay unchanged."
 	var names: Array[String] = []

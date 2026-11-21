@@ -270,3 +270,6 @@ func _ready() -> void:
 		respawn_glyphs=RespawnGlyphs.new()
 		respawn_glyphs.world=self
 		add_child(respawn_glyphs)
+	if is_instance_valid(wider_world) and not inventory_session.networked() and (not "--script" in OS.get_cmdline_args() or "--civic-access" in OS.get_cmdline_user_args()):
+		var access:=preload("res://scripts/civic_access.gd").new()
+		access.world=self; add_child(access)

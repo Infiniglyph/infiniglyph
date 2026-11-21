@@ -33,7 +33,7 @@ func _ready() -> void:
 
 func refresh() -> void:
 	opened = not is_instance_valid(encounter) or encounter.can_progress()
-	sign.text = "OUTER CITY  /  OPEN" if opened else "OUTER CITY  /  CONFRONT GREEFER"
+	sign.text = "OUTER CITY  /  CIVIC PASS ACCEPTED" if opened else "OUTER CITY  /  GREEFER GRANTS THE CIVIC PASS"
 
 func place_leaves() -> void:
 	for i in range(2):

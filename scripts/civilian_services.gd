@@ -12,6 +12,7 @@ var economy: Node
 var menu: CanvasLayer
 var initial_state: Dictionary
 var current: Dictionary = {}
+var crafting: RefCounted
 var food_effect: Dictionary = {}
 var _people: Array[Node3D] = []
 var _clock := 0.0
@@ -175,6 +176,7 @@ func _home() -> void:
 			body+="\nPrivate room storage. Equipment and stacks transfer between their actual owners.\nStored gear remains here after the room deconstructs or the rental expires."
 			options.append(_choice("Deposit owned items",_storage_list.bind(true)))
 			options.append(_choice("Withdraw stored items",_storage_list.bind(false)))
+			options.append(_choice("Craft and recycle",_crafting))
 		"bed":
 			body+="\nA quiet place to recover. Rest restores %.0f HP over %.0f seconds.\nSleep restores %.0f HP over %.0f seconds; world time continues normally." % [rest_healing,rest_duration,sleep_healing,sleep_duration]
 			options.append(_choice("Rest on the bed",_rest.bind(false)))
@@ -262,6 +264,15 @@ func _store(iid: String, amount: int, deposit: bool) -> void:
 	var ok: bool=economy.transfer_storage(world.dungeon_travel.room_number(),iid,amount,deposit,world.player.inventory)
 	_storage_list(deposit)
 	menu.set_status("Items transferred." if ok else "Transfer unavailable. Nothing was moved.",not ok)
+
+func _crafting() -> void:
+	if crafting==null: crafting=preload("res://scripts/terminal_crafting_menu.gd").new(menu,_crafting_context,_home)
+	crafting.open()
+
+func _crafting_context() -> Dictionary:
+	var index: int=world.dungeon_travel.room_number()
+	if index<0 or not economy.host_enabled or economy.transaction_active() or not _authorize(&"storage",{"room":index}): return {}
+	return {"inventory":world.player.inventory,"storage":economy.room_stores[index]}
 
 func _authorize(operation: StringName, payload: Dictionary) -> bool:
 	if operation==&"intent_trade":

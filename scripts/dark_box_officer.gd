@@ -1,4 +1,5 @@
 extends "res://scripts/resident_fighter.gd"
+func default_combat_fallback() -> bool: return false
 ## An ordinary Code Form combat body using the individual's real owned gear.
 func _ready() -> void:
 	code_form_id=identity

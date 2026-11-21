@@ -13,6 +13,10 @@ var cells: Dictionary = {}
 var pane_count := 0
 var building_count := 0
 var batch_count := 0
+var civic_material: ShaderMaterial
+
+func set_civic_access(allowed: bool) -> void:
+	if civic_material!=null: civic_material.set_shader_parameter("outer_unlocked",allowed)
 
 static func code(at: Vector3, salt: int) -> int:
 	return absi((roundi(at.x*10)*73856093) ^ (roundi(at.z*10)*19349663) ^ ((salt+71)*83492791))
@@ -72,10 +76,9 @@ func pane(center: Vector3, tangent: Vector3, size: Vector2, color: Color) -> voi
 	pane_count += 1
 
 func commit() -> void:
-	var material := StandardMaterial3D.new()
-	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	material.vertex_color_use_as_albedo = true
-	material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	civic_material=ShaderMaterial.new()
+	civic_material.shader=preload("res://scripts/civic_windows.gdshader")
+	var material:=civic_material
 	for key: Vector3i in cells:
 		var arrays := []
 		arrays.resize(Mesh.ARRAY_MAX)

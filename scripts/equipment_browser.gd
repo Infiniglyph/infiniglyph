@@ -204,7 +204,8 @@ func show_item(id: StringName) -> void:
 	selected = id
 	heading.text = entry.name
 	description.text = entry.description
-	details.text = "%s / %s\n%s\nCatalog value: %d Glyph Coins. Currently free.\n%s" % [entry.rarity,entry.family,entry.acquisition,entry.value,"Hold a special to charge; release to strike." if entry.kind=="named" else ("No active ring effects." if entry.kind=="ring" else "Cosmetic appearance." if entry.category=="cosmetics" else "Equip or use from inventory.")]
+	if entry.family=="ring": description.text+="\nEquipped bonus rolls follow this ring's name and rarity. Inspect an owned copy for its exact maximum HP, damage or defense bonuses."
+	details.text = "%s / %s\n%s\nCatalog value: %d Glyph Coins. Currently free.\n%s" % [entry.rarity,entry.family,entry.acquisition,entry.value,"Hold a special to charge; release to strike." if entry.kind=="named" else ("Passive bonuses while equipped." if entry.kind=="ring" else "Cosmetic appearance." if entry.category=="cosmetics" else "Equip or use from inventory.")]
 	if id==&"eturnull_manuscript":
 		details.text = "%s / %s\n%s\nHold RT / V to take the quill.\nHold X / Q or Y / R to trace; release to stop.\nA / Space always jumps.\nHold RT+B / V+H: shield. Tap RT+B: heal." % [entry.rarity,entry.family,entry.acquisition]
 	elif entry.family=="paintbrush":

@@ -714,7 +714,7 @@ func load_checkpoint(path: String = "") -> bool:
 
 func seed_demo_loot() -> void:
 	# Editor-style instances demonstrate collection without changing starter gear.
-	var definitions: Array = [Catalog.get_definition(&"light_shard"),Catalog.get_definition(&"signal_tonic"),Catalog.get_definition(&"civic_key")]
+	var definitions: Array = [Catalog.get_definition(&"light_shard"),Catalog.get_definition(&"signal_tonic")]
 	if definitions.is_empty(): return
 	var index := 0
 	for definition: Resource in definitions:

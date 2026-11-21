@@ -74,6 +74,10 @@ var rig: Node3D
 var trail: MeshInstance3D
 var body := Body.new()
 var max_health := BASE_HEALTH
+var _passive_hp:=0.0
+var _passive_damage:=0.0
+var _passive_defense:=0.0
+
 var health := BASE_HEALTH
 var shield_points: float:
 	get:
@@ -179,6 +183,13 @@ func _build_presentation() -> void:
 	trail.top_level = true
 	trail.global_transform = Transform3D.IDENTITY
 
+func refresh_passives() -> void:
+	var bonuses:=preload("res://scripts/equipment_passives.gd").total(actor.get("inventory"))
+	max_health=maxf(1,max_health-_passive_hp+float(bonuses.hp))
+	_passive_hp=float(bonuses.hp); _passive_damage=float(bonuses.damage); _passive_defense=float(bonuses.defense)
+	health=minf(health,max_health) # Equipping never grants free healing.
+	changed.emit()
+
 func loadout(slot: StringName) -> Dictionary:
 	var resolved: StringName = actor.combat.resolve_slot(slot)
 	if resolved == &"": return {"id":&"unarmed","name":"Empty","short":"Empty","color":Color(0.35,0.55,0.6),"guard":0.0}
@@ -279,7 +290,7 @@ func _on_trace_started(action: StringName) -> void:
 	changed.emit()
 
 func damage_multiplier(speed: float) -> float:
-	return 1.0+maxf(0,speed)*maxf(0,momentum_damage_gain)
+	return (1.0+maxf(0,speed)*maxf(0,momentum_damage_gain))*(1+_passive_damage)
 
 func is_staggered() -> bool:
 	return stagger_remaining>0.000001
@@ -576,7 +587,7 @@ func receive_hit(amount: float, source: Vector3, attacker: Node = null, incoming
 	last_blocked = bloom or basic_guard
 	var reduction := (0.95 if bloom else guard_strength()) if last_blocked else 0.0
 	var vulnerability: float = rules.exhausted_damage_multiplier if forced_state == &"exhausted" else 1.0
-	last_damage = maxf(0,amount)*(1-reduction)*vulnerability
+	last_damage = maxf(0,amount)*(1-reduction)*vulnerability*(1-_passive_defense)
 	var applied := last_damage
 	health = maxf(0,health-absorb_shield(last_damage))
 	var outcome := "block" if last_blocked else "hit"

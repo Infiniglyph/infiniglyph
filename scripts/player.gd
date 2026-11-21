@@ -93,6 +93,7 @@ func _ready() -> void:
 	weapon_combat.actor = self
 	add_child(weapon_combat)
 	inventory.equipment_changed.connect(combat.refresh_equipment)
+	inventory.equipment_changed.connect(weapon_combat.refresh_passives)
 	inventory.equipment_changed.connect(func(): visual.sync_clothing(inventory))
 	fall_damage = FallDamage.new()
 	fall_damage.actor = self
