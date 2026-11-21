@@ -372,8 +372,11 @@ reception can display the received item type's actual owned stock count. Display
 are bounded to eight and hidden beyond 32 metres. These are views of authority
 receipts and inventory, never substitutes for a successful delivery.
 
-Each native receives real, equipped Braided starter clothing once: Horizon
-Vestment, Accord Crown, Promise Grips and Lattice Greaves. Dark Box issues a
+Each native receives real, equipped Civic starter clothing once: Lattice
+Vestment, Lantern Crown, Margin Grips and Circuit Greaves. The original owner's
+remaining issued Braided starter pieces exchange one-for-one for Civic pieces
+in older saves. Purchased clothes, worn upgrades, sold pieces and other owners'
+items are preserved; the exchange cannot repeat after reload. Dark Box issues a
 shared uniform of Braided Circuit Vestment, Transit Crown, Accord Grips and
 Recursion Greaves. Both issue receipts live in the version-two autonomy state;
 loading, defeat or selling a piece does not resupply it. Officers, ordinary
@@ -381,6 +384,13 @@ pedestrians and seated native drivers show their actual owned clothing. The
 lightweight civilian view batches eight articulated mounts into two skinned
 surfaces, shares outfit meshes and uses the existing throttled pose updates.
 Combat bodies continue using the full existing equipment renderer.
+
+The player's existing wanted level appears as up to five gold triangle glyphs
+with cyan centers in the top-right HUD. Only active glyphs are drawn; cleared
+levels fade away over 0.35 seconds, and zero wanted status hides the display.
+The HUD listens to the existing law ledger's changes and restore signal. It
+does not change witness requirements, investigation, resolution or patrol logic,
+and its animation processing stops when a fade completes.
 
 Clothing Drip is a bounded 0-100 score derived from four equipped items' rarity,
 value, complexity and quality. Status labels progress from Everyday to Well

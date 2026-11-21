@@ -236,6 +236,9 @@ func _ready() -> void:
 		law=CivilianLaw.new()
 		law.world=self
 		add_child(law)
+		var wanted_hud:=preload("res://scripts/wanted_glyph_hud.gd").new()
+		wanted_hud.law=law
+		hud.add_child(wanted_hud)
 		communication=Communication.new()
 		communication.world=self
 		add_child(communication)

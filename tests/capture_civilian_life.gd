@@ -12,7 +12,7 @@ func run():
 		figure.sync_clothing(store)
 		if i==2: figure.sitting=true; figure.activity="meal"
 		figure.animate(.2,0,false)
-		var label=Label3D.new(); label.billboard=BaseMaterial3D.BILLBOARD_ENABLED; label.text=["BRAIDED STARTER","DARK BOX UNIFORM","SEATED MEAL"][i]; label.font_size=34; label.pixel_size=.006; stage.add_child(label); label.position=Vector3((i-1)*2.6,2.6,0)
+		var label=Label3D.new(); label.billboard=BaseMaterial3D.BILLBOARD_ENABLED; label.text=["CIVIC STARTER","DARK BOX UNIFORM","SEATED MEAL"][i]; label.font_size=34; label.pixel_size=.006; stage.add_child(label); label.position=Vector3((i-1)*2.6,2.6,0)
 	var camera=Camera3D.new(); stage.add_child(camera); camera.position=Vector3(2.8,3.3,8); camera.look_at(Vector3(0,1.2,0)); camera.projection=Camera3D.PROJECTION_ORTHOGONAL; camera.size=6; camera.current=true
 	for i in range(20): await process_frame
 	await RenderingServer.frame_post_draw

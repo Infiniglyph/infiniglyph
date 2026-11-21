@@ -34,6 +34,8 @@ func run() -> void:
 	actor.visual.retrieval.enabled = false
 	await frames(4)
 	var hud: Control = world.find_child("CombatHUD",true,false)
+	var wanted: Control = world.find_child("WantedGlyphHUD",true,false)
+	check(is_instance_valid(wanted) and wanted.law==world.law and wanted.mouse_filter==Control.MOUSE_FILTER_IGNORE,"The live HUD reads wanted triangles from the world's existing law ledger")
 	check(hud.health_bar is ProgressBar and hud.shield_bar is ProgressBar and hud.exhaustion_bar is ProgressBar and hud.grid_marker is Label,"Permanent player HUD contains health, shield, exhaustion and the compact grid marker")
 	check(hud.health_bar.value == 1000 and hud.exhaustion_bar.value == 0,"Fresh player shows full HP and empty accumulated exhaustion")
 	check(hud.grid_marker.text=="GRID  LAT 000N  LON 000E","Spawn is in the origin grid cell")

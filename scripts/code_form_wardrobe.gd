@@ -3,12 +3,13 @@ extends RefCounted
 ## while subsequent wants spend existing coins through normal commerce.
 const Catalog=preload("res://scripts/item_catalog.gd")
 const Equipment=preload("res://scripts/equipment_database.gd")
-const STARTERS:={"body":"eq_a_114fb568","head":"eq_a_11c9c380","hands":"eq_a_129f6ad0","legs":"eq_a_11ab4ab8"}
+const STARTERS:={"body":"eq_a_11607e48","head":"eq_a_1365c040","hands":"eq_a_11a3a5b0","legs":"eq_a_1166a098"}
+const LEGACY_STARTERS:={"body":"eq_a_114fb568","head":"eq_a_11c9c380","hands":"eq_a_129f6ad0","legs":"eq_a_11ab4ab8"}
 const UNIFORM:={"body":"eq_a_14c4b7e8","head":"eq_a_13750280","hands":"eq_a_portrait_03451","legs":"eq_a_13c15978"}
 
 static func issue(store: Node,state: Dictionary,officer: bool=false) -> bool:
 	var key:="uniform_issued" if officer else "attire_issued"
-	if state.get(key,false): return false
+	if state.get(key,false): return _migrate_starters(store) if not officer else false
 	var outfit: Dictionary=UNIFORM if officer else STARTERS
 	# Prepare before mutation so catalog/capacity failure cannot grant half a set.
 	var additions: Dictionary={}
@@ -16,7 +17,7 @@ static func issue(store: Node,state: Dictionary,officer: bool=false) -> bool:
 		if not officer and store.equipped_item(StringName(slot))!=null: continue
 		var item: Resource=Catalog.create(StringName(outfit[slot]))
 		if item==null: return false
-		item.custom_properties={"issued_to":String(store.owner_id),"issue":"dark_box_uniform" if officer else "braided_starter"}
+		item.custom_properties={"issued_to":String(store.owner_id),"issue":"dark_box_uniform" if officer else "civic_starter"}
 		additions[slot]=item
 	if store.items.size()+additions.size()>store.MAX_ITEMS: return false
 	for slot: String in additions:
@@ -24,6 +25,30 @@ static func issue(store: Node,state: Dictionary,officer: bool=false) -> bool:
 		store.assign(StringName(slot),additions[slot].instance_id)
 	state[key]=true
 	return true
+
+static func _migrate_starters(store: Node) -> bool:
+	# Exchange only an owner's original issue. Sold/lost pieces are not refilled,
+	# purchased Braided items keep their identity, and upgraded outfits stay worn.
+	var changed:=false
+	for item: Resource in store.items.values():
+		if item.owner_id!=store.owner_id or item.custom_properties.get("issued_to")!=store.owner_id or item.custom_properties.get("issue")!="braided_starter": continue
+		for slot: String in LEGACY_STARTERS:
+			if item.item_type_id!=StringName(LEGACY_STARTERS[slot]): continue
+			var replacement: Resource=Catalog.create(StringName(STARTERS[slot]))
+			if replacement==null: continue
+			replacement.upgrade_level=item.upgrade_level
+			replacement.custom_properties=item.custom_properties.duplicate(true)
+			replacement.custom_properties.issue="civic_starter"
+			var worn: bool=store.equipped_item(StringName(slot))==item
+			var previous: Resource=store.take_item(item.instance_id)
+			if previous==null: continue
+			if not store.add_item(replacement):
+				store.add_item(previous)
+				if worn: store.assign(StringName(slot),previous.instance_id)
+				continue
+			if worn: store.assign(StringName(slot),replacement.instance_id)
+			changed=true
+	return changed
 
 static func item_drip(type: StringName,properties: Dictionary={}) -> float:
 	var definition: Resource=Catalog.get_definition(type)

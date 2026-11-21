@@ -26,12 +26,33 @@ func run():
 	check(state.hunger==0 and state.vitality==1000,"An owned meal satisfies food and heals within normal HP bounds")
 	var store=Inventory.new(); store.owner_id="resident:fixture"; root.add_child(store)
 	state={"attire_issued":false,"uniform_issued":false}
-	check(Wardrobe.issue(store,state) and store.items.size()==4 and store.equipment.size()==4,"A native receives four actual equipped Braided starter items")
+	check(Wardrobe.issue(store,state) and store.items.size()==4 and store.equipment.size()==4,"A native receives four actual equipped Civic starter items")
+	var civic:=true
+	for item: Resource in store.items.values(): civic=civic and Wardrobe.Equipment.get_item(item.item_type_id).name.begins_with("Civic ") and item.custom_properties.issue=="civic_starter"
+	check(civic,"Every issued starter piece comes from the Civic collection")
 	check(not Wardrobe.issue(store,state) and store.items.size()==4,"Revisiting the issuer cannot duplicate starter clothes")
 	var initial=Wardrobe.drip(store)
 	check(initial>0 and initial<100,"Clothing Drip is derived from the real equipped catalog items")
 	check(Wardrobe.issue(store,state,true) and store.items.size()==8 and store.equipped_item(&"body").item_type_id==StringName(Wardrobe.UNIFORM.body),"Dark Box issues a distinct real uniform using the shared wardrobe")
 	check(not Wardrobe.issue(store,state,true),"Uniform issuance is durable rather than a free resupply")
+	var legacy=Inventory.new(); legacy.owner_id="resident:legacy"; root.add_child(legacy)
+	for slot: String in Wardrobe.LEGACY_STARTERS:
+		var old: Resource=Wardrobe.Catalog.create(StringName(Wardrobe.LEGACY_STARTERS[slot]))
+		old.custom_properties={"issued_to":legacy.owner_id,"issue":"braided_starter","quality":1.2}
+		legacy.add_item(old); legacy.assign(StringName(slot),old.instance_id)
+	var sold: Resource=legacy.take_item(legacy.equipped_item(&"head").instance_id)
+	var earned: Resource=Wardrobe.Catalog.create(StringName(Wardrobe.UNIFORM.body)); legacy.add_item(earned); legacy.assign(&"body",earned.instance_id)
+	var purchased: Resource=Wardrobe.Catalog.create(StringName(Wardrobe.LEGACY_STARTERS.hands)); legacy.add_item(purchased)
+	var issued_state={"attire_issued":true,"uniform_issued":false}
+	check(Wardrobe.issue(legacy,issued_state) and legacy.items.size()==5,"Older issued Braided pieces exchange one-for-one without duplicating inventory")
+	check(legacy.equipped_item(&"legs").item_type_id==StringName(Wardrobe.STARTERS.legs) and legacy.equipped_item(&"legs").custom_properties.quality==1.2,"An existing resident wears the Civic replacement with its owned quality preserved")
+	check(legacy.equipped_item(&"body")==earned and legacy.get_item(purchased.instance_id)==purchased and legacy.equipped_item(&"head")==null,"Migration preserves purchased outfits, unissued Braided pieces and sold-piece losses")
+	var migrated=legacy.serialize()
+	check(legacy.restore(JSON.parse_string(JSON.stringify(migrated))) and not Wardrobe.issue(legacy,issued_state),"Reloading a Civic wardrobe cannot repeat the exchange or refill sold clothes")
+	var uniform_body: Resource=store.equipped_item(&"body")
+	check(not Wardrobe.issue(store,state) and store.equipped_item(&"body")==uniform_body and uniform_body.item_type_id==StringName(Wardrobe.UNIFORM.body),"Dark Box keeps the approved uniform after ordinary starter migration")
+	check(not legacy.serialize().is_empty() and sold.owner_id.is_empty(),"The exchange leaves normal inventory ownership and persistence valid")
+	legacy.free()
 	var economy=Economy.new(); root.add_child(economy); economy.configure("human",["native"]); economy.bless_cycle(0,["native"])
 	economy.register_faction("exploration")
 	var funds={"business:guild":20000,"business:tavern":10000,"faction:exploration":15000}
@@ -43,10 +64,10 @@ func run():
 	for i in range(140): economy.transfer("business:guild","business:tavern",1,"Fixture transfer")
 	saved=JSON.parse_string(JSON.stringify(economy.serialize()))
 	check(saved.audit_base.institution_influx and economy.restore(saved) and not economy.issue_institution_influx(funds),"Compacted audit history preserves the one-time institutional receipt")
-	var legacy=saved.duplicate(true); legacy.version=5; legacy.audit_base.erase("institution_influx")
+	var legacy_ledger=saved.duplicate(true); legacy_ledger.version=5; legacy_ledger.audit_base.erase("institution_influx")
 	# This synthetic legacy contains the already-folded grant in supply/balances;
 	# clearing its receipt models a real older ledger, which can receive its first rollout.
-	check(economy.restore(legacy) and economy.issue_institution_influx(funds),"Version-five economies migrate and receive the new institutional rollout")
+	check(economy.restore(legacy_ledger) and economy.issue_institution_influx(funds),"Version-five economies migrate and receive the new institutional rollout")
 	var pantry=economy.npc_store("native")
 	economy.warm_capture()
 	var prior=economy.capture_values()
