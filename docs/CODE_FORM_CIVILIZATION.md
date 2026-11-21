@@ -372,8 +372,11 @@ reception can display the received item type's actual owned stock count. Display
 are bounded to eight and hidden beyond 32 metres. These are views of authority
 receipts and inventory, never substitutes for a successful delivery.
 
-Each native receives real, equipped Civic starter clothing once: Lattice
-Vestment, Lantern Crown, Margin Grips and Circuit Greaves. The original owner's
+Each native receives real, equipped Civic starter clothing once: a randomly
+distributed Lattice, Parallax, Threshold or Hearth Vestment, Lantern Crown,
+Margin Grips and Circuit Greaves. Body selection is seeded by native identity
+and saved on the item, so streaming or loading never rerolls it. Previously
+identical issued Civic bodies join this same four-piece pool once. The original owner's
 remaining issued Braided starter pieces exchange one-for-one for Civic pieces
 in older saves. Purchased clothes, worn upgrades, sold pieces and other owners'
 items are preserved; the exchange cannot repeat after reload. Dark Box issues a

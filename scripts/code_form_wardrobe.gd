@@ -4,8 +4,13 @@ extends RefCounted
 const Catalog=preload("res://scripts/item_catalog.gd")
 const Equipment=preload("res://scripts/equipment_database.gd")
 const STARTERS:={"body":"eq_a_11607e48","head":"eq_a_1365c040","hands":"eq_a_11a3a5b0","legs":"eq_a_1166a098"}
+const BODY_STARTERS: Array[StringName]=[&"eq_a_11607e48",&"eq_a_1121eea8",&"eq_a_13ef1868",&"eq_a_14786ca8"] # Lattice, Parallax, Threshold, Hearth.
 const LEGACY_STARTERS:={"body":"eq_a_114fb568","head":"eq_a_11c9c380","hands":"eq_a_129f6ad0","legs":"eq_a_11ab4ab8"}
 const UNIFORM:={"body":"eq_a_14c4b7e8","head":"eq_a_13750280","hands":"eq_a_portrait_03451","legs":"eq_a_13c15978"}
+
+static func starter_type(slot: String,owner: String) -> StringName:
+	# Identity seeds the choice; streaming and save/load never reroll an outfit.
+	return BODY_STARTERS[posmod(owner.hash(),BODY_STARTERS.size())] if slot=="body" else StringName(STARTERS[slot])
 
 static func issue(store: Node,state: Dictionary,officer: bool=false) -> bool:
 	var key:="uniform_issued" if officer else "attire_issued"
@@ -15,9 +20,10 @@ static func issue(store: Node,state: Dictionary,officer: bool=false) -> bool:
 	var additions: Dictionary={}
 	for slot: String in outfit:
 		if not officer and store.equipped_item(StringName(slot))!=null: continue
-		var item: Resource=Catalog.create(StringName(outfit[slot]))
+		var item: Resource=Catalog.create(StringName(outfit[slot]) if officer else starter_type(slot,String(store.owner_id)))
 		if item==null: return false
 		item.custom_properties={"issued_to":String(store.owner_id),"issue":"dark_box_uniform" if officer else "civic_starter"}
+		if not officer and slot=="body": item.custom_properties.starter_body_pool=1
 		additions[slot]=item
 	if store.items.size()+additions.size()>store.MAX_ITEMS: return false
 	for slot: String in additions:
@@ -31,23 +37,34 @@ static func _migrate_starters(store: Node) -> bool:
 	# purchased Braided items keep their identity, and upgraded outfits stay worn.
 	var changed:=false
 	for item: Resource in store.items.values():
-		if item.owner_id!=store.owner_id or item.custom_properties.get("issued_to")!=store.owner_id or item.custom_properties.get("issue")!="braided_starter": continue
-		for slot: String in LEGACY_STARTERS:
-			if item.item_type_id!=StringName(LEGACY_STARTERS[slot]): continue
-			var replacement: Resource=Catalog.create(StringName(STARTERS[slot]))
-			if replacement==null: continue
-			replacement.upgrade_level=item.upgrade_level
-			replacement.custom_properties=item.custom_properties.duplicate(true)
-			replacement.custom_properties.issue="civic_starter"
-			var worn: bool=store.equipped_item(StringName(slot))==item
-			var previous: Resource=store.take_item(item.instance_id)
-			if previous==null: continue
-			if not store.add_item(replacement):
-				store.add_item(previous)
-				if worn: store.assign(StringName(slot),previous.instance_id)
-				continue
-			if worn: store.assign(StringName(slot),replacement.instance_id)
-			changed=true
+		if item.owner_id!=store.owner_id or item.custom_properties.get("issued_to")!=store.owner_id: continue
+		var slot:=""
+		if item.custom_properties.get("issue")=="braided_starter":
+			for candidate: String in LEGACY_STARTERS:
+				if item.item_type_id==StringName(LEGACY_STARTERS[candidate]): slot=candidate; break
+		elif item.custom_properties.get("issue")=="civic_starter" and item.item_type_id==StringName(STARTERS.body) and item.custom_properties.get("starter_body_pool",0)!=1:
+			slot="body" # Migrate the previously identical Civic bodies once.
+		if slot.is_empty(): continue
+		var target:=starter_type(slot,String(store.owner_id))
+		if target==item.item_type_id:
+			item.custom_properties.starter_body_pool=1
+			store.changed.emit(); changed=true
+			continue
+		var replacement: Resource=Catalog.create(target)
+		if replacement==null: continue
+		replacement.upgrade_level=item.upgrade_level
+		replacement.custom_properties=item.custom_properties.duplicate(true)
+		replacement.custom_properties.issue="civic_starter"
+		if slot=="body": replacement.custom_properties.starter_body_pool=1
+		var worn: bool=store.equipped_item(StringName(slot))==item
+		var previous: Resource=store.take_item(item.instance_id)
+		if previous==null: continue
+		if not store.add_item(replacement):
+			store.add_item(previous)
+			if worn: store.assign(StringName(slot),previous.instance_id)
+			continue
+		if worn: store.assign(StringName(slot),replacement.instance_id)
+		changed=true
 	return changed
 
 static func item_drip(type: StringName,properties: Dictionary={}) -> float:

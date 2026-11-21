@@ -35,6 +35,27 @@ func run():
 	check(initial>0 and initial<100,"Clothing Drip is derived from the real equipped catalog items")
 	check(Wardrobe.issue(store,state,true) and store.items.size()==8 and store.equipped_item(&"body").item_type_id==StringName(Wardrobe.UNIFORM.body),"Dark Box issues a distinct real uniform using the shared wardrobe")
 	check(not Wardrobe.issue(store,state,true),"Uniform issuance is durable rather than a free resupply")
+	var body_types: Dictionary={}
+	var stable:=true
+	for i in range(16):
+		var resident=Inventory.new(); resident.owner_id="resident:body_pool/"+str(i); root.add_child(resident)
+		var issued={"attire_issued":false,"uniform_issued":false}
+		Wardrobe.issue(resident,issued)
+		var body: Resource=resident.equipped_item(&"body")
+		body_types[body.item_type_id]=true
+		var saved_outfit=resident.serialize()
+		stable=stable and resident.restore(JSON.parse_string(JSON.stringify(saved_outfit))) and not Wardrobe.issue(resident,issued) and resident.equipped_item(&"body").instance_id==body.instance_id
+		resident.free()
+	check(body_types.size()==4 and body_types.keys().all(func(type): return type in Wardrobe.BODY_STARTERS),"Residents receive all four requested Civic body designs")
+	check(stable,"Each resident keeps the same issued body and item identity after reload")
+	var fixed=Inventory.new(); fixed.owner_id="resident:fixed_civic"; root.add_child(fixed)
+	var old_body: Resource=Wardrobe.Catalog.create(StringName(Wardrobe.STARTERS.body))
+	old_body.custom_properties={"issued_to":fixed.owner_id,"issue":"civic_starter","quality":1.2}
+	fixed.add_item(old_body); fixed.assign(&"body",old_body.instance_id)
+	var fixed_state={"attire_issued":true,"uniform_issued":false}
+	check(Wardrobe.issue(fixed,fixed_state) and fixed.items.size()==1 and fixed.equipped_item(&"body").item_type_id==Wardrobe.starter_type("body",fixed.owner_id) and fixed.equipped_item(&"body").custom_properties.quality==1.2,"Existing identical Civic starters join the pool once while preserving quality")
+	check(not Wardrobe.issue(fixed,fixed_state),"The existing starter migration does not keep rerolling or granting items")
+	fixed.free()
 	var legacy=Inventory.new(); legacy.owner_id="resident:legacy"; root.add_child(legacy)
 	for slot: String in Wardrobe.LEGACY_STARTERS:
 		var old: Resource=Wardrobe.Catalog.create(StringName(Wardrobe.LEGACY_STARTERS[slot]))
